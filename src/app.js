@@ -143,7 +143,7 @@ class BoardView {
       el.classList.remove('hint', 'mark');
       if (this.marks[sq]) el.classList.add(this.marks[sq]);
       el.querySelectorAll('.dot,.ring,.star').forEach(c => c.remove());
-      if (this.targets.includes(sq)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
+      if (this.targets.includes(sq) && !(profile.style && profile.style.dots === false)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
       if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, icon('star', 34)));
     }
     this.layer.innerHTML = ''; this.pieceEls = {};
@@ -506,6 +506,7 @@ function gameScreen(main, cfg) {
     get viewing() { return viewPly !== null; },
   };
 }
+function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
 // ======================= PLAY VS BOT =======================
@@ -545,7 +546,7 @@ function renderBotGame(main) {
   const g = new Game(START_FEN, cur.moves);
   let thinking = false, alive = true;
   cleanups.push(() => { alive = false; });
-  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: 'you' };
+  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: myAvatar() };
   const them = { name: bot.name, rating: bot.rating, avatar: bot.avatar };
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
@@ -632,6 +633,7 @@ function renderBotGame(main) {
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
+    setTimeout(() => rewardEvent('botGame', { score, reason, botIndex: cur.bot, rated: counted, tc: cur.tc, moves: g.moves.slice(), color: cur.color }), 1800);
     if (score === 1) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }
@@ -690,6 +692,7 @@ function renderLocalGame(main) {
     },
   });
   function showLocalEnd(s) {
+      setTimeout(() => rewardEvent('localGame', { moves: g.moves.slice(), reason: s.reason }), 1500);
       beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); 
   }
   function buttons() {
@@ -895,7 +898,7 @@ function renderOnlineGame(main) {
   setLive();
   main.append(h('div', { class: 'row' }, live, h('span', { class: 'grow' })));
   const scr = gameScreen(main, {
-    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: 'friend', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: 'you', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
+    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: 'friend', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: myAvatar(), rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
     canMove: turn => o.connected && !o.state.result && turn === myColor,
     getClock: () => o.state.clock,
     onTick: () => {
@@ -918,6 +921,7 @@ function renderOnlineGame(main) {
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
     const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = rateOnline(o.state, oppInfo, score);
+    if (rc) setTimeout(() => rewardEvent('onlineGame', { score, moves: o.state.moves.slice(), color: myColor }), 1800);
     if (win) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => modal((box, close) => box.append(badge(r.result === '1/2-1/2' ? 'half' : win ? 'trophy' : 'shield', r.result === '1/2-1/2' ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
       rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
@@ -1040,6 +1044,7 @@ function renderPuzzles(main) {
   }
   function solved() {
     ps.done = true; beep('win'); board.burst('star');
+    setTimeout(() => rewardEvent('puzzle', { solved: true, clean: !ps.failed }), 600);
     const d = ps.failed ? null : rate(true);
     if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
     setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
@@ -1108,7 +1113,7 @@ function renderLesson(main) {
   let complete = step.type === 'text';
   const nextBtn = h('button', { class: 'btn primary grow', disabled: !complete, onclick: () => {
     if (lessonStep < steps.length - 1) { lessonStep++; render(); window.scrollTo(0, 0); }
-    else { profile.lessons[L.id] = 1; saveProfile(); beep('win'); const idx = LESSONS.indexOf(L); const nxt = LESSONS[idx + 1];
+    else { const firstTime = !profile.lessons[L.id]; profile.lessons[L.id] = 1; saveProfile(); beep('win'); if (firstTime) setTimeout(() => rewardEvent('lesson'), 900); const idx = LESSONS.indexOf(L); const nxt = LESSONS[idx + 1];
       modal((box, close) => box.append(badge('learn', 'gold'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title),
         h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); lessonOpen = null; render(); } }, 'All lessons'), nxt ? h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = nxt; lessonStep = 0; render(); window.scrollTo(0, 0); } }, 'Next lesson') : h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = null; go('play'); } }, "Let's play!")))); }
   } }, lessonStep < steps.length - 1 ? 'Next' : 'Finish', icon(lessonStep < steps.length - 1 ? 'next' : 'check', 18));
@@ -1188,6 +1193,8 @@ function sparkline(arr, color) {
   return el;
 }
 function renderMe(main) {
+  if (meView === 'style') return renderStyle(main);
+  main.append(levelCard());
   const L = profile.ladder, lg = leagueOf(L.r), hu = profile.human, pr = profile.puzzle;
   const nameInp = h('input', { class: 'input', placeholder: 'Your name', value: profile.name, maxlength: 20, onchange: e => { profile.name = e.target.value.trim(); saveProfile(); } });
   const botGames = profile.games.filter(g => !g.online);
@@ -1204,6 +1211,7 @@ function renderMe(main) {
   main.append(h('div', { class: 'stats' },
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
+  main.append(trophyCard());
   if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
   if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
@@ -1238,6 +1246,7 @@ function boot() {
   const saved = loadLocal();
   if (saved) { const wasOld = !saved.v; profile = Object.assign(DEFAULT_PROFILE(), saved); if (wasOld) profile.v = 1; profile = migrate(profile); }
   soundOn = profile.sound !== false;
+  applyStyle();
   buildTabs();
   const hr = (location.hash || '').slice(1); if (ROUTES[hr]) route = hr;
   window.addEventListener('hashchange', () => { const hs = location.hash; const jm = hs.match(/^#join=(.+)$/); if (jm) { pendingJoin = jm[1]; friendView = 'online'; leaveOnline(); go('friend'); return; } const r = hs.slice(1); if (ROUTES[r] && r !== route) go(r); });

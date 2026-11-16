@@ -3,7 +3,7 @@ const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), rd = f => fs.readFileSync(path.join(root, f), 'utf8');
 const strip = s => s.replace(/^if \(typeof module.*$/gm, '');
 // UI modules, in load order. boot.js must stay last.
-const APP_FILES = ['src/icons.js', 'src/app.js', 'src/puzzles2.js', 'src/boot.js'];
+const APP_FILES = ['src/icons.js', 'src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/boot.js'];
 const puzzles = JSON.parse(rd('data/puzzles.json'));
 const calib = JSON.parse(rd('data/calibration.json'));
 let html = rd('src/template.html');

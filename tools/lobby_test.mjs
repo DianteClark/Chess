@@ -134,10 +134,12 @@ async function unitFlag() {
 let server = null, stateDir = null;
 async function startServer() {
   if (process.env.LOBBY_URL) return;
+  try { await fetch(BASE + '/health'); throw new Error('port ' + PORT + ' is already in use (stale wrangler dev?)'); }
+  catch (e) { if (/already in use/.test(e.message)) throw e; }
   stateDir = mkdtempSync(join(tmpdir(), 'kc-lobby-'));
   server = spawn('npx', ['wrangler', 'dev', '--port', String(PORT), '--persist-to', stateDir,
     '--var', 'TEST_HOOKS:1', '--var', 'FIRST_MOVE_MS:3000', '--var', 'DISCONNECT_MS:4000'],
-  { cwd: LOBBY_DIR, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
+  { cwd: LOBBY_DIR, detached: true, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, WRANGLER_SEND_METRICS: 'false' } });
   let log = '';
   server.stdout.on('data', d => { log += d; });
   server.stderr.on('data', d => { log += d; });
@@ -149,7 +151,7 @@ async function startServer() {
   throw new Error('wrangler dev did not start');
 }
 function stopServer() {
-  if (server) { try { server.kill('SIGTERM'); } catch (e) {} }
+  if (server) { try { process.kill(-server.pid, 'SIGTERM'); } catch (e) { try { server.kill('SIGTERM'); } catch (e2) {} } }
   if (stateDir) try { rmSync(stateDir, { recursive: true, force: true }); } catch (e) {}
 }
 
@@ -371,7 +373,6 @@ async function main() {
   r = await fetch(BASE + '/leaderboard');
   const lb = (await r.json()).players;
   ok(r.headers.get('access-control-allow-origin') === '*', '/leaderboard has CORS header');
-  if (lb[0]?.id !== wa.id) console.log(JSON.stringify(lb), wa.id);
   ok(lb.length >= 1 && lb[0].id === wa.id && lb[0].r === 1234, 'leaderboard sorted, includes A');
   ok(!lb.some(p => p.id === wc.id), 'players under 5 rated games excluded');
   await A.send({ t: 'leaderboard' });

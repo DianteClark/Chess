@@ -74,6 +74,7 @@ function markDaily(solvedClean) {
   const yKey = y.getFullYear() + '-' + String(y.getMonth() + 1).padStart(2, '0') + '-' + String(y.getDate()).padStart(2, '0');
   d.streak = (d.last === yKey ? d.streak : 0) + 1; d.last = key; d.best = Math.max(d.best, d.streak);
   saveProfile();
+  if (solvedClean) setTimeout(() => rewardEvent('daily'), 700);
 }
 function renderDaily(main) {
   const p = dailyPuzzle(), d = dailyState(), key = todayKey(), status = d.history[key];
@@ -118,6 +119,7 @@ function renderRush(main) {
   if (rush.phase === 'over') {
     const best = rushBest(rush.mode), isBest = rush.score > best;
     if (isBest) { profile.rushBest[rush.mode] = rush.score; saveProfile(); }
+    if (!rush.rewarded) { rush.rewarded = true; setTimeout(() => rewardEvent('rush', { score: rush.score }), 500); }
     main.append(badge(isBest ? 'trophy' : 'bolt', isBest ? 'gold' : 'blue'), h('h2', { class: 'center' }, `Score: ${rush.score}`), h('p', { class: 'center muted' }, isBest ? 'New personal best!' : `Personal best: ${best}`));
     main.append(h('div', { class: 'card' }, h('b', null, 'Your run'), h('div', { class: 'rushlog' }, rush.log.map(x => h('span', { class: 'rl ' + (x.ok ? 'ok' : 'bad') }, String(x.rating))))));
     main.append(h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { rush = { phase: 'menu' }; render(); } }, 'Modes'), h('button', { class: 'btn primary grow', onclick: () => { const m = rush.mode; rush = { phase: 'play', mode: m, queue: rushQueue(), i: 0, score: 0, strikes: 0, start: Date.now(), limit: m === '3min' ? 180000 : m === '5min' ? 300000 : 0, log: [] }; render(); } }, icon('repeat', 18), 'Play again')));
@@ -137,7 +139,7 @@ function renderRush(main) {
     if (rush.strikes >= 3) { rush.phase = 'over'; }
     setTimeout(() => render(), ok ? 350 : 700);
   };
-  const pb = new PuzzleBoard(p, { speed: 280, wrongDelay: 600, onSolved: () => { beep('star'); next(true); }, onWrong: () => { if (!pb.counted) { pb.counted = true; pb.done = true; next(false); } } });
+  const pb = new PuzzleBoard(p, { speed: 280, wrongDelay: 600, onSolved: () => { beep('star'); inc('puzzles'); next(true); }, onWrong: () => { if (!pb.counted) { pb.counted = true; pb.done = true; next(false); } } });
   main.append(pb.el);
   main.append(h('button', { class: 'btn block ghost', onclick: () => { rush.phase = 'over'; render(); } }, 'End run'));
   if (rush.limit) {
