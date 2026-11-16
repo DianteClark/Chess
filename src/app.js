@@ -519,6 +519,7 @@ function gameScreen(main, cfg) {
       movesEl.append(h('span', { class: 'm' + (cur ? ' cur' : ''), onclick: () => setView(i + 1) }, s));
     });
     if (!g.sans.length) movesEl.append(h('span', { class: 'muted small' }, 'Moves will appear here'));
+    if (g.startFen === START_FEN && g.moves.length && typeof openingName === 'function') { const op = openingName(g.moves.slice(0, Math.min(g.moves.length, 16))); if (op) movesEl.prepend(h('span', { class: 'pill opn' }, op)); }
     const cur = movesEl.querySelector('.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }
   function refresh(animate) {
@@ -1097,7 +1098,7 @@ function renderPuzzles(main) {
   const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
   const banner = h('div', { class: 'banner' });
   const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = html; };
-  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>checkmate in ${p.n}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
+  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>${puzzlePrompt(p).goal}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
   setBanner('', prompt());
   let busy = false;
   const board = new BoardView({
@@ -1152,7 +1153,7 @@ function renderPuzzles(main) {
     setTimeout(() => rewardEvent('puzzle', { solved: true, clean: !ps.failed }), 600);
     const d = ps.failed ? null : rate(true);
     if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
-    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
+    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : (p.themes && p.themes.length ? 'Theme: ' + p.themes.filter(t => THEME_NAMES[t] && t !== 'middlegame' && t !== 'endgame').map(t => THEME_NAMES[t]).join(', ') + '.' : '')}</span>`);
     msg.className = 'taskmsg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
     buttons();
   }
