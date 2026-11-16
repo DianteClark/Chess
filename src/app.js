@@ -535,7 +535,7 @@ function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
 // ======================= PLAY VS BOT =======================
-let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0', coach: true };
+let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0', coach: true, variant: 'std' };
 function renderPlay(main) {
   if (profile.current && profile.current.mode === 'bot') return renderBotGame(main);
   const r = { r: profile.ladder.r };
@@ -559,18 +559,21 @@ function renderPlay(main) {
     h('div', { class: 'card stack' },
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'TIME'), tcPicker(playSel)),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'VARIANT'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant')),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual + Coach']], 'rated')),
       playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated, tc = playSel.tc) {
   const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
   const [tb, ti] = parseTc(tc);
-  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), coach: !rated && playSel.coach !== false, moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
+  const v960 = playSel.variant === '960' ? E.chess960Fen() : null;
+  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), coach: !rated && playSel.coach !== false, startFen: v960 ? v960.fen : START_FEN, sp: v960 ? v960.n : null, moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
   saveProfile(); go('play'); render();
 }
 function renderBotGame(main) {
   const cur = profile.current, bot = BOTS[cur.bot];
-  const g = new Game(START_FEN, cur.moves);
+  const SF0 = cur.startFen || START_FEN, is960 = SF0 !== START_FEN;
+  const g = new Game(SF0, cur.moves);
   let thinking = false, alive = true;
   cleanups.push(() => { alive = false; });
   const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: myAvatar() };
@@ -587,7 +590,7 @@ function renderBotGame(main) {
     getClock: cur.clock ? () => cur.clock : null,
     onTick: () => { if (cur.result) return; const f = clk.flagged(cur.clock); if (f) { const r = timeoutResult(g.pos, f); finish(r.result, r.reason); } },
   });
-  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : cur.coach ? 'Casual game with Live Coach' : 'Casual game: undo and hints allowed'));
+  main.append(h('div', { class: 'center small muted' }, (is960 ? `Chess960 #${cur.sp} · ` : '') + (cur.rated ? 'Rated game' : cur.coach ? 'Casual game with Live Coach' : 'Casual game: undo and hints allowed')));
   // ----- live coach -----
   const coachTxt = h('div', { class: 'txt' }), coachHead = h('div', { class: 'revhead' }), coachBtns = h('div', { class: 'row' });
   const coachBox = h('div', { class: 'card coachbox' + (cur.coach ? '' : ' hidden') }, coachHead, h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(44)), coachTxt), coachBtns);
@@ -605,10 +608,10 @@ function renderBotGame(main) {
   async function coachAfterUserMove(movesBefore, uci) {
     if (!cur.coach) return true;
     coachSay([icon('hourglass', 18), h('b', null, 'Thinking about your move…')], '');
-    let before; try { before = await (preLines || analyzePos(new Game(START_FEN, movesBefore).pos.fen(), 2, 11)); } catch (e) { before = []; }
-    const after = await analyzePos(new Game(START_FEN, movesBefore.concat([uci])).pos.fen(), 1, 11);
+    let before; try { before = await (preLines || analyzePos(new Game(SF0, movesBefore).pos.fen(), 2, 11)); } catch (e) { before = []; }
+    const after = await analyzePos(new Game(SF0, movesBefore.concat([uci])).pos.fen(), 1, 11);
     if (profile.current !== cur) return false;
-    const gr = gradeSingle(START_FEN, movesBefore, uci, before, after, cur.color, bot.name);
+    const gr = gradeSingle(SF0, movesBefore, uci, before, after, cur.color, bot.name);
     const bad = ['mistake', 'blunder'].includes(gr.cls);
     const head = [classBadge(gr.cls, 22), h('b', null, gr.mv.san), h('span', { class: 'muted' }, ' ' + clsPhrase(gr.cls))];
     if (!bad) { coachSay(head, gr.text); return true; }
@@ -628,7 +631,7 @@ function renderBotGame(main) {
       list.push({ ic: 'bulb', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
     }
     if (over) {
-      list.push({ ic: 'search', label: 'Review', on: () => openReview({ moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }) });
+      list.push({ ic: 'search', label: 'Review', on: () => openReview({ startFen: SF0, moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }) });
       list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc) });
       list.push({ ic: 'plus', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
     } else {
@@ -639,7 +642,7 @@ function renderBotGame(main) {
   }
   async function hint() {
     scr.setStatus('bottom', 'thinking…');
-    const r = await engineRequest({ kind: 'best', fen: START_FEN, moves: g.moves, nodes: 120000 });
+    const r = await engineRequest({ kind: 'best', fen: SF0, moves: g.moves, nodes: 120000 });
     scr.setStatus('bottom', '');
     if (!alive || !r.uci) return;
     cur.hints++;
@@ -664,7 +667,7 @@ function renderBotGame(main) {
     const t0 = Date.now();
     let level = bot;
     if (cur.clock) { const left = clk.rem(cur.clock, cur.color === 'w' ? 'b' : 'w'); const cap = left < 10000 ? 6000 : left < 30000 ? 25000 : left < 60000 ? 80000 : Infinity; if (cap < bot.nodes) level = Object.assign({}, bot, { nodes: cap }); }
-    const r = await engineRequest({ kind: 'bot', fen: START_FEN, moves: g.moves, level, seed: cur.seed + g.moves.length, salt: cur.salt, ply: g.moves.length, book: OPENINGS[cur.book] });
+    const r = await engineRequest({ kind: 'bot', fen: SF0, moves: g.moves, level, seed: cur.seed + g.moves.length, salt: cur.salt, ply: g.moves.length, book: is960 ? null : OPENINGS[cur.book] });
     const wait = cur.clock && clk.rem(cur.clock, cur.color === 'w' ? 'b' : 'w') < 30000 ? 0 : Math.max(0, 450 + Math.random() * 400 - (Date.now() - t0));
     await new Promise(res => setTimeout(res, wait));
     if (!alive || profile.current !== cur) return;
@@ -695,12 +698,13 @@ function renderBotGame(main) {
       if (nl.i !== oldLeague.i) promo = { up: nl.i > oldLeague.i, name: nl.name, piece: nl.piece };
       profile.rHist.push(L.r); if (profile.rHist.length > 200) profile.rHist.shift();
     }
-    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves(), moves: g.moves.slice(), tc: cur.tc });
+    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves(), moves: g.moves.slice(), tc: cur.tc, startFen: is960 ? SF0 : undefined });
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
     setTimeout(() => rewardEvent('botGame', { score, reason, botIndex: cur.bot, rated: counted, tc: cur.tc, moves: g.moves.slice(), color: cur.color, botRating: bot.rating, myRating: before }), 1800);
     if (score === 1) setTimeout(() => confetti(), 400);
+    if (is960) setTimeout(() => rewardEvent('game960'), 2500);
     if (score === 1) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }
@@ -715,7 +719,7 @@ function renderBotGame(main) {
       promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
       score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap Review and the coach will show you the turning point.') : null,
       h('div', { class: 'row', style: { marginTop: '12px' } },
-        h('button', { class: 'btn grow', onclick: () => { close(); openReview({ moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }); } }, icon('search', 18), 'Review'),
+        h('button', { class: 'btn grow', onclick: () => { close(); openReview({ startFen: SF0, moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }); } }, icon('search', 18), 'Review'),
         h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc); } }, 'Rematch'))));
   }
   buttons();
@@ -737,13 +741,15 @@ function renderFriend(main) {
 }
 function newLocalGame() {
   const st = profile.localGame || {}; const sel = { tc: st.tc || '0+0' };
-  modal((box, close) => box.append(h('h2', null, 'New game'), h('p', { class: 'muted small' }, 'Pick a time control. Each player gets this much time.'), tcPicker(sel),
+  sel.variant = st.variant || 'std';
+  const vseg = h('div', { class: 'seg' }); const drawV = () => { vseg.innerHTML = ''; [['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]].forEach(([v, l]) => vseg.append(h('button', { class: sel.variant === v ? 'on' : '', onclick: () => { sel.variant = v; drawV(); } }, l))); }; drawV();
+  modal((box, close) => box.append(h('h2', null, 'New game'), h('p', { class: 'muted small' }, 'Pick a time control. Each player gets this much time.'), tcPicker(sel), h('div', { style: { height: '8px' } }), vseg,
     h('div', { class: 'row', style: { marginTop: '14px' } }, h('button', { class: 'btn grow', onclick: close }, 'Cancel'),
-      h('button', { class: 'btn primary grow', onclick: () => { close(); const [b, i] = parseTc(sel.tc); profile.localGame = { moves: [], autoFlip: st.autoFlip !== false, tc: sel.tc, clock: newClock(b, i), result: null }; saveProfile(); render(); } }, 'Start'))));
+      h('button', { class: 'btn primary grow', onclick: () => { close(); const [b, i] = parseTc(sel.tc); const v = sel.variant === '960' ? E.chess960Fen() : null; profile.localGame = { moves: [], autoFlip: st.autoFlip !== false, tc: sel.tc, clock: newClock(b, i), result: null, variant: sel.variant, startFen: v ? v.fen : START_FEN }; saveProfile(); render(); } }, 'Start'))));
 }
 function renderLocalGame(main) {
   const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true, tc: '0+0', clock: null });
-  const g = new Game(START_FEN, st.moves);
+  const g = new Game(st.startFen || START_FEN, st.moves);
   const scr = gameScreen(main, {
     game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: 'white' }, b: { name: 'Black', avatar: 'black' } },
     canMove: () => !g.status().over && !st.result,
@@ -761,7 +767,7 @@ function renderLocalGame(main) {
     },
   });
   function showLocalEnd(s) {
-      setTimeout(() => rewardEvent('localGame', { moves: g.moves.slice(), reason: s.reason }), 1500);
+      setTimeout(() => { rewardEvent('localGame', { moves: (st.startFen && st.startFen !== START_FEN) ? null : g.moves.slice(), reason: s.reason }); if (st.startFen && st.startFen !== START_FEN) rewardEvent('game960'); }, 1500);
       beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); 
   }
   function buttons() {
@@ -1288,7 +1294,7 @@ function renderMe(main) {
   main.append(trophyCard());
   if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
-  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', { class: g.moves ? 'tap' : '', onclick: () => g.moves && openReview({ moves: g.moves, color: g.color || null, white: g.color === 'b' ? g.opp : (profile.name || 'You'), black: g.color === 'b' ? (profile.name || 'You') : g.opp }) }, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
+  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', { class: g.moves ? 'tap' : '', onclick: () => g.moves && openReview({ startFen: g.startFen, moves: g.moves, color: g.color || null, white: g.color === 'b' ? g.opp : (profile.name || 'You'), black: g.color === 'b' ? (profile.name || 'You') : g.opp }) }, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
   main.append(h('div', { class: 'card stack' },
     h('h3', null, 'How ratings work'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),

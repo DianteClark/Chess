@@ -23,10 +23,13 @@ const scoreToCp = l => l.mate != null ? (l.mate > 0 ? 10000 - l.mate * 10 : -100
 
 // ---------- engine access ----------
 let sfState = null; // null untried, true ok, false failed
+let sf960 = false;
 async function analyzePos(fen, multipv, depth) {
   if (sfState !== false && typeof SF !== 'undefined') {
     try {
       if (sfState === null) { await SF.ready(); sfState = true; }
+      const want960 = /[A-Ha-h]/.test((fen.split(' ')[2]) || '-');
+      if (want960 !== sf960) { await SF.setOption('UCI_Chess960', want960 ? 'true' : 'false'); sf960 = want960; }
       const r = await SF.analyze(fen, { depth, multipv, timeout: 15000 });
       if (r && r.lines && r.lines.length) return r.lines.map(l => ({ cp: scoreToCp(l), mate: l.mate, pv: l.pv || [] }));
     } catch (e) { sfState = false; }
@@ -200,8 +203,8 @@ function openingName(ucis) {
 }
 // book: the first moves that follow a line in our opening book
 let BOOK_SET = null;
-function isBookMove(ucis, i) {
-  if (i >= 12) return false;
+function isBookMove(ucis, i, startFen) {
+  if (i >= 12 || (startFen && startFen !== START_FEN)) return false;
   if (!BOOK_SET) {
     BOOK_SET = new Set();
     for (const line of OPENINGS) { const p = new E.Position(); const acc = []; for (const san of line) { const m = p.moveFromSan(san); if (!m) break; acc.push(p.uci(m)); BOOK_SET.add(acc.join(' ')); p.make(m); } }
@@ -264,7 +267,7 @@ function finalizeReview(R) {
     phaseAccs[side][phase].push(acc);
     const facts = moveFacts(R.startFen, R.uciMoves.slice(0, i), uci);
     let cls;
-    if (isBookMove(R.uciMoves, i) && loss < 3) cls = 'book';
+    if (isBookMove(R.uciMoves, i, R.startFen) && loss < 3) cls = 'book';
     else if (loss <= 0.5) cls = 'best'; else if (loss < 2) cls = 'excellent'; else if (loss < 5) cls = 'good'; else if (loss < 10) cls = 'inaccuracy'; else if (loss < 20) cls = 'mistake'; else cls = 'blunder';
     // great: the only good move
     if ((cls === 'best') && second != null && wpBest - second >= 15 && wpBefore < 92) cls = 'great';
@@ -287,7 +290,7 @@ function finalizeReview(R) {
   // key moments: the biggest swings
   R.key = R.moves.map((m, i) => [i, Math.abs(winPct(R.evals[i + 1]) - winPct(R.evals[i]))]).filter(x => x[1] >= 12).sort((a, b) => b[1] - a[1]).slice(0, 5).map(x => x[0]).sort((a, b) => a - b);
   R.summary = coachSummary(R);
-  R.opening = openingName(R.uciMoves);
+  R.opening = R.startFen === START_FEN ? openingName(R.uciMoves) : 'Chess960';
   R.done = true;
   // save for insights + rewards
   const side = R.color || 'w';
@@ -421,7 +424,7 @@ function gradeSingle(startFen, movesBefore, uci, linesBefore, linesAfter, color,
   let loss = uci === best ? 0 : Math.max(0, wpBest - wpAfter);
   const all = movesBefore.concat([uci]);
   const facts = moveFacts(startFen, movesBefore, uci);
-  let cls = isBookMove(all, movesBefore.length) && loss < 3 ? 'book' : loss <= 0.5 ? 'best' : loss < 2 ? 'excellent' : loss < 5 ? 'good' : loss < 10 ? 'inaccuracy' : loss < 20 ? 'mistake' : 'blunder';
+  let cls = isBookMove(all, movesBefore.length, startFen) && loss < 3 ? 'book' : loss <= 0.5 ? 'best' : loss < 2 ? 'excellent' : loss < 5 ? 'good' : loss < 10 ? 'inaccuracy' : loss < 20 ? 'mistake' : 'blunder';
   const second = linesBefore[1] ? winPct(linesBefore[1].cp) : null;
   if (cls === 'best' && second != null && wpBest - second >= 15 && wpBest < 92) cls = 'great';
   if ((cls === 'best' || cls === 'great') && facts.leavesHanging >= 2 && (!facts.capt || PVAL[facts.capt] < PVAL[facts.piece]) && facts.piece !== 1 && wpBest < 85 && wpAfter >= 45) cls = 'brilliant';

@@ -33,11 +33,11 @@ function ChessEngineFactory() {
   const colorOf = p => (p & BLACK) ? 1 : 0;
 
   class Position {
-    constructor(fen) {
+    constructor(fen, opts) {
       this.board = new Int8Array(128);
-      this.load(fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+      this.load(fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', opts);
     }
-    load(fen) {
+    load(fen, opts) {
       const parts = fen.trim().split(/\s+/);
       this.board.fill(0);
       let rank = 7, file = 0;
@@ -52,8 +52,9 @@ function ChessEngineFactory() {
       this.turn = parts[1] === 'b' ? 1 : 0;
       this.castle = 0;
       const c = parts[2] || '-';
-      if (c.includes('K')) this.castle |= 1; if (c.includes('Q')) this.castle |= 2;
-      if (c.includes('k')) this.castle |= 4; if (c.includes('q')) this.castle |= 8;
+      // Chess960 (Fischer Random): rook files may be given as letters (Shredder-FEN, e.g. "HFhf")
+      this.chess960 = !!(opts && opts.chess960) || (c !== '-' && /[A-Ha-h]/.test(c));
+      this.crook = [-1, -1, -1, -1]; // rook squares for rights 1 (white king side), 2 (white queen side), 4, 8 (black)
       this.ep = (parts[3] && parts[3] !== '-') ? sqFromName(parts[3]) : -1;
       this.half = parts[4] ? +parts[4] : 0;
       this.full = parts[5] ? +parts[5] : 1;
@@ -63,12 +64,40 @@ function ChessEngineFactory() {
         if (this.board[s] === K) this.kings[0] = s;
         if (this.board[s] === (K | BLACK)) this.kings[1] = s;
       }
-      // sanitize castling rights against actual piece placement
       const b = this.board;
-      if (!(b[4] === K && b[7] === R)) this.castle &= ~1;
-      if (!(b[4] === K && b[0] === R)) this.castle &= ~2;
-      if (!(b[116] === (K | BLACK) && b[119] === (R | BLACK))) this.castle &= ~4;
-      if (!(b[116] === (K | BLACK) && b[112] === (R | BLACK))) this.castle &= ~8;
+      if (!this.chess960) {
+        if (c.includes('K')) this.castle |= 1; if (c.includes('Q')) this.castle |= 2;
+        if (c.includes('k')) this.castle |= 4; if (c.includes('q')) this.castle |= 8;
+        // sanitize castling rights against actual piece placement
+        if (!(b[4] === K && b[7] === R)) this.castle &= ~1;
+        if (!(b[4] === K && b[0] === R)) this.castle &= ~2;
+        if (!(b[116] === (K | BLACK) && b[119] === (R | BLACK))) this.castle &= ~4;
+        if (!(b[116] === (K | BLACK) && b[112] === (R | BLACK))) this.castle &= ~8;
+        this.crook = [7, 0, 119, 112];
+      } else {
+        for (const ch of c) {
+          if (ch === '-') continue;
+          const side = (ch >= 'a' && ch <= 'z') ? 1 : 0, rank = side ? 112 : 0, ks = this.kings[side];
+          if (ks < 0 || (ks & 0x70) !== rank) continue;
+          const rookP = R | (side ? BLACK : 0), up = ch.toUpperCase();
+          let rs = -1, kingSide;
+          if (up === 'K') { for (let f = 7; f > (ks & 7); f--) if (b[rank + f] === rookP) { rs = rank + f; break; } kingSide = true; }
+          else if (up === 'Q') { for (let f = 0; f < (ks & 7); f++) if (b[rank + f] === rookP) { rs = rank + f; break; } kingSide = false; }
+          else { const f = up.charCodeAt(0) - 65; if (b[rank + f] === rookP) rs = rank + f; kingSide = f > (ks & 7); }
+          if (rs < 0) continue;
+          const bit = (side ? 4 : 1) << (kingSide ? 0 : 1);
+          this.castle |= bit; this.crook[(side ? 2 : 0) + (kingSide ? 0 : 1)] = rs;
+        }
+      }
+      // castling-rights masks: moving the king or a castling rook (or capturing it) clears rights
+      this.cmask = new Uint8Array(128).fill(15);
+      for (let i = 0; i < 4; i++) {
+        const bit = 1 << i, rs = this.crook[i];
+        if (!(this.castle & bit) || rs < 0) continue;
+        this.cmask[rs] &= ~bit;
+        this.cmask[this.kings[i < 2 ? 0 : 1]] &= ~(i < 2 ? 3 : 12);
+      }
+      if (!this.chess960) { this.cmask = CASTLE_MASK; }
       if (this.ep >= 0 && !this.epCapturable(this.ep, this.turn)) this.ep = -1;
       this.stack = [];
       this.computeHash();
@@ -106,11 +135,17 @@ function ChessEngineFactory() {
         if (r) out += '/';
       }
       let c = '';
-      if (this.castle & 1) c += 'K'; if (this.castle & 2) c += 'Q';
-      if (this.castle & 4) c += 'k'; if (this.castle & 8) c += 'q';
+      if (this.chess960) {
+        const L = 'ABCDEFGH';
+        if (this.castle & 1) c += L[this.crook[0] & 7]; if (this.castle & 2) c += L[this.crook[1] & 7];
+        if (this.castle & 4) c += L[this.crook[2] & 7].toLowerCase(); if (this.castle & 8) c += L[this.crook[3] & 7].toLowerCase();
+      } else {
+        if (this.castle & 1) c += 'K'; if (this.castle & 2) c += 'Q';
+        if (this.castle & 4) c += 'k'; if (this.castle & 8) c += 'q';
+      }
       return `${out} ${this.turn ? 'b' : 'w'} ${c || '-'} ${this.ep >= 0 ? sqName(this.ep) : '-'} ${this.half} ${this.full}`;
     }
-    clone() { const p = new Position(this.fen()); return p; }
+    clone() { const p = new Position(this.fen(), { chess960: this.chess960 }); return p; }
 
     attacked(sq, by) {
       const b = this.board;
@@ -186,7 +221,8 @@ function ChessEngineFactory() {
             if (!tp) { if (!capturesOnly) moves.push(mk(sq, to, 0, 0)); }
             else if (colorOf(tp) === them) moves.push(mk(sq, to, 0, F_CAP));
           }
-          if (t === K && !capturesOnly) {
+          if (t === K && !capturesOnly && this.chess960) this.gen960Castles(moves, sq, us);
+          else if (t === K && !capturesOnly) {
             if (us === 0 && sq === 4) {
               if ((this.castle & 1) && !b[5] && !b[6] && !this.attacked(4, 1) && !this.attacked(5, 1) && !this.attacked(6, 1)) moves.push(mk(4, 6, 0, F_CASTLE));
               if ((this.castle & 2) && !b[3] && !b[2] && !b[1] && !this.attacked(4, 1) && !this.attacked(3, 1) && !this.attacked(2, 1)) moves.push(mk(4, 2, 0, F_CASTLE));
@@ -211,7 +247,48 @@ function ChessEngineFactory() {
       return moves;
     }
 
+    // Chess960 castling: the move is encoded as king-square -> castling-rook-square
+    gen960Castles(moves, ks, us) {
+      if (this.attacked(ks, us ^ 1)) return;
+      const b = this.board, rank = ks & 0x70;
+      for (let j = 0; j < 2; j++) {
+        const idx = (us ? 2 : 0) + j, bit = 1 << idx;
+        if (!(this.castle & bit)) continue;
+        const rs = this.crook[idx], kingSide = j === 0;
+        const kd = rank + (kingSide ? 6 : 2), rd = rank + (kingSide ? 5 : 3);
+        const lo = Math.min(ks, rs, kd, rd), hi = Math.max(ks, rs, kd, rd);
+        let ok = true;
+        for (let s = lo; s <= hi && ok; s++) if (s !== ks && s !== rs && b[s]) ok = false;
+        if (!ok) continue;
+        const step = kd > ks ? 1 : -1;
+        for (let s = ks; ; s += step) { if (s !== ks && this.attacked(s, us ^ 1)) { ok = false; break; } if (s === kd) break; }
+        if (!ok) continue;
+        // the king must not end in check once the rook has moved (checked by legality test after make)
+        moves.push(mk(ks, rs, 0, F_CASTLE));
+      }
+    }
+    make960Castle(m) {
+      const b = this.board, from = mFrom(m), rf = mTo(m), us = this.turn;
+      const kingSide = (rf & 7) > (from & 7), rank = from & 0x70, kt = rank + (kingSide ? 6 : 2), rt = rank + (kingSide ? 5 : 3);
+      this.stack.push({ m, captured: 0, castle: this.castle, ep: this.ep, half: this.half, h1: this.h1, h2: this.h2, c960: { kt, rt } });
+      const king = b[from], rook = b[rf];
+      let h1 = this.h1, h2 = this.h2;
+      h1 ^= Z1[king * 128 + from] ^ Z1[rook * 128 + rf] ^ Z1[king * 128 + kt] ^ Z1[rook * 128 + rt];
+      h2 ^= Z2[king * 128 + from] ^ Z2[rook * 128 + rf] ^ Z2[king * 128 + kt] ^ Z2[rook * 128 + rt];
+      b[from] = 0; b[rf] = 0; b[kt] = king; b[rt] = rook;
+      this.kings[us] = kt;
+      h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+      this.castle &= this.cmask[from] & this.cmask[rf];
+      h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+      if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+      this.ep = -1; this.half++;
+      if (us === 1) this.full++;
+      this.turn = us ^ 1; h1 ^= ZS1; h2 ^= ZS2;
+      this.h1 = h1 >>> 0; this.h2 = h2 >>> 0;
+      this.hist1.push(this.h1); this.hist2.push(this.h2);
+    }
     make(m) {
+      if ((mFlags(m) & F_CASTLE) && this.chess960) return this.make960Castle(m);
       const b = this.board, from = mFrom(m), to = mTo(m), promo = mPromo(m), flags = mFlags(m);
       const us = this.turn, piece = b[from], dir = us ? -16 : 16;
       const capSq = (flags & F_EP) ? to - dir : to;
@@ -234,7 +311,7 @@ function ChessEngineFactory() {
       if ((piece & 7) === K) this.kings[us] = to;
       // castling rights
       h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
-      this.castle &= CASTLE_MASK[from] & CASTLE_MASK[to];
+      this.castle &= this.cmask[from] & this.cmask[to];
       h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
       // en passant
       if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
@@ -251,6 +328,16 @@ function ChessEngineFactory() {
       this.hist1.push(this.h1); this.hist2.push(this.h2);
     }
     unmake() {
+      const top = this.stack[this.stack.length - 1];
+      if (top && top.c960) {
+        const u = this.stack.pop(), b = this.board, from = mFrom(u.m), rf = mTo(u.m);
+        this.turn ^= 1; const us = this.turn;
+        b[u.c960.kt] = 0; b[u.c960.rt] = 0; b[from] = K | (us ? BLACK : 0); b[rf] = R | (us ? BLACK : 0);
+        this.kings[us] = from; if (us === 1) this.full--;
+        this.castle = u.castle; this.ep = u.ep; this.half = u.half; this.h1 = u.h1; this.h2 = u.h2;
+        this.hist1.pop(); this.hist2.pop();
+        return;
+      }
       const u = this.stack.pop();
       const m = u.m, b = this.board, from = mFrom(m), to = mTo(m), promo = mPromo(m), flags = mFlags(m);
       this.turn ^= 1;
@@ -346,7 +433,7 @@ function ChessEngineFactory() {
       legal = legal || this.legalMoves();
       const from = mFrom(m), to = mTo(m), flags = mFlags(m), piece = this.board[from], t = piece & 7;
       let s;
-      if (flags & F_CASTLE) s = (to & 7) === 6 ? 'O-O' : 'O-O-O';
+      if (flags & F_CASTLE) s = (this.chess960 ? (to & 7) > (from & 7) : (to & 7) === 6) ? 'O-O' : 'O-O-O';
       else {
         s = '';
         if (t === P) {
@@ -705,7 +792,23 @@ function ChessEngineFactory() {
   // shortest mate length (in moves) for side to move up to maxN, or 0
   function mateLength(pos, maxN) { for (let n = 1; n <= maxN; n++) if (canMateIn(pos, n)) return n; return 0; }
 
-  const api = { Position, Searcher, evaluate, canMateIn, matingMoves, mateLength, defenderLoses, sqName, sqFromName,
+  function chess960Fen(n) {
+    if (n == null) n = Math.floor(Math.random() * 960);
+    const row = new Array(8).fill(null), free = () => row.map((x, i) => x ? -1 : i).filter(i => i >= 0);
+    let q = n;
+    row[(q % 4) * 2 + 1] = 'B'; q = Math.floor(q / 4);
+    row[(q % 4) * 2] = 'B'; q = Math.floor(q / 4);
+    let f = free(); row[f[q % 6]] = 'Q'; q = Math.floor(q / 6);
+    const KN = [[0, 1], [0, 2], [0, 3], [0, 4], [1, 2], [1, 3], [1, 4], [2, 3], [2, 4], [3, 4]][q];
+    f = free(); row[f[KN[0]]] = 'N'; row[f[KN[1]]] = 'N';
+    f = free(); row[f[0]] = 'R'; row[f[1]] = 'K'; row[f[2]] = 'R';
+    const back = row.join(''), L = 'ABCDEFGH';
+    const rooks = [back.lastIndexOf('R'), back.indexOf('R')];
+    const cast = L[rooks[0]] + L[rooks[1]] + L[rooks[0]].toLowerCase() + L[rooks[1]].toLowerCase();
+    return { n, fen: `${back.toLowerCase()}/pppppppp/8/8/8/8/PPPPPPPP/${back} w ${cast} - 0 1` };
+  }
+
+  const api = { chess960Fen, Position, Searcher, evaluate, canMateIn, matingMoves, mateLength, defenderLoses, sqName, sqFromName,
     mFrom, mTo, mPromo, mFlags, F_CAP, F_EP, F_CASTLE, F_DOUBLE, P, N, B, R, Q, K, BLACK, MATE, PIECE_CHARS };
   return api;
 }
