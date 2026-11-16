@@ -3,5 +3,7 @@
   // Deployed automatically by Cloudflare Workers Builds from the /lobby folder of this repo.
   "name": "knightclub-lobby",
   "main": "src/index.js",
-  "compatibility_date": "2026-11-01"
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,     // serve at knightclub-lobby.chesscomplex.workers.dev
+  "preview_urls": false    // only the main version; no per-commit preview links
 }

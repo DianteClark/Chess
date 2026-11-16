@@ -52,7 +52,7 @@ You may use, copy, change and share it, as long as you keep it open under the sa
 
 ## Online lobby (Cloudflare)
 
-`lobby/` holds a tiny Cloudflare Worker that Cloudflare deploys automatically from this repo.
+`lobby/` holds a tiny Cloudflare Worker that Cloudflare deploys automatically from this repo, live at https://knightclub-lobby.chesscomplex.workers.dev (health check: `/health`).
 Right now it only answers a health check. In Phase 3 it will list open games and set up connections, while the games themselves stay peer-to-peer.
 
 ## Developing
