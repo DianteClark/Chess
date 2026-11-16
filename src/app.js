@@ -1252,8 +1252,8 @@ function renderLesson(main) {
 }
 
 // ======================= ME / PROFILE =======================
-function sparkline(arr, color) {
-  const data = arr.slice(-60); if (data.length < 2) return h('div', { class: 'small muted' }, 'Play rated games to see your graph.');
+function sparkline(arr, color, emptyMsg) {
+  const data = arr.slice(-60); if (data.length < 2) return h('div', { class: 'small muted' }, emptyMsg || 'Play rated games to see your graph.');
   const min = Math.min(...data) - 20, max = Math.max(...data) + 20, W = 300, H = 70;
   const pts = data.map((v, i) => [i / (data.length - 1) * W, H - (v - min) / (max - min) * H]);
   const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
@@ -1262,7 +1262,11 @@ function sparkline(arr, color) {
 }
 function renderMe(main) {
   if (meView === 'style') return renderStyle(main);
+  if (meView === 'insights') return renderInsights(main);
   main.append(levelCard());
+  main.append(h('div', { class: 'modes' },
+    h('button', { class: 'mode-card', onclick: () => { meView = 'insights'; render(); } }, icon('chart', 26), h('b', null, 'Insights'), h('small', null, `${(profile.reviews || []).length} reviewed games`)),
+    h('button', { class: 'mode-card', onclick: () => { meView = 'style'; render(); } }, icon('palette', 26), h('b', null, 'Style'), h('small', null, 'Boards, pieces, avatar'))));
   const L = profile.ladder, lg = leagueOf(L.r), hu = profile.human, pr = profile.puzzle;
   const nameInp = h('input', { class: 'input', placeholder: 'Your name', value: profile.name, maxlength: 20, onchange: e => { profile.name = e.target.value.trim(); saveProfile(); } });
   const botGames = profile.games.filter(g => !g.online);

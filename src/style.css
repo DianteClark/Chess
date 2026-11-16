@@ -265,3 +265,10 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .pgn{white-space:pre-wrap;font-size:12px;background:var(--bg2);border-radius:10px;padding:10px;max-height:180px;overflow:auto}
 .coachbox{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
 .coachbox .txt{font-size:15px}
+/* insights */
+.ibar{display:grid;grid-template-columns:110px 1fr 44px;gap:8px;align-items:center;font-size:13px;font-weight:700}
+.ibar .it{height:10px;border-radius:6px;background:var(--bg2);overflow:hidden} .ibar .it div{height:100%;border-radius:6px}
+.ibar .iv{text-align:right;font-weight:900}
+.qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.qgrid .q{background:var(--bg2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
+.qgrid .q b{font-size:18px} .qgrid .q small{font-size:11px;color:var(--muted);font-weight:700}
