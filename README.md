@@ -2,8 +2,9 @@
 
 A complete chess game in one HTML file, written from scratch with no game engine, no frameworks and no build dependencies. Play it on a phone or a computer.
 
-**Play:** turn on GitHub Pages (Settings → Pages → Deploy from branch → `main` / root), then open `https://dianteclark.github.io/Chess/`.
-You can also just open `index.html` in a browser.
+## ▶️ [Play now: dianteclark.github.io/Chess](https://dianteclark.github.io/Chess/)
+
+Works on phones and computers. You can also download `index.html` and open it in any browser.
 
 ## What's inside
 
