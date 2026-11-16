@@ -17,3 +17,10 @@ for (const g of R) { const k = Math.min(g.w, g.b) + '-' + Math.max(g.w, g.b); pa
 console.log('pair: weaker-bot score / games (draws)'); for (const k in pairs) console.log(k, pairs[k][0] + '/' + pairs[k][1], '(' + pairs[k][2] + ')');
 console.log('raw diffs from Pip:', r.map(x => Math.round(x)));
 require('fs').writeFileSync(__dirname + '/../data/elo_raw.json', JSON.stringify(r));
+// Anchor the measured scale: Pip = 300, The Tower = 2000; interior bots keep their measured spacing.
+const LOW = 300, HIGH = 2000, top = r[L - 1];
+const ratings = {};
+BOT_LEVELS.forEach((b, i) => ratings[b.id] = Math.round((LOW + (r[i] / top) * (HIGH - LOW)) / 10) * 10);
+const calib = { games: R.length, method: 'ML Elo fit of bot-vs-bot games, linearly anchored Pip=300, Tower=2000', raw: r.map(Math.round), ratings };
+require('fs').writeFileSync(__dirname + '/../data/calibration.json', JSON.stringify(calib, null, 1));
+console.log('ratings', ratings);

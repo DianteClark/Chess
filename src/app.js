@@ -61,6 +61,7 @@ function toast(msg, ms = 2200) {
 function modal(build, { dismiss = true } = {}) {
   const bg = h('div', { class: 'modal-bg' });
   const box = h('div', { class: 'modal' });
+  box.append = (...a) => Element.prototype.append.apply(box, a.filter(x => x != null && x !== false));
   bg.append(box); document.body.append(bg);
   const close = () => bg.remove();
   if (dismiss) bg.addEventListener('click', e => { if (e.target === bg) close(); });
@@ -305,7 +306,11 @@ const fmtR = rt => Math.round(rt.r) + (rt.rd > 110 ? '?' : '');
 const DEFAULT_PROFILE = () => ({ name: '', rating: { r: 800, rd: 350, vol: 0.06 }, puzzle: { r: 800, rd: 350, vol: 0.06 }, games: [], rHist: [800], pHist: [800], tried: {}, lessons: {}, current: null, sound: true, streak: 0, best: 0, updated: 0 });
 let profile = DEFAULT_PROFILE();
 function loadLocal() { try { const s = localStorage.getItem('kc-profile'); if (s) return JSON.parse(s); } catch (e) { } return null; }
-function saveProfile() { profile.updated = Date.now(); try { localStorage.setItem('kc-profile', JSON.stringify(profile)); } catch (e) { } }
+function saveProfile() { profile.updated = Date.now(); try { localStorage.setItem('kc-profile', JSON.stringify(profile)); } catch (e) { } refreshChip(); }
+function refreshChip() {
+  const c = document.getElementById('rchip'); if (!c) return;
+  c.innerHTML = ''; c.append(band(profile.rating.r)[2] + ' ' + fmtR(profile.rating), h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)));
+}
 
 // ======================= DATA =======================
 const BOTS = BOT_LEVELS.map(b => Object.assign({}, b, { rating: CALIB.ratings[b.id] }));
@@ -324,7 +329,8 @@ function render() {
   const logo = h('img', { src: PIECE_URL.wn, alt: '' });
   app.append(h('div', { class: 'topbar' },
     h('div', { class: 'logo' }, logo, 'Knight Club'),
-    h('button', { class: 'chip', onclick: () => go('me') }, band(profile.rating.r)[2], ' ', fmtR(profile.rating), h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)))));
+    h('button', { class: 'chip', id: 'rchip', onclick: () => go('me') })));
+  refreshChip();
   const main = h('div', { class: 'stack' }); app.append(main);
   ROUTES[route](main);
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === route));
@@ -809,11 +815,12 @@ let puzCat = 'rated', puzState = null;
 function pickPuzzle() {
   const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : p.n === +puzCat.slice(-1) && p.cat !== 'pattern');
   const fresh = pool.filter(p => !profile.tried[p.id]);
-  const use = fresh.length ? fresh : pool;
+  if (puzCat === 'pattern' && fresh.length) return fresh[0]; // learn the famous mates in order, easiest first
+  const use = (fresh.length ? fresh : pool).slice();
   const pr = profile.puzzle.r;
   use.sort((a, b) => Math.abs(a.rating - pr) - Math.abs(b.rating - pr));
   const top = use.slice(0, Math.min(6, use.length));
-  return puzCat === 'pattern' && fresh.length ? fresh[0] : top[Math.floor(rand() * top.length)];
+  return top[Math.floor(rand() * top.length)];
 }
 function renderPuzzles(main) {
   const cats = [['rated', '🎯 For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', '🏛️ Famous mates']];
@@ -1044,7 +1051,7 @@ function renderMe(main) {
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bot ratings were measured, not guessed: the bots played ${CALIB.games} games against each other, and their ratings were fitted from the results. Pip is pinned at ${BOTS[0].rating} as the starting point. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
     h('table', { class: 'tbl' }, BANDS.map((x, i) => h('tr', null, h('td', null, x[2] + ' ' + x[1]), h('td', null, i < BANDS.length - 1 ? `${x[0]}–${BANDS[i + 1][0] - 1}` : `${x[0]}+`)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, `Puzzle ratings work the same way. Each puzzle's difficulty was measured by checking which bots can solve it.`)));
+    h('p', { class: 'small muted', style: { margin: 0 } }, `Puzzle ratings use the same Glicko-2 system. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are. Your puzzle rating only changes on your first try at each puzzle.`)));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, soundOn ? '🔊 On' : '🔇 Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, '💾 Your progress is saved in this browser on this device.'));

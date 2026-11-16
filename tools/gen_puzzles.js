@@ -66,7 +66,7 @@ const target = { 1: +process.argv[2] || 70, 2: +process.argv[3] || 70, 3: +proce
 const have = { 1: 0, 2: 0, 3: 0 };
 const seen = new Set(out.map(p => p.fen.split(' ').slice(0, 2).join(' ')));
 const searcher = new E.Searcher();
-let seed = 777, games = 0;
+let seed = +process.argv[6] || 777, games = 0;
 const t0 = Date.now();
 while ((have[1] < target[1] || have[2] < target[2] || have[3] < target[3]) && Date.now() - t0 < (+process.argv[5] || 900) * 1000) {
   const rng = mulberry(seed++); games++;
@@ -100,4 +100,4 @@ while ((have[1] < target[1] || have[2] < target[2] || have[3] < target[3]) && Da
   if (games % 10 === 0) console.error('games', games, have, Math.round((Date.now() - t0) / 1000) + 's');
 }
 console.log('generated', have, 'from', games, 'games');
-fs.writeFileSync(__dirname + '/../data/puzzles_raw.json', JSON.stringify(out));
+fs.writeFileSync(process.argv[7] || (__dirname + '/../data/puzzles_raw.json'), JSON.stringify(out));
