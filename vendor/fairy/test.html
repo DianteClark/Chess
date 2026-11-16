@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>World Games engine test</title>
+<style>
+  body { font: 14px system-ui, sans-serif; margin: 20px; }
+  table { border-collapse: collapse; }
+  td, th { border: 1px solid #ccc; padding: 4px 8px; text-align: left; }
+  .ok { color: #070; } .bad { color: #b00; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>World Games: rules + engine test</h1>
+<p>Serve the repository root over HTTP (for example <code>python3 -m http.server</code>) and open
+<code>/vendor/fairy/test.html</code>. For every game the page plays 6 random plies with ffish, then asks the
+worker engine for a move at level 1 and level 8 and checks it is legal.</p>
+<p id="status">running...</p>
+<table id="t"><tr><th>game</th><th>rules load / start</th><th>level 1</th><th>level 8</th><th>analysis (depth 10, 3 lines)</th><th>result</th></tr></table>
+<script src="../../src/variants.js"></script>
+<script>
+Variants.basePath = '';   // this page lives in vendor/fairy/
+window.testResult = null;
+(async function () {
+  var rows = [], fails = 0, t0 = performance.now();
+  function cell(tr, html, cls) { var td = document.createElement('td'); td.innerHTML = html; if (cls) td.className = cls; tr.appendChild(td); }
+  try {
+    await Variants.ready();
+    var tLoad = performance.now() - t0;
+    var te = performance.now();
+    await Variants.engine.ready();
+    var tEngine = performance.now() - te;
+    document.getElementById('status').textContent = 'ffish loaded in ' + tLoad.toFixed(0) + ' ms, engine worker in ' + tEngine.toFixed(0) + ' ms; crossOriginIsolated=' + self.crossOriginIsolated;
+    for (var i = 0; i < Variants.list.length; i++) {
+      var id = Variants.list[i], tr = document.createElement('tr'), row = { id: id };
+      document.getElementById('t').appendChild(tr);
+      cell(tr, VARIANTS[id].name + ' <small>(' + id + ')</small>');
+      var g = new VGame(id);
+      for (var k = 0; k < 6; k++) { var ms = g.legalMoves(); g.play(ms[Math.floor(Math.random() * ms.length)]); }
+      cell(tr, g.legalMoves().length + ' legal moves after ' + g.moves.join(' '));
+      var good = true;
+      for (var level of [1, 8]) {
+        var t = performance.now();
+        var r = await Variants.engine.bestMove(id, g.startFen(), g.moves, { level: level });
+        var dt = performance.now() - t, legal = !!r.uci && g.isLegal(r.uci);
+        row['L' + level] = { uci: r.uci, ms: Math.round(dt), legal: legal, depth: r.depth, score: r.score };
+        good = good && legal;
+        cell(tr, r.uci + ' ' + (r.uci && legal ? g.san(r.uci) : 'ILLEGAL') + ' <small>(' + r.score + 'cp, d' + r.depth + ', ' + dt.toFixed(0) + ' ms)</small>', legal ? 'ok' : 'bad');
+      }
+      var t2 = performance.now();
+      var a = await Variants.engine.analyze(id, g.fen(), [], { depth: 10, multipv: 3 });
+      var dt2 = performance.now() - t2;
+      var aok = a.lines.length > 0 && a.lines.every(function (l) { return g.isLegal(l.pv[0]); });
+      good = good && aok;
+      row.analysis = { ms: Math.round(dt2), lines: a.lines.length, ok: aok };
+      cell(tr, a.lines.map(function (l) { return g.san(l.pv[0]) + ' ' + (l.mate != null ? '#' + l.mate : l.cp); }).join(', ') + ' <small>(' + dt2.toFixed(0) + ' ms)</small>', aok ? 'ok' : 'bad');
+      cell(tr, good ? 'PASS' : 'FAIL', good ? 'ok' : 'bad');
+      if (!good) fails++;
+      row.pass = good; rows.push(row);
+      g.dispose();
+    }
+    window.testResult = { fails: fails, rows: rows, loadMs: Math.round(tLoad), engineLoadMs: Math.round(tEngine), crossOriginIsolated: self.crossOriginIsolated };
+    document.getElementById('status').textContent += ' -- done: ' + (fails ? fails + ' FAILED' : 'all passed');
+  } catch (e) {
+    window.testResult = { error: String(e && e.stack || e) };
+    document.getElementById('status').textContent = 'ERROR: ' + e;
+  }
+})();
+</script>
+</body>
+</html>

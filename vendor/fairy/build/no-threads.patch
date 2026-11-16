@@ -1,0 +1,126 @@
+--- a/src/thread.h
++++ b/src/thread.h
+@@ -44,7 +44,11 @@
+   std::mutex mutex;
+   std::condition_variable cv;
+   size_t idx;
++  #ifdef FS_NO_THREADS
++  bool exit = false, searching = false;
++#else
+   bool exit = false, searching = true; // Set before starting std::thread
++#endif
+   NativeThread stdThread;
+ 
+ public:
+--- a/src/thread.cpp
++++ b/src/thread.cpp
+@@ -80,9 +80,14 @@
+ 
+ void Thread::start_searching() {
+ 
++#ifdef FS_NO_THREADS
++  // No worker threads: run the search synchronously on the calling thread.
++  if (!exit) search();
++#else
+   std::lock_guard<std::mutex> lk(mutex);
+   searching = true;
+   cv.notify_one(); // Wake up the thread in idle_loop()
++#endif
+ }
+ 
+ 
+--- a/src/thread_win32_osx.h
++++ b/src/thread_win32_osx.h
+@@ -66,7 +66,11 @@
+ 
+ namespace Stockfish {
+ 
++#ifdef FS_NO_THREADS
++struct NativeThread { template<class... A> NativeThread(A&&...) {} void join() {} void detach() {} };
++#else
+ typedef std::thread NativeThread;
++#endif
+ 
+ } // namespace Stockfish
+ 
+--- a/src/uci.cpp
++++ b/src/uci.cpp
+@@ -293,11 +293,26 @@
+ /// run 'bench', once the command is executed the function returns immediately.
+ /// In addition to the UCI ones, also some additional debug commands are supported.
+ 
++#ifdef FS_NO_THREADS
++std::string WasmInput;
++#endif
+ void UCI::loop(int argc, char* argv[]) {
+ 
++#ifdef FS_NO_THREADS
++  // Reactor build: state survives between calls; each call runs the lines in WasmInput.
++  static bool inited = false;
++  static Position pos;
++  static StateListPtr states(new std::deque<StateInfo>(1));
++  static std::vector<Move> banmoves = {};
++  string token, cmd;
++  std::istringstream wasmIn(WasmInput);
++  if (!inited) {
++  inited = true;
++#else
+   Position pos;
+   string token, cmd;
+   StateListPtr states(new std::deque<StateInfo>(1));
++#endif
+ 
+   assert(variants.find(Options["UCI_Variant"])->second != nullptr);
+   pos.set(variants.find(Options["UCI_Variant"])->second, variants.find(Options["UCI_Variant"])->second->startFen, false, &states->back(), Threads.main());
+@@ -307,8 +322,10 @@
+ 
+   // XBoard state machine
+   XBoard::stateMachine = new XBoard::StateMachine(pos, states);
++#ifndef FS_NO_THREADS
+   // UCCI banmoves state
+   std::vector<Move> banmoves = {};
++#endif
+ 
+   if (argc > 1 && (std::strcmp(argv[1], "noautoload") == 0))
+   {
+@@ -323,9 +340,16 @@
+           Options["VariantPath"] = std::string(envVariantPath);
+   }
+ 
++#ifdef FS_NO_THREADS
++  }
++  do {
++      if (!getline(wasmIn, cmd))
++          return;
++#else
+   do {
+       if (argc == 1 && !getline(cin, cmd)) // Block here waiting for input or EOF
+           cmd = "quit";
++#endif
+ 
+       istringstream is(cmd);
+ 
+@@ -416,7 +440,11 @@
+       else if (!token.empty() && token[0] != '#')
+           sync_cout << "Unknown command: " << cmd << sync_endl;
+ 
++#ifdef FS_NO_THREADS
++  } while (true);
++#else
+   } while (token != "quit" && argc == 1); // Command line args are one-shot
++#endif
+ }
+ 
+ 
+--- a/src/variant.cpp
++++ b/src/variant.cpp
+@@ -2254,3 +2254,9 @@
+ }
+ 
+ } // namespace Stockfish
++#ifdef FS_NO_THREADS
++namespace Stockfish {
++template void VariantMap::parse_istream<true>(std::istream& file);
++template void VariantMap::parse_istream<false>(std::istream& file);
++}
++#endif

@@ -26,6 +26,7 @@ function renderHome(main) {
     room('arena', 'The Arena', 'Play the bots and climb the Bot League', () => go('play'), { wide: true, tag: `Your match: ${sb.name}`, extra: h('div', { class: 'room-bot' }, avatar(sb.avatar, 64)) }),
     room('den', 'Puzzle Den', `${Object.values(profile.tried).filter(x => x === 1).length} puzzles solved`, () => { puzMode = dDone ? null : 'daily'; go('puzzles'); }, { tag: dDone ? null : 'Daily puzzle ready', hot: true }),
     room('library', 'The Library', `${lessonsDone} of ${LESSONS.length} lessons done`, () => go('learn'), { extra: h('div', { class: 'room-hoot' }, hoot(58)) }),
+    room('atlas', 'World Games', 'Xiangqi, shogi, janggi and more, with English pieces', () => { worldView = null; go('world'); }, { wide: true, tag: 'New' }),
     room('world', 'World Hall', 'Play people near your rating', () => { friendView = 'world'; lobbyView = 'home'; go('friend'); }),
     room('courtyard', 'Courtyard', 'Friends and Pass & Play', () => { friendView = 'menu'; go('friend'); }),
     room('trophy', 'Trophy Hall', `${got} of ${ACHIEVEMENTS.length} trophies`, () => { meView = null; go('me'); setTimeout(() => { const t = document.querySelector('.achs'); if (t) t.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 350); }, { wide: true })));

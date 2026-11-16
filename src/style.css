@@ -436,3 +436,46 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .stage-act:active{transform:translateY(2px);box-shadow:0 1px 0 #d8c7a2}
 .stage-act.hot{background:radial-gradient(circle at 35% 30%,#fff1c2,var(--brass) 70%);box-shadow:0 3px 0 var(--brass-dark);animation:bob 1.4s ease-in-out infinite alternate}
 .stage-act.hot .icn{color:#3a2408}
+
+/* ---------- World Games ---------- */
+.wgames{display:grid;grid-template-columns:1fr;gap:10px}
+@media (min-width:620px){.wgames{grid-template-columns:1fr 1fr}}
+.wgame{display:flex;align-items:center;gap:12px;text-align:left;background:var(--card);border-radius:var(--r);padding:12px 14px;box-shadow:var(--press);border:1px solid var(--line);transition:transform .12s}
+.wgame:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.28)}
+.wgame b{display:block;font-family:var(--display);font-weight:400;font-size:20px}
+.wgame small{display:block;color:var(--muted)}
+.wgame .qbar{margin-top:6px}
+.wface{width:54px;height:54px;flex:none;display:grid;place-items:center}
+.wface svg,.wface img{width:100%;height:100%}
+.whead h2{color:var(--ink)} .whead p{margin:8px 0 0}
+.vboard-wrap{margin:10px auto;width:calc(100% - 12px);max-width:560px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+.vboard{position:relative;width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 7px #4a2a16,0 0 0 9px #b57a48,0 10px 24px rgba(0,0,0,.4);margin:9px 0}
+.vbg,.vbg svg,.vlayer{position:absolute;inset:0;width:100%;height:100%}
+.vpiece{position:absolute;pointer-events:none;transition:left .18s ease,top .18s ease;filter:drop-shadow(0 2px 1px rgba(0,0,0,.3))}
+.vpiece svg,.vpiece img{width:100%;height:100%;display:block}
+.vmark{position:absolute;border-radius:12%}
+.vboard-wrap.inter .vmark{border-radius:50%}
+.vmark.last{background:rgba(255,213,74,.42)}
+.vmark.sel{background:rgba(147,220,152,.55)}
+.vmark.check{background:radial-gradient(circle,rgba(255,80,60,.85),rgba(255,80,60,0) 70%)}
+.vmark.lmark{background:rgba(156,207,255,.45);box-shadow:inset 0 0 0 3px rgba(40,90,160,.7)}
+.vdot{position:absolute;display:grid;place-items:center;pointer-events:none}
+.vdot::after{content:'';width:30%;height:30%;border-radius:50%;background:rgba(30,60,30,.45)}
+.vdot.cap::after{width:88%;height:88%;background:none;box-shadow:inset 0 0 0 4px rgba(30,60,30,.5)}
+.varrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.varrows line{stroke:rgba(40,120,60,.75);stroke-width:1.6;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-width:7px}
+.vpocket{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:46px;padding:4px 6px;background:rgba(0,0,0,.18);border-radius:12px}
+.vhand{position:relative;width:44px;height:44px;border-radius:10px}
+.vhand svg,.vhand img{width:100%;height:100%}
+.vhand.on{background:rgba(147,220,152,.4);box-shadow:0 0 0 2px var(--good)}
+.vhand b{position:absolute;right:-4px;bottom:-4px;background:var(--brass);color:var(--ink);border-radius:9px;font-size:12px;min-width:18px;padding:0 4px;text-align:center}
+.vhand.big{width:84px;height:auto;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;background:var(--card2)}
+.vhand.big svg{width:64px;height:64px}
+.vmoves{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:14px;color:var(--muted);padding:4px 8px}
+.wguide{display:grid;gap:6px;margin-top:8px}
+.wguide-row{display:flex;align-items:center;gap:10px}
+.wguide-row.sub{padding-left:22px;opacity:.9}
+.wtok{width:44px;height:44px;flex:none}.wtok svg{width:100%;height:100%}
+.taskmsg.bad{color:var(--bad)}
+html[dir=rtl] .wgame{text-align:right}
+html[dir=rtl] .vboard-wrap,html[dir=rtl] .board-wrap{direction:ltr}

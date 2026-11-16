@@ -9,7 +9,7 @@ function h(tag, attrs, ...kids) {
     if (k === 'class') el.className = v;
     else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
     else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
-    else if (k === 'html') el.innerHTML = v;
+    else if (k === 'html') el.innerHTML = tr(v);
     else el.setAttribute(k, v === true ? '' : v);
   }
   for (const c of kids.flat(9)) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(c));
@@ -410,7 +410,7 @@ const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
 // ======================= APP SHELL =======================
 let route = 'home';
 const appEl = () => $('#app');
-const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m) };
+const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m), world: m => renderWorld(m) };
 let navDir = '';
 function go(r) { if (!ROUTES[r]) r = 'home'; navDir = ''; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];
@@ -432,7 +432,7 @@ function render() {
   const tabFor = { friend: 'home', review: 'me', analysis: 'play' }[route] || route;
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === tabFor));
 }
-function subView() { return [typeof friendView !== 'undefined' ? friendView : '', typeof puzMode !== 'undefined' ? puzMode : '', typeof lessonOpen !== 'undefined' && lessonOpen ? lessonOpen.id + lessonStep : '', typeof courseOpen !== 'undefined' && courseOpen ? courseOpen.id : '', typeof meView !== 'undefined' ? meView : '', profile.current ? 'g' : ''].join('/'); }
+function subView() { return [typeof friendView !== 'undefined' ? friendView : '', typeof puzMode !== 'undefined' ? puzMode : '', typeof lessonOpen !== 'undefined' && lessonOpen ? lessonOpen.id + lessonStep : '', typeof courseOpen !== 'undefined' && courseOpen ? courseOpen.id : '', typeof meView !== 'undefined' ? meView : '', profile.current ? 'g' : '', typeof worldView !== 'undefined' && worldView ? [worldView.g, worldView.play ? 'p' : '', worldView.lesson ? worldView.lesson.id + worldView.step : ''].join(':') : ''].join('/'); }
 function buildTabs() {
   const items = [['home', 'home', 'Club'], ['puzzles', 'puzzle', 'Puzzles'], ['play', null, 'Play'], ['learn', 'learn', 'Learn'], ['me', 'user', 'Me']];
   const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => ic ? h('button', { 'data-r': r, onclick: () => { haptic(6); go(r); } }, icon(ic, 25), l)
@@ -1126,7 +1126,7 @@ function renderPuzzles(main) {
   for (let i = 0; i < ps.step; i++) g.play(p.line[i]);
   const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
   const banner = h('div', { class: 'banner' });
-  const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = html; };
+  const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = tr(html); };
   const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>${puzzlePrompt(p).goal}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
   setBanner('', prompt());
   let busy = false;
@@ -1410,6 +1410,7 @@ function renderMe(main) {
   const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   if (!standalone) main.append(h('div', { class: 'card row' }, h('div', { class: 'ic dark lesson-ic' }, icon('download', 22)), h('div', { class: 'grow' }, h('b', null, 'Install Knight Club'), h('div', { class: 'small muted' }, 'Add it to your home screen. It works offline too.')),
     h('button', { class: 'btn sm primary', onclick: async () => { if (typeof installPrompt !== 'undefined' && installPrompt) { installPrompt.prompt(); installPrompt = null; } else modal((box, close) => box.append(h('h2', null, 'Install the app'), h('p', null, h('b', null, 'iPhone / iPad: '), 'open this page in Safari, tap the Share button, then "Add to Home Screen".'), h('p', null, h('b', null, 'Android: '), 'open the browser menu and tap "Install app" or "Add to Home screen".'), h('p', { class: 'muted small' }, 'Once installed, puzzles, lessons and bot games work without internet.'), h('button', { class: 'btn primary block', onclick: close }, 'Got it'))); } }, 'Install')));
+  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Language'), h('div', { class: 'muted small' }, 'Menus, lessons and coach tips')), languagePicker()));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));

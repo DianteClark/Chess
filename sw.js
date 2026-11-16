@@ -1,7 +1,7 @@
 // Knight Club service worker: makes the app installable and playable offline.
 // The page itself is fetched network-first (so updates arrive right away);
 // the engine files and icons are cache-first (they rarely change).
-const CACHE = 'knightclub-v11';
+const CACHE = 'knightclub-v12';
 const CORE = ['./', './index.html', './icon.svg', './icon-192.png', './icon-512.png', './manifest.webmanifest',
   './fonts/lilita-one-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-700-normal.woff2',
   './vendor/stockfish/stockfish-19-lite-single.js', './vendor/stockfish/stockfish-19-lite-single.wasm'];
@@ -18,6 +18,10 @@ self.addEventListener('fetch', e => {
   if (isPage) {
     e.respondWith(fetch(req).then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', copy)); return res; })
       .catch(() => caches.match('./index.html').then(r => r || caches.match('./'))));
+    return;
+  }
+  if (url.pathname.includes('/data/i18n/')) { // translations: fresh when online, cached for offline
+    e.respondWith(fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; }).catch(() => caches.match(req)));
     return;
   }
   e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(res => { if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); } return res; })));

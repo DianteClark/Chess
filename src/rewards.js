@@ -90,6 +90,11 @@ const ACHIEVEMENTS = [
   { id: 'level5', name: 'Rising Star', desc: 'Reach level 5.', icon: 'star', tier: 1, test: (s, p) => levelInfo(p.xp || 0).lvl >= 5 },
   { id: 'level10', name: 'Shining Star', desc: 'Reach level 10.', icon: 'star', tier: 2, test: (s, p) => levelInfo(p.xp || 0).lvl >= 10 },
   { id: 'level20', name: 'Superstar', desc: 'Reach level 20.', icon: 'star', tier: 3, test: (s, p) => levelInfo(p.xp || 0).lvl >= 20 },
+  { id: 'world1', name: 'Passport', desc: 'Play a World Games game.', icon: 'globe', tier: 1, test: s => (s.worldGames || 0) >= 1 },
+  { id: 'world3', name: 'World Traveler', desc: 'Play 3 different World Games.', icon: 'globe', tier: 2, test: s => Object.keys(s.worldPlayed || {}).length >= 3 },
+  { id: 'world6', name: 'Globetrotter', desc: 'Play 6 different World Games.', icon: 'route', tier: 3, test: s => Object.keys(s.worldPlayed || {}).length >= 6 },
+  { id: 'worldwin', name: 'Far From Home', desc: 'Beat a bot in a World Game.', icon: 'trophy', tier: 1, test: s => (s.worldWins || 0) >= 1 },
+  { id: 'worldmaster', name: 'Grandmaster Abroad', desc: 'Beat a level 8 bot in a World Game.', icon: 'crown', tier: 3, test: s => (s.worldMaster || 0) >= 1 },
   { id: 'chess960', name: 'Shuffled', desc: 'Finish a game of Chess960.', icon: 'dice', tier: 1, test: s => (s.games960 || 0) >= 1 },
 ];
 const TIER_NAME = ['', 'Bronze', 'Silver', 'Gold'];
@@ -161,8 +166,14 @@ function rewardEvent(type, d = {}) {
   else if (type === 'course') { inc('coursesDone'); grantXP(120, 'Course complete'); }
   else if (type === 'review') { inc('reviews'); grantXP(15, 'Game review'); if (d.brilliants) inc('brilliants', d.brilliants); if (d.acc >= 90 && d.moves >= 20) inc('acc90'); }
   else if (type === 'game960') { inc('games960'); }
-  if (['botGame', 'onlineGame', 'localGame'].includes(type) && hr < 5) inc('nightGames');
+  else if (type === 'worldGame') {
+    s.worldPlayed = s.worldPlayed || {}; s.worldPlayed[d.variant] = 1; inc('worldGames');
+    if (d.score === 1) { inc('worldWins'); if (d.level >= 8) inc('worldMaster'); }
+    grantXP(d.local ? 10 : d.score === 1 ? 20 + 4 * d.level : d.score === .5 ? 12 : 8, d.score === 1 ? 'World Games win' : 'World Games');
+  }
+  if (['botGame', 'onlineGame', 'localGame', 'worldGame'].includes(type) && hr < 5) inc('nightGames');
   // daily quests
+  if (type === 'worldGame') questEvent('gamePlayed');
   if (['botGame', 'onlineGame', 'localGame'].includes(type)) { questEvent('gamePlayed'); if (castledIn(d.moves, d.color)) questEvent('castled'); }
   if (type === 'botGame' && d.score === 1) { questEvent('botWin'); if (d.reason === 'checkmate') questEvent('mateWin'); if (BOT_LEVELS[d.botIndex] && d.botRating > d.myRating) questEvent('upsetWin'); }
   if (type === 'onlineGame') { questEvent('onlineGame'); if (d.score === 1 && d.reason === 'checkmate') questEvent('mateWin'); }

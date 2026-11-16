@@ -1,5 +1,5 @@
-// Start the app after every module has loaded.
-boot();
+// Start the app after every module has loaded (and the chosen language's words are in).
+initI18n().catch(() => { }).finally(boot);
 // opening moment: the brass medallion drops in, the knight lands, then the clubhouse appears
 (function splash() {
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;

@@ -51,6 +51,22 @@ const ROOM_ART = {
       return s + `<rect x="4" y="${y + 40}" width="192" height="6" fill="#7a4a2b"/><rect x="4" y="${y + 46}" width="192" height="2" fill="#4a2a16"/>`;
     }).join('')}
   </svg>`,
+  atlas: () => {
+    const tok = (v, L, side, x, y, w) => (typeof wpSvg === 'function' ? wpSvg(v, L, side, false, 'trad') : '').replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${w}" `);
+    const lantern = (x, d) => `<path d="M${x} 0v${18 + d}" stroke="#3a1a10" stroke-width="1.5"/><ellipse cx="${x}" cy="${36 + d}" rx="15" ry="19" fill="#d8402c"/><ellipse cx="${x}" cy="${36 + d}" rx="9" ry="19" fill="none" stroke="#ffb36b" stroke-width="1.2" opacity=".7"/><rect x="${x - 7}" y="${15 + d}" width="14" height="4" rx="1" fill="#e2a23b"/><rect x="${x - 7}" y="${53 + d}" width="14" height="4" rx="1" fill="#e2a23b"/><path d="M${x} ${57 + d}v10" stroke="#e2a23b" stroke-width="2"/><circle cx="${x}" cy="${36 + d}" r="26" fill="#ffb36b" opacity=".12"/>`;
+    return `<svg viewBox="0 0 400 180" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="atb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5a1f1a"/><stop offset="1" stop-color="#2e0f0d"/></linearGradient>
+    <linearGradient id="att" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8a5a2e"/><stop offset="1" stop-color="#4a2a16"/></linearGradient></defs>
+    <rect width="400" height="180" fill="url(#atb)"/>
+    ${Array.from({ length: 9 }, (_, i) => `<path d="M${i * 50} 0v128" stroke="#000" stroke-width="1" opacity=".18"/>`).join('')}
+    <g transform="translate(84 10)"><rect width="160" height="92" rx="4" fill="#f1dfb4"/><rect x="-6" y="-4" width="172" height="8" rx="4" fill="#7a4a2b"/><rect x="-6" y="88" width="172" height="8" rx="4" fill="#7a4a2b"/>
+      <path d="M18 30c8-10 26-12 34-4s-2 16 6 22-10 16-22 10-24-16-18-28zM70 22c10-6 30-6 40 2s24 2 30 12-6 18-18 16-16 10-28 6-6-14-18-18-14-12-6-18zM96 60c8-2 16 4 14 12s-12 8-16 2zM128 64c6-2 14 2 12 8s-10 4-12-2z" fill="#b98a4c" opacity=".7"/>
+      <path d="M10 46h140M80 8v76" stroke="#7a4a2b" stroke-width=".8" opacity=".35"/>
+      <circle cx="113" cy="40" r="3" fill="#d8402c"/><circle cx="138" cy="34" r="3" fill="#d8402c"/><circle cx="104" cy="54" r="3" fill="#d8402c"/><circle cx="40" cy="30" r="3" fill="#d8402c"/></g>
+    ${lantern(46, 0)}${lantern(354, 8)}
+    <rect y="124" width="400" height="56" fill="url(#att)"/><rect y="124" width="400" height="4" fill="#b57a48" opacity=".6"/>
+    ${tok('xiangqi', 'C', 'b', 210, 104, 38)}${tok('xiangqi', 'K', 'w', 246, 92, 50)}${tok('shogi', 'K', 'w', 292, 84, 56)}${tok('janggi', 'K', 'b', 344, 94, 48)}
+  </svg>`; },
   world: () => `<svg viewBox="0 0 200 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
     <defs><linearGradient id="wb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#16346c"/><stop offset="1" stop-color="#0c1838"/></linearGradient>
     <radialGradient id="wg" cx=".35" cy=".3" r=".8"><stop offset="0" stop-color="#7fd0c0"/><stop offset="1" stop-color="#2f7d8a"/></radialGradient></defs>
