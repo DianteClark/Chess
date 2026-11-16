@@ -25,16 +25,17 @@ Knight Club grows from a solid chess game into a full chess home: a coach that e
 
 ### Puzzles
 - **Daily Puzzle** with streaks, **Puzzle Rush** (3 min, 5 min, Survival), theme filters.
-- Themed tactics puzzles (forks, pins, skewers, discovered attacks and more), verified by Stockfish.
+- 372 themed tactics puzzles (forks, pins, skewers, discovered attacks, trapped pieces, sacrifices and more), each verified by Stockfish. 588 puzzles in total.
 
 ### Learn
-- New **courses**: Opening Principles & First Openings, Tactics Toolkit, Endgame Essentials. Every position machine-checked.
+- New **courses**: Opening Principles (with move-by-move opening drills), Tactics Toolkit, Endgame Essentials. 22 lessons, every position machine-checked.
 
 ### Rewards
 - XP and levels, 41 achievements with a Trophy Room, **daily quests** with streaks, confetti.
 - Unlockable **board themes** (12), **piece sets** (8) and **avatars** (beat a bot to unlock its character).
 
 ### Look and feel
+- Sound packs (Wooden, Soft, Retro), live opening names during games, a What's New screen.
 - Completely original art: hand-drawn SVG icons, bot characters and Professor Hoot. No emoji anywhere.
 - Installable app that works **offline** (bots, puzzles, lessons, Stockfish reviews).
 

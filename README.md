@@ -16,8 +16,8 @@ See [CHANGELOG.md](CHANGELOG.md) for everything new in 10.0.
 | **Play people** | Play the World: quick pairing, server-checked games and verified ratings, Top 50 leaderboard. Invite a friend peer-to-peer, or Pass & Play on one device. |
 | **Game Review** | Stockfish 19 grades every move, and the coach explains mistakes in plain words. Accuracy, eval graph, key moments, retry your mistakes. |
 | **Analysis** | Analysis board with live engine lines, opening names, position editor, FEN/PGN import and export. Insights dashboard across your games. |
-| **Puzzles** | Daily Puzzle, Puzzle Rush, checkmate puzzles, famous mating patterns and themed tactics, all verified. |
-| **Learn** | 16 kids' lessons with Professor Hoot, plus courses on openings, tactics and endgames. |
+| **Puzzles** | 588 puzzles: Daily Puzzle, Puzzle Rush, checkmate puzzles, famous mating patterns and 372 themed tactics, all verified. |
+| **Learn** | 16 kids' lessons with Professor Hoot, plus 3 courses (22 lessons) on openings, tactics and endgames. |
 | **Rewards** | XP and levels, achievements, daily quests, unlockable boards, piece sets and avatars. |
 
 ## Ratings
@@ -61,6 +61,7 @@ node tools/test2.js              # notation, draw rules, search
 node tools/validate_lessons.js   # every lesson task is solvable, par moves are exact
 node tools/validate_courses.js   # every course position and answer is engine-checked
 node tools/verify_puzzles.js     # every checkmate puzzle is proven by the solver
+node tools/verify_tactics.js data/tactics.json   # tactics re-checked with Stockfish (slow)
 node lobby/sync-engine.mjs       # after changing src/engine.js
 cd lobby && npm install && cd .. && node tools/lobby_test.mjs   # 71 end-to-end lobby tests
 ```
