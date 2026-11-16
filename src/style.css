@@ -291,3 +291,4 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .setup .tcs button{flex:0 0 auto;min-width:72px}
 .setup{gap:10px}
 .pill.opn{flex:none;margin-right:6px;background:rgba(111,179,255,.15);color:var(--blue)}
+.modal .hoot,.card.center .hoot,.stack.center .hoot{margin:0 auto}

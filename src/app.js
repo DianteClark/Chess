@@ -1398,9 +1398,9 @@ function migrate(p) {
 }
 
 const APP_VERSION = '10.0';
-function whatsNew(force) {
+function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
-  const firstEver = !profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length;
+  const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
   profile.seenVersion = APP_VERSION; saveProfile();
   if (firstEver && !force) return; // brand-new players go straight in
   const items = [
@@ -1431,5 +1431,6 @@ function boot() {
   const jm = (location.hash || '').match(/^#join=(.+)$/);
   if (jm) { pendingJoin = jm[1]; route = 'friend'; friendView = 'online'; try { history.replaceState(null, '', '#friend'); } catch (e) { } }
   render();
-  setTimeout(() => whatsNew(false), 600);
+  const freshAtBoot = !profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length;
+  setTimeout(() => whatsNew(false, freshAtBoot), 600);
 }
