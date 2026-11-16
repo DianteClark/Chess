@@ -1,12 +1,12 @@
-# Knight Club Chess 10.1
+# Knight Club Chess 11.0
 
-A complete, free chess app in one page: play bots and people, learn with a coach that explains your games, solve puzzles every day, and collect rewards along the way. No ads, no account, no paywall. Built from scratch, with no game engine or framework.
+A complete, free chess app in one page, and a home for chess's cousins from around the world: play bots and people, learn with a coach that explains your games, solve puzzles every day, and collect rewards along the way. No ads, no account, no paywall. Built from scratch, with no game engine or framework.
 
 ## [Play now: dianteclark.github.io/Chess](https://dianteclark.github.io/Chess/)
 
 Works on phones and computers. Install it to your home screen (Me > Install) and it works offline too.
 
-See [CHANGELOG.md](CHANGELOG.md) for everything new in 10.0.
+See [CHANGELOG.md](CHANGELOG.md) for everything new in 11.0 and 10.0. Available in English, Spanish, Portuguese, French, German, Chinese, Japanese, Hindi and Arabic.
 
 ## Features
 
@@ -18,6 +18,7 @@ See [CHANGELOG.md](CHANGELOG.md) for everything new in 10.0.
 | **Analysis** | Analysis board with live engine lines, opening names, position editor, FEN/PGN import and export. Insights dashboard across your games. |
 | **Puzzles** | 588 puzzles: Daily Puzzle, Puzzle Rush, checkmate puzzles, famous mating patterns and 372 themed tactics, all verified. |
 | **Learn** | 16 kids' lessons with Professor Hoot, plus 3 courses (22 lessons) on openings, tactics and endgames. |
+| **World Games** | Xiangqi, shogi, janggi, makruk, sittuyin and shatranj, plus crazyhouse, three-check, king of the hill, atomic, horde and antichess. Lessons for every game, bots at 8 levels (Fairy-Stockfish), Pass & Play, traditional and English piece sets. |
 | **Rewards** | XP and levels, achievements, daily quests, unlockable boards, piece sets and avatars. |
 
 ## Ratings
@@ -41,6 +42,10 @@ src/review.js            Game Review, coach, Live Coach        src/analysis.js  
 src/puzzles2.js          Daily Puzzle, Puzzle Rush, themes     src/rewards.js   XP, achievements, quests, styles
 src/insights.js          insights dashboard                    src/icons.js     original SVG art
 src/lobby-client.js, src/lobby-ui.js   Play the World          src/sf.js        Stockfish bridge
+src/variants.js          World Games rules + engine API        src/world.js     World Games screens and board
+src/wpieces.js           traditional and English piece art     src/worldcourses.js  how-to-play courses
+src/i18n.js              translation layer (data/i18n/<lang>.json)
+vendor/fairy/            ffish.js rules + single-threaded Fairy-Stockfish WASM (GPL-3.0, build script in build/)
 vendor/stockfish/        Stockfish 19 Lite (single-threaded WASM, GPL-3.0, unmodified)
 lobby/                   Cloudflare Worker + Durable Object (lobby server), see lobby/PROTOCOL.md
 data/                    calibration, puzzles, tactics
@@ -63,12 +68,16 @@ node tools/validate_courses.js   # every course position and answer is engine-ch
 node tools/verify_puzzles.js     # every checkmate puzzle is proven by the solver
 node tools/verify_tactics.js data/tactics.json   # tactics re-checked with Stockfish (slow)
 node lobby/sync-engine.mjs       # after changing src/engine.js
+node tools/test_variants.mjs      # World Games rules, perft and engine (needs nothing extra)
+node tools/validate_worldcourses.mjs   # every World Games lesson, checked with ffish (npm i ffish --prefix /tmp/wc)
+NODE_PATH=... node tools/extract_strings.mjs   # rebuild the translation catalog (needs acorn)
+node tools/check_i18n.mjs        # translations: placeholders, tags, coverage
 cd lobby && npm install && cd .. && node tools/lobby_test.mjs   # 71 end-to-end lobby tests
 ```
 
 ## License
 
-Knight Club is free software under the **GNU General Public License v3.0** (see `LICENSE`). Stockfish is also GPL-3.0 (see `vendor/stockfish/Copying.txt`).
+Knight Club is free software under the **GNU General Public License v3.0** (see `LICENSE`). Stockfish is also GPL-3.0 (see `vendor/stockfish/Copying.txt`), and so are Fairy-Stockfish and ffish.js (see `vendor/fairy/README.md`).
 
 ## Design
 

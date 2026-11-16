@@ -1,5 +1,17 @@
 # Changelog
 
+## 11.0 — World Games
+
+Knight Club becomes a home for chess and its cousins from around the world, in nine languages.
+
+- **World Games wing**: xiangqi (Chinese chess), shogi (Japanese chess), janggi (Korean chess), makruk (Thai chess), sittuyin (Burmese chess) and shatranj (the old Persian game), plus crazyhouse, three-check, king of the hill, atomic, horde and antichess.
+- **Rules and bots by Fairy-Stockfish**: rules from ffish.js and a single-threaded Fairy-Stockfish engine compiled to WebAssembly so it runs on any static host. Bots at 8 levels, hints, Pass & Play and a short game review. Everything is downloaded only when you first open World Games.
+- **Two piece styles for every game**: traditional (Chinese and Korean characters, Japanese wedge tiles) and an English picture set. English shogi pieces show their moves around the edge.
+- **How-to-play courses** for all 12 games, 61 lessons in all: every piece, the special rules (river and palace, flying general, cannon screens, shogi drops and promotion, janggi passing, makruk counting) and first checkmates. Every position is checked with Fairy-Stockfish's rules.
+- **Nine languages**: English, Spanish, Portuguese, French, German, Chinese, Japanese, Hindi and Arabic (right to left). Change it under Me.
+- **New app icon**: a brass medallion on felt, with a maskable version for Android and a proper Apple touch icon.
+- Five new achievements for World Games.
+
 ## 10.1 — The Clubhouse
 
 A complete visual overhaul so that getting around is as fun as playing.

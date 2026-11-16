@@ -1429,21 +1429,21 @@ function migrate(p) {
   return p;
 }
 
-const APP_VERSION = '10.1';
+const APP_VERSION = '11.0';
 function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
   const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
   profile.seenVersion = APP_VERSION; saveProfile();
   if (firstEver && !force) return; // brand-new players go straight in
   const items = [
-    ['home', 'The Clubhouse', 'A brand new home: walk between the Arena, Puzzle Den, Library, World Hall, Courtyard and Trophy Hall.'],
-    ['palette', 'A whole new look', 'Felt, walnut and brass, new fonts, shaded pieces and a wooden board.'],
-    ['play', 'Play button', 'The brass medallion in the middle of the dock takes you straight to a game.'],
-    ['sparkle', 'Juice', 'Pieces land with a bounce, captures kick up dust, and level ups get a real celebration.'],
-    ['search', 'Still here', 'Game Review with the coach, Live Coach, Play the World, puzzles, courses and rewards.'],
+    ['globe', 'World Games', 'Xiangqi, shogi, janggi, makruk, sittuyin and shatranj, plus six chess variants. Each has lessons, bots and Pass & Play.'],
+    ['eye', 'English pieces', 'Every world game has an easy-to-read picture set next to the traditional one. Shogi pieces show where they can move.'],
+    ['chat', 'Your language', 'Knight Club now speaks Spanish, Portuguese, French, German, Chinese, Japanese, Hindi and Arabic. Change it under Me.'],
+    ['medal', 'A new app icon', 'Add Knight Club to your home screen to see the new brass medallion.'],
+    ['trophy', 'New trophies', 'Five World Games achievements, from Passport to Grandmaster Abroad.'],
   ];
 
-  modal((box, close) => box.append(h('div', { class: 'center' }, hoot(72)), h('h2', { class: 'center' }, `Welcome to the Clubhouse!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
+  modal((box, close) => box.append(h('div', { class: 'center' }, hoot(72)), h('h2', { class: 'center' }, `The World Games are open!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
     h('div', { class: 'stack' }, items.map(([ic, t, d]) => h('div', { class: 'quest' }, h('div', { class: 'qi' }, icon(ic, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, t), h('div', { class: 'small muted' }, d))))),
     h('div', { style: { height: '12px' } }), h('button', { class: 'btn primary block', onclick: () => { close(); confetti(); } }, "Let's play!")));
 }
