@@ -1,5 +1,23 @@
 # Changelog
 
+## 12.0 — The Revamp
+
+Knight Club now feels like a game from top to bottom.
+
+- **Full-screen play.** Bot games, Pass & Play, friend and online games, World Games, lessons, puzzles, Daily, Rush, Game Review and the analysis board fill exactly one phone screen. No dock, no scrolling, nothing under the status bar, the board sized to the space, the buttons at the bottom. Swipe the board to step through moves.
+- **Rewards that wait their turn.** XP, level ups, trophies and unlocks never pop up in the middle of something. They arrive on a results screen (stars, an XP bar that fills, a level-up banner) and then a reward chest.
+- **Game Review** opens with a summary and starts at move 1. Autoplay, key moments, a tappable game graph and an end card; review XP is given at the end.
+- **Professor Hoot is alive**: blinking, cheering, thinking and sulking along with you.
+- **New sound kit**: 38 synthesized sounds in three packs, volume control and optional cozy music.
+- **Clubhouse**: level ring, a "continue" card, daily row with quest rings and a 7-day login chest, and a tighter room grid.
+- **Arena**: spotlight opponent card with your record, portrait strip, compact setup and a sticky Play button.
+- **Library**: the beginner course is a winding trail with chapters and 1-3 stars per lesson; courses use the same trail.
+- **Puzzle Den**: rating card with a Solve button, Daily with a week strip, Rush modes, theme tiles; streak combos while solving.
+- **Me**: player card, trophy cabinet, Style with live preview, Stats, and Settings (language, volume, music, vibration).
+- **Play the World**: matchmaking screen with radar search and a podium leaderboard. **Invite a Friend** has Host and Join tabs.
+- **World Games**: tile hall, game pages with Learn / Play / Pieces tabs, framed boards that fit the screen.
+- New boards (Mint Tea, Atlas, Dusk), the Scholar piece set, and login achievements.
+
 ## 11.1 — Polish pass
 
 - Fixed: Play the World opened World Games instead of the online lobby. The build now refuses two global names that clash.

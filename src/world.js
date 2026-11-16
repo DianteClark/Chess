@@ -103,7 +103,8 @@ class VariantBoard {
     }
     this.drawPockets();
   }
-  drawPockets() {
+  drawPockets() { this._drawPockets(); requestAnimationFrame(() => { const t = this.pocketTop, b = this.pocketBot; const hgt = (t.style.display === 'none' ? 0 : t.offsetHeight + 8) + (b.style.display === 'none' ? 0 : b.offsetHeight + 8); this.el.style.setProperty('--pk', hgt + 'px'); }); }
+  _drawPockets() {
     const st = this.state || {}; const pk = st.pockets;
     for (const el of [this.pocketTop, this.pocketBot]) { el.innerHTML = ''; el.classList.remove('empty'); el.style.display = pk ? '' : 'none'; }
     if (!pk) return;
@@ -276,7 +277,7 @@ function renderWorldGame(main) {
     right: [h('button', { class: 'fs-back', 'aria-label': 'Turn board', onclick: () => { cur.flip = !cur.flip; render(); } }, icon('flip', 22))] });
   const msg = h('div', { class: 'fs-msg' });
   const movesEl = h('div', { class: 'moves vmoves strip' });
-  vb.el.style.setProperty('--ar', vb.files / vb.ranks); if (m.pockets) vb.el.style.setProperty('--pk', '112px');
+  vb.el.style.setProperty('--ar', vb.files / vb.ranks);
   F.stage.classList.add('table'); F.stage.append(topBar, vb.el, botBar);
   F.below.append(msg, h('div', { class: 'mstrip' }, movesEl));
   let thinking = false;
@@ -287,7 +288,7 @@ function renderWorldGame(main) {
     const myTurn = !cur.over && (cur.local || g.turn() === cur.color) && !thinking;
     vb.interactive = myTurn; vb.set(vState(g, cur.v), myTurn ? g.legalMoves() : []);
     msg.className = 'fs-msg' + (cur.over ? ' good' : '');
-    msg.textContent = cur.over ? resultText(cur.over) : thinking ? 'Thinking...' : g.inCheck() ? `Check! ${sideName(cur.v, g.turn())} to move` : `${sideName(cur.v, g.turn())} to move`;
+    msg.textContent = cur.over ? resultText(cur.over) : thinking ? 'Thinking...' : g.inCheck() ? `Check! ${sideName(cur.v, g.turn())} to move` : '';
     movesEl.innerHTML = ''; cur.sans = cur.sans || [];
     cur.sans.forEach((s, i) => { if (i % 2 === 0) movesEl.append(h('span', { class: 'n' }, (i / 2 + 1) + '.')); movesEl.append(h('span', { class: 'm' + (i === cur.sans.length - 1 ? ' cur' : '') }, s)); });
     if (!cur.sans.length) movesEl.append(h('span', { class: 'muted small' }, 'Your move list will appear here'));
@@ -435,7 +436,6 @@ function renderWorldLesson(main) {
       if (step.arrows && step.arrows.length) vb.layer.append(worldArrows(vb, step.arrows)); };
     vb.draw();
     vb.el.style.setProperty('--ar', vb.files / vb.ranks);
-    if (worldMeta(id).pockets && ['w', 'b'].some(c => Object.values((vState(g, id).pockets || {})[c] || {}).some(n => n > 0))) vb.el.style.setProperty('--pk', '112px');
     F.stage.append(vb.el);
     if (step.type !== 'text') { msg.textContent = step.type === 'line' ? tr('Play the moves. The other side will answer.') : tr('Your move!'); restartAct = { ic: 'undo', label: 'Restart', on: () => { worldView.keepMistakes = true; render(); } }; }
   }

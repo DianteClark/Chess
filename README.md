@@ -1,4 +1,4 @@
-# Knight Club Chess 11.0
+# Knight Club Chess 12.0
 
 A complete, free chess app in one page, and a home for chess's cousins from around the world: play bots and people, learn with a coach that explains your games, solve puzzles every day, and collect rewards along the way. No ads, no account, no paywall. Built from scratch, with no game engine or framework.
 
@@ -6,7 +6,7 @@ A complete, free chess app in one page, and a home for chess's cousins from arou
 
 Works on phones and computers. Install it to your home screen (Me > Install) and it works offline too.
 
-See [CHANGELOG.md](CHANGELOG.md) for everything new in 11.0 and 10.0. Available in English, Spanish, Portuguese, French, German, Chinese, Japanese, Hindi and Arabic.
+See [CHANGELOG.md](CHANGELOG.md) for everything new in 12.0, 11.0 and 10.0. Available in English, Spanish, Portuguese, French, German, Chinese, Japanese, Hindi and Arabic.
 
 ## Features
 

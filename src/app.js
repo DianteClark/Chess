@@ -435,6 +435,8 @@ function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === tabFor));
 }
 function subView() { return [typeof friendView !== 'undefined' ? friendView : '', typeof puzMode !== 'undefined' ? puzMode : '', typeof lessonOpen !== 'undefined' && lessonOpen ? lessonOpen.id + lessonStep : '', typeof courseOpen !== 'undefined' && courseOpen ? courseOpen.id : '', typeof meView !== 'undefined' ? meView : '', profile.current ? 'g' : '', typeof worldView !== 'undefined' && worldView ? [worldView.g, worldView.play ? 'p' : '', worldView.lesson ? worldView.lesson.id + worldView.step : ''].join(':') : ''].join('/'); }
+// small taps get a soft click: dock tabs and segmented switches
+document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('.tabs button'); if (b) beep('tap'); }, true);
 function buildTabs() {
   const items = [['home', 'home', 'Club'], ['puzzles', 'puzzle', 'Puzzles'], ['play', null, 'Play'], ['learn', 'learn', 'Learn'], ['me', 'user', 'Me']];
   const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => ic ? h('button', { 'data-r': r, onclick: () => { haptic(6); go(r); } }, icon(ic, 25), l)
@@ -1476,21 +1478,21 @@ function migrate(p) {
   return p;
 }
 
-const APP_VERSION = '11.1';
+const APP_VERSION = '12.0';
 function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
   const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
   profile.seenVersion = APP_VERSION; saveProfile();
   if (firstEver && !force) return; // brand-new players go straight in
   const items = [
-    ['globe', 'World Games', 'Xiangqi, shogi, janggi, makruk, sittuyin and shatranj, plus six chess variants. Each has lessons, bots and Pass & Play.'],
-    ['eye', 'English pieces', 'Every world game has an easy-to-read picture set next to the traditional one. Shogi pieces show where they can move.'],
-    ['chat', 'Your language', 'Knight Club now speaks Spanish, Portuguese, French, German, Chinese, Japanese, Hindi and Arabic. Change it under Me.'],
-    ['medal', 'A new app icon', 'Add Knight Club to your home screen to see the new brass medallion.'],
-    ['trophy', 'New trophies', 'Five World Games achievements, from Passport to Grandmaster Abroad.'],
+    ['play', 'Full-screen play', 'Games, lessons, puzzles and reviews fill your screen: no scrolling, no dock, big buttons at the bottom.'],
+    ['trophy', 'Real rewards', 'Results screens with stars and an XP bar, reward chests, and a daily login chest that grows all week.'],
+    ['search', 'A better Game Review', 'Starts at move 1, plays itself, stops at the big moments, and Hoot explains every move.'],
+    ['route', 'The lesson path', 'Lessons are now a trail with chapters and up to 3 stars each.'],
+    ['sparkle', 'A whole new feel', 'New Arena, Puzzle Den, Me tab, trophy cabinet, an animated Hoot and a brand new sound kit.'],
   ];
 
-  modal((box, close) => box.append(h('div', { class: 'center' }, hoot(72)), h('h2', { class: 'center' }, `The World Games are open!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
+  modal((box, close) => box.append(h('div', { class: 'center' }, typeof hootEl === 'function' ? hootEl('cheer', 84) : hoot(72)), h('h2', { class: 'center' }, `The big update is here!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
     h('div', { class: 'stack' }, items.map(([ic, t, d]) => h('div', { class: 'quest' }, h('div', { class: 'qi' }, icon(ic, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, t), h('div', { class: 'small muted' }, d))))),
     h('div', { style: { height: '12px' } }), h('button', { class: 'btn primary block', onclick: () => { close(); confetti(); } }, "Let's play!")));
 }

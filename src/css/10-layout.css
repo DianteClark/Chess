@@ -62,3 +62,6 @@ body.focus .app>.stack{gap:0}
 .fs-stage.table>div:not(.vboard-wrap):not(.board-wrap){flex:none}
 .fs .vboard-wrap .vframe{margin:0}
 .fs .vboard-wrap .vpocket{min-height:46px;margin:4px 0}
+.fs .vboard-wrap .vpocket{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;min-height:44px;gap:4px}
+.fs .vboard-wrap .vpocket::-webkit-scrollbar{display:none}
+.fs .vboard-wrap .vhand{width:36px;height:36px;flex:none}
