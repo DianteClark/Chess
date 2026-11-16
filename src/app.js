@@ -957,9 +957,9 @@ function renderOnlineGame(main) {
 }
 
 // ======================= PUZZLES =======================
-let puzCat = 'rated', puzState = null;
+let puzCat = 'rated', puzState = null, puzMode = null;
 function pickPuzzle() {
-  const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : p.n === +puzCat.slice(-1) && p.cat !== 'pattern');
+  const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : puzCat.startsWith('t:') ? (p.themes || []).includes(puzCat.slice(2)) : p.n === +puzCat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic');
   const fresh = pool.filter(p => !profile.tried[p.id]);
   if (puzCat === 'pattern' && fresh.length) return fresh[0]; // learn the famous mates in order, easiest first
   const use = (fresh.length ? fresh : pool).slice();
@@ -969,9 +969,17 @@ function pickPuzzle() {
   return top[Math.floor(rand() * top.length)];
 }
 function renderPuzzles(main) {
-  const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']];
+  if (puzMode === 'daily') return renderDaily(main);
+  if (puzMode === 'rush') return renderRush(main);
+  const dState = dailyState(), dDone = dState.history[todayKey()];
+  const themeCounts = {}; PUZZLES.forEach(p => (p.themes || []).forEach(t => themeCounts[t] = (themeCounts[t] || 0) + 1));
+  const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
+    .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
   const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
   main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} · Solved ${solvedCount}/${PUZZLES.length}`))));
+  main.append(h('div', { class: 'modes' },
+    h('button', { class: 'mode-card', onclick: () => { puzMode = 'daily'; render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done today' : `Streak ${dState.streak}`)),
+    h('button', { class: 'mode-card', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, 'Best ' + Math.max(rushBest('3min'), rushBest('5min'), rushBest('survival'))))));
   main.append(h('div', { class: 'cats' }, cats.map(([k, l]) => h('button', { class: puzCat === k ? 'on' : '', onclick: () => { puzCat = k; puzState = null; render(); } }, l))));
   if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
   const ps = puzState, p = ps.p;

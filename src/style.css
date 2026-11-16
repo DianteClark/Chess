@@ -182,3 +182,10 @@ a{color:var(--blue)}
 .tcs button{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;line-height:1.15}
 .tcs button b{font-size:15px} .tcs button small{font-size:11px;color:var(--muted);font-weight:700}
 .tcs button.on{border-color:var(--accent);background:#2e3150} .tcs button.on b{color:var(--accent)}
+/* puzzles 2.0 */
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mode-card{background:linear-gradient(160deg,#2b3760,#232d4f);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+.mode-card .icn{color:var(--accent);margin-bottom:4px} .mode-card b{font-size:17px} .mode-card small{color:var(--muted);font-weight:700}
+.strikes{display:flex;gap:4px} .strikes .icn{color:var(--line)} .strikes .icn.hit{color:var(--bad)}
+.rushlog{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.rl{font-size:12px;font-weight:800;padding:3px 7px;border-radius:8px} .rl.ok{background:rgba(79,209,139,.18);color:var(--good)} .rl.bad{background:rgba(255,107,107,.15);color:var(--bad)}
