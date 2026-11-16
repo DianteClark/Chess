@@ -535,7 +535,7 @@ function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
 // ======================= PLAY VS BOT =======================
-let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0' };
+let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0', coach: true };
 function renderPlay(main) {
   if (profile.current && profile.current.mode === 'bot') return renderBotGame(main);
   const r = { r: profile.ladder.r };
@@ -558,13 +558,13 @@ function renderPlay(main) {
     h('div', { class: 'card stack' },
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'TIME'), tcPicker(playSel)),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual (undo + hints)']], 'rated')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual + Coach']], 'rated')),
       playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated, tc = playSel.tc) {
   const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
   const [tb, ti] = parseTc(tc);
-  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
+  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), coach: !rated && playSel.coach !== false, moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
   saveProfile(); go('play'); render();
 }
 function renderBotGame(main) {
@@ -577,11 +577,48 @@ function renderBotGame(main) {
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
     canMove: turn => !thinking && !cur.result && turn === cur.color,
-    onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); clk.press(cur.clock, cur.color, g.moves.length); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
+    onUserMove: async (uci, dragged) => {
+      const before = g.moves.slice();
+      const res = g.play(uci); if (!res) return; playSound(res); clk.press(cur.clock, cur.color, g.moves.length); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo);
+      if (cur.coach && !g.status().over) { thinking = true; buttons(); const ok = await coachAfterUserMove(before, uci); thinking = false; if (ok === 'undo' || ok === false) { buttons(); return; } }
+      afterMove();
+    },
     getClock: cur.clock ? () => cur.clock : null,
     onTick: () => { if (cur.result) return; const f = clk.flagged(cur.clock); if (f) { const r = timeoutResult(g.pos, f); finish(r.result, r.reason); } },
   });
-  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : 'Casual game: undo and hints allowed'));
+  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : cur.coach ? 'Casual game with Live Coach' : 'Casual game: undo and hints allowed'));
+  // ----- live coach -----
+  const coachTxt = h('div', { class: 'txt' }), coachHead = h('div', { class: 'revhead' }), coachBtns = h('div', { class: 'row' });
+  const coachBox = h('div', { class: 'card coachbox' + (cur.coach ? '' : ' hidden') }, coachHead, h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(44)), coachTxt), coachBtns);
+  main.insertBefore(coachBox, main.querySelector('.moves'));
+  let preLines = null, coachHold = null;
+  const coachSay = (headEls, text, btns) => { coachHead.innerHTML = ''; coachHead.append(...headEls); coachTxt.textContent = text; coachBtns.innerHTML = ''; (btns || []).forEach(b => coachBtns.append(b)); };
+  function coachTurnStart() {
+    if (!cur.coach || cur.result) return;
+    const fen = g.pos.fen();
+    preLines = analyzePos(fen, 2, 11);
+    const th = threatsTo(fen, cur.color);
+    if (th.length && g.moves.length > 1) coachSay([icon('alert', 20), h('b', null, 'Careful!')], `Your ${PNAME[th[0].piece]} on ${E.sqName(th[0].sq)} is under attack${th.length > 1 ? `, and so is your ${PNAME[th[1].piece]} on ${E.sqName(th[1].sq)}` : ''}. Can you save it, or is there something even stronger?`);
+    else if (g.moves.length < 2) coachSay([h('b', null, 'Live Coach')], "I'll grade each of your moves and explain what I see. Make a move whenever you are ready!");
+  }
+  async function coachAfterUserMove(movesBefore, uci) {
+    if (!cur.coach) return true;
+    coachSay([icon('hourglass', 18), h('b', null, 'Thinking about your move…')], '');
+    let before; try { before = await (preLines || analyzePos(new Game(START_FEN, movesBefore).pos.fen(), 2, 11)); } catch (e) { before = []; }
+    const after = await analyzePos(new Game(START_FEN, movesBefore.concat([uci])).pos.fen(), 1, 11);
+    if (profile.current !== cur) return false;
+    const gr = gradeSingle(START_FEN, movesBefore, uci, before, after, cur.color, bot.name);
+    const bad = ['mistake', 'blunder'].includes(gr.cls);
+    const head = [classBadge(gr.cls, 22), h('b', null, gr.mv.san), h('span', { class: 'muted' }, ' ' + clsPhrase(gr.cls))];
+    if (!bad) { coachSay(head, gr.text); return true; }
+    if (gr.best) scr.board.set(Object.assign(g.viewState(), { arrows: [[sqFromName(gr.best.slice(0, 2)), sqFromName(gr.best.slice(2, 4)), '#7cc04a']] }));
+    return new Promise(res => {
+      coachHold = res;
+      coachSay(head, gr.text, [
+        h('button', { class: 'btn primary grow', onclick: () => { g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); coachHold = null; res('undo'); coachSay([icon('undo', 18), h('b', null, 'Move taken back')], 'Try to find a better move. The green arrow shows my suggestion.'); scr.board.set(Object.assign(g.viewState(), gr.best ? { arrows: [[sqFromName(gr.best.slice(0, 2)), sqFromName(gr.best.slice(2, 4)), '#7cc04a']] } : {})); coachTurnStart(); buttons(); } }, icon('undo', 18), 'Take it back'),
+        h('button', { class: 'btn grow', onclick: () => { coachHold = null; res(true); scr.refresh(); } }, 'Keep my move', icon('next', 18))]);
+    });
+  }
   function buttons() {
     const over = !!cur.result;
     const list = [{ ic: 'flip', label: 'Flip', on: () => scr.flip() }];
@@ -638,6 +675,7 @@ function renderBotGame(main) {
     cur.moves = g.moves.slice(); saveProfile();
     if (!scr.viewing) scr.refresh(g.lastFromTo);
     afterMove();
+    coachTurnStart();
   }
   function finish(result, reason) {
     if (cur.result) return;
@@ -679,7 +717,7 @@ function renderBotGame(main) {
         h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc); } }, 'Rematch'))));
   }
   buttons();
-  if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); }
+  if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); else coachTurnStart(); }
 }
 
 // ======================= FRIENDS =======================

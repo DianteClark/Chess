@@ -405,3 +405,35 @@ function retryMoment(R, i) {
       h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { const b = mv.best; bv.set(Object.assign(g.viewState(), { arrows: [[sqFromName(b.slice(0, 2)), sqFromName(b.slice(2, 4)), '#7cc04a']] })); msg.textContent = 'The engine plays ' + sanAt(P.fen, [], b) + '.'; } }, icon('eye', 18), 'Show'), h('button', { class: 'btn primary grow', onclick: close }, 'Done')));
   });
 }
+
+// ---------- live coach for casual bot games ----------
+// Grades a single move from engine lines before/after it and returns a coach message.
+function gradeSingle(startFen, movesBefore, uci, linesBefore, linesAfter, color, oppName) {
+  const pBefore = posWith(startFen, movesBefore), side = pBefore.turn === 0 ? 'w' : 'b';
+  const turnAfter = side === 'w' ? 'b' : 'w';
+  const P0 = { fen: pBefore.fen(), lines: linesBefore, turn: side, over: pBefore.status() };
+  const pAfter = posWith(startFen, movesBefore.concat([uci]));
+  const P1 = { fen: pAfter.fen(), lines: linesAfter, turn: turnAfter, over: pAfter.status() };
+  const sgn = side === 'w' ? 1 : -1;
+  const evB = evalWhite(P0) * sgn, evA = evalWhite(P1) * sgn;
+  const best = linesBefore[0] ? linesBefore[0].pv[0] : null;
+  const wpBest = linesBefore[0] ? winPct(linesBefore[0].cp) : winPct(evB), wpAfter = winPct(evA);
+  let loss = uci === best ? 0 : Math.max(0, wpBest - wpAfter);
+  const all = movesBefore.concat([uci]);
+  const facts = moveFacts(startFen, movesBefore, uci);
+  let cls = isBookMove(all, movesBefore.length) && loss < 3 ? 'book' : loss <= 0.5 ? 'best' : loss < 2 ? 'excellent' : loss < 5 ? 'good' : loss < 10 ? 'inaccuracy' : loss < 20 ? 'mistake' : 'blunder';
+  const second = linesBefore[1] ? winPct(linesBefore[1].cp) : null;
+  if (cls === 'best' && second != null && wpBest - second >= 15 && wpBest < 92) cls = 'great';
+  if ((cls === 'best' || cls === 'great') && facts.leavesHanging >= 2 && (!facts.capt || PVAL[facts.capt] < PVAL[facts.piece]) && facts.piece !== 1 && wpBest < 85 && wpAfter >= 45) cls = 'brilliant';
+  const i = movesBefore.length;
+  const R = { startFen, uciMoves: all, color, oppName, pos: { [i]: P0, [i + 1]: P1 }, moves: {} };
+  const mv = { i, uci, side, san: pBefore.san(pBefore.moveFromUci(uci)), best, cls, loss, wpBefore: wpBest, wpAfter, wpBest, leftHanging: facts.leavesHanging >= 2, allowedMate: !!(linesAfter[0] && linesAfter[0].mate > 0) };
+  R.moves[i] = mv;
+  return { cls, text: coachExplain(R, i), best, mv };
+}
+// pieces of `color` that are under attack and losing material right now
+function threatsTo(fen, color) {
+  const p = new E.Position(fen), side = color === 'w' ? 0 : 1, out = [];
+  for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } const pc = p.board[s]; if (!pc || ((pc & 8) ? 1 : 0) !== side || (pc & 7) === 6) continue; const lost = hanging(p, s); if (lost >= 2) out.push({ sq: s, piece: pc & 7, lost }); }
+  return out.sort((a, b) => b.lost - a.lost);
+}

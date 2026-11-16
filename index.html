@@ -275,6 +275,8 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .palette button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
 .palette button.erase{background:var(--card2);color:var(--muted);display:flex;align-items:center;justify-content:center}
 .pgn{white-space:pre-wrap;font-size:12px;background:var(--bg2);border-radius:10px;padding:10px;max-height:180px;overflow:auto}
+.coachbox{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.coachbox .txt{font-size:15px}
 </style>
 </head>
 <body>
@@ -1804,7 +1806,7 @@ function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
 // ======================= PLAY VS BOT =======================
-let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0' };
+let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0', coach: true };
 function renderPlay(main) {
   if (profile.current && profile.current.mode === 'bot') return renderBotGame(main);
   const r = { r: profile.ladder.r };
@@ -1827,13 +1829,13 @@ function renderPlay(main) {
     h('div', { class: 'card stack' },
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'TIME'), tcPicker(playSel)),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual (undo + hints)']], 'rated')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual + Coach']], 'rated')),
       playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated, tc = playSel.tc) {
   const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
   const [tb, ti] = parseTc(tc);
-  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
+  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), coach: !rated && playSel.coach !== false, moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
   saveProfile(); go('play'); render();
 }
 function renderBotGame(main) {
@@ -1846,11 +1848,48 @@ function renderBotGame(main) {
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
     canMove: turn => !thinking && !cur.result && turn === cur.color,
-    onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); clk.press(cur.clock, cur.color, g.moves.length); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
+    onUserMove: async (uci, dragged) => {
+      const before = g.moves.slice();
+      const res = g.play(uci); if (!res) return; playSound(res); clk.press(cur.clock, cur.color, g.moves.length); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo);
+      if (cur.coach && !g.status().over) { thinking = true; buttons(); const ok = await coachAfterUserMove(before, uci); thinking = false; if (ok === 'undo' || ok === false) { buttons(); return; } }
+      afterMove();
+    },
     getClock: cur.clock ? () => cur.clock : null,
     onTick: () => { if (cur.result) return; const f = clk.flagged(cur.clock); if (f) { const r = timeoutResult(g.pos, f); finish(r.result, r.reason); } },
   });
-  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : 'Casual game: undo and hints allowed'));
+  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : cur.coach ? 'Casual game with Live Coach' : 'Casual game: undo and hints allowed'));
+  // ----- live coach -----
+  const coachTxt = h('div', { class: 'txt' }), coachHead = h('div', { class: 'revhead' }), coachBtns = h('div', { class: 'row' });
+  const coachBox = h('div', { class: 'card coachbox' + (cur.coach ? '' : ' hidden') }, coachHead, h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(44)), coachTxt), coachBtns);
+  main.insertBefore(coachBox, main.querySelector('.moves'));
+  let preLines = null, coachHold = null;
+  const coachSay = (headEls, text, btns) => { coachHead.innerHTML = ''; coachHead.append(...headEls); coachTxt.textContent = text; coachBtns.innerHTML = ''; (btns || []).forEach(b => coachBtns.append(b)); };
+  function coachTurnStart() {
+    if (!cur.coach || cur.result) return;
+    const fen = g.pos.fen();
+    preLines = analyzePos(fen, 2, 11);
+    const th = threatsTo(fen, cur.color);
+    if (th.length && g.moves.length > 1) coachSay([icon('alert', 20), h('b', null, 'Careful!')], `Your ${PNAME[th[0].piece]} on ${E.sqName(th[0].sq)} is under attack${th.length > 1 ? `, and so is your ${PNAME[th[1].piece]} on ${E.sqName(th[1].sq)}` : ''}. Can you save it, or is there something even stronger?`);
+    else if (g.moves.length < 2) coachSay([h('b', null, 'Live Coach')], "I'll grade each of your moves and explain what I see. Make a move whenever you are ready!");
+  }
+  async function coachAfterUserMove(movesBefore, uci) {
+    if (!cur.coach) return true;
+    coachSay([icon('hourglass', 18), h('b', null, 'Thinking about your move…')], '');
+    let before; try { before = await (preLines || analyzePos(new Game(START_FEN, movesBefore).pos.fen(), 2, 11)); } catch (e) { before = []; }
+    const after = await analyzePos(new Game(START_FEN, movesBefore.concat([uci])).pos.fen(), 1, 11);
+    if (profile.current !== cur) return false;
+    const gr = gradeSingle(START_FEN, movesBefore, uci, before, after, cur.color, bot.name);
+    const bad = ['mistake', 'blunder'].includes(gr.cls);
+    const head = [classBadge(gr.cls, 22), h('b', null, gr.mv.san), h('span', { class: 'muted' }, ' ' + clsPhrase(gr.cls))];
+    if (!bad) { coachSay(head, gr.text); return true; }
+    if (gr.best) scr.board.set(Object.assign(g.viewState(), { arrows: [[sqFromName(gr.best.slice(0, 2)), sqFromName(gr.best.slice(2, 4)), '#7cc04a']] }));
+    return new Promise(res => {
+      coachHold = res;
+      coachSay(head, gr.text, [
+        h('button', { class: 'btn primary grow', onclick: () => { g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); coachHold = null; res('undo'); coachSay([icon('undo', 18), h('b', null, 'Move taken back')], 'Try to find a better move. The green arrow shows my suggestion.'); scr.board.set(Object.assign(g.viewState(), gr.best ? { arrows: [[sqFromName(gr.best.slice(0, 2)), sqFromName(gr.best.slice(2, 4)), '#7cc04a']] } : {})); coachTurnStart(); buttons(); } }, icon('undo', 18), 'Take it back'),
+        h('button', { class: 'btn grow', onclick: () => { coachHold = null; res(true); scr.refresh(); } }, 'Keep my move', icon('next', 18))]);
+    });
+  }
   function buttons() {
     const over = !!cur.result;
     const list = [{ ic: 'flip', label: 'Flip', on: () => scr.flip() }];
@@ -1907,6 +1946,7 @@ function renderBotGame(main) {
     cur.moves = g.moves.slice(); saveProfile();
     if (!scr.viewing) scr.refresh(g.lastFromTo);
     afterMove();
+    coachTurnStart();
   }
   function finish(result, reason) {
     if (cur.result) return;
@@ -1948,7 +1988,7 @@ function renderBotGame(main) {
         h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc); } }, 'Rematch'))));
   }
   buttons();
-  if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); }
+  if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); else coachTurnStart(); }
 }
 
 // ======================= FRIENDS =======================
@@ -3937,6 +3977,38 @@ function retryMoment(R, i) {
     box.append(h('h2', null, 'Retry this moment'), h('p', { class: 'muted small' }, `${g.turn() === 'w' ? 'White' : 'Black'} to move.`), bv.el, msg,
       h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { const b = mv.best; bv.set(Object.assign(g.viewState(), { arrows: [[sqFromName(b.slice(0, 2)), sqFromName(b.slice(2, 4)), '#7cc04a']] })); msg.textContent = 'The engine plays ' + sanAt(P.fen, [], b) + '.'; } }, icon('eye', 18), 'Show'), h('button', { class: 'btn primary grow', onclick: close }, 'Done')));
   });
+}
+
+// ---------- live coach for casual bot games ----------
+// Grades a single move from engine lines before/after it and returns a coach message.
+function gradeSingle(startFen, movesBefore, uci, linesBefore, linesAfter, color, oppName) {
+  const pBefore = posWith(startFen, movesBefore), side = pBefore.turn === 0 ? 'w' : 'b';
+  const turnAfter = side === 'w' ? 'b' : 'w';
+  const P0 = { fen: pBefore.fen(), lines: linesBefore, turn: side, over: pBefore.status() };
+  const pAfter = posWith(startFen, movesBefore.concat([uci]));
+  const P1 = { fen: pAfter.fen(), lines: linesAfter, turn: turnAfter, over: pAfter.status() };
+  const sgn = side === 'w' ? 1 : -1;
+  const evB = evalWhite(P0) * sgn, evA = evalWhite(P1) * sgn;
+  const best = linesBefore[0] ? linesBefore[0].pv[0] : null;
+  const wpBest = linesBefore[0] ? winPct(linesBefore[0].cp) : winPct(evB), wpAfter = winPct(evA);
+  let loss = uci === best ? 0 : Math.max(0, wpBest - wpAfter);
+  const all = movesBefore.concat([uci]);
+  const facts = moveFacts(startFen, movesBefore, uci);
+  let cls = isBookMove(all, movesBefore.length) && loss < 3 ? 'book' : loss <= 0.5 ? 'best' : loss < 2 ? 'excellent' : loss < 5 ? 'good' : loss < 10 ? 'inaccuracy' : loss < 20 ? 'mistake' : 'blunder';
+  const second = linesBefore[1] ? winPct(linesBefore[1].cp) : null;
+  if (cls === 'best' && second != null && wpBest - second >= 15 && wpBest < 92) cls = 'great';
+  if ((cls === 'best' || cls === 'great') && facts.leavesHanging >= 2 && (!facts.capt || PVAL[facts.capt] < PVAL[facts.piece]) && facts.piece !== 1 && wpBest < 85 && wpAfter >= 45) cls = 'brilliant';
+  const i = movesBefore.length;
+  const R = { startFen, uciMoves: all, color, oppName, pos: { [i]: P0, [i + 1]: P1 }, moves: {} };
+  const mv = { i, uci, side, san: pBefore.san(pBefore.moveFromUci(uci)), best, cls, loss, wpBefore: wpBest, wpAfter, wpBest, leftHanging: facts.leavesHanging >= 2, allowedMate: !!(linesAfter[0] && linesAfter[0].mate > 0) };
+  R.moves[i] = mv;
+  return { cls, text: coachExplain(R, i), best, mv };
+}
+// pieces of `color` that are under attack and losing material right now
+function threatsTo(fen, color) {
+  const p = new E.Position(fen), side = color === 'w' ? 0 : 1, out = [];
+  for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } const pc = p.board[s]; if (!pc || ((pc & 8) ? 1 : 0) !== side || (pc & 7) === 6) continue; const lost = hanging(p, s); if (lost >= 2) out.push({ sq: s, piece: pc & 7, lost }); }
+  return out.sort((a, b) => b.lost - a.lost);
 }
 
 ;
