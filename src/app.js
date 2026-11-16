@@ -606,28 +606,45 @@ function renderPlay(main) {
   const r = { r: profile.ladder.r };
   // suggest the bot closest to the player's rating
   if (playSel.bot === null || playSel.auto !== true) { let best = 0; BOTS.forEach((b, i) => { if (Math.abs(b.rating - r.r) < Math.abs(BOTS[best].rating - r.r)) best = i; }); playSel.bot = best; playSel.auto = true; }
-  const grid = h('div', { class: 'bots scroller' });
-  const playBtn = h('button', { class: 'btn primary block', onclick: () => startBotGame() });
-  const stakes = h('div', { class: 'row stakes', style: { justifyContent: 'center', flexWrap: 'wrap', gap: '6px' } });
+  const lg = leagueOf(r.r);
+  // resume a game in progress
+  if (profile.current && profile.current.mode === 'bot' && !profile.current.result) { const cb = BOTS[profile.current.bot]; main.append(h('button', { class: 'resume-card', onclick: () => { gameHidden = false; haptic(8); beep('confirm'); render(); } }, avatar(cb.avatar, 46), h('div', { class: 'grow' }, h('b', null, `Game vs ${cb.name}`), h('small', null, `${profile.current.moves.length} moves played. Tap to continue.`)), h('span', { class: 'go' }, icon('play', 20)))); }
+  main.append(h('div', { class: 'arena-head' }, h('div', { class: 'ah-l' }, h('h2', null, 'The Arena'), h('small', null, 'Pick an opponent and make your move')),
+    h('button', { class: 'league-chip', onclick: () => { meView = null; go('me'); } }, leagueIcon(r.r, 22), h('div', null, h('b', null, String(Math.round(r.r))), h('small', null, lg.name))),
+    h('button', { class: 'icon-btn', 'aria-label': 'Analysis board', onclick: () => { openAnalysis({}); } }, icon('search', 20))));
+  // spotlight: the chosen bot, big
+  const spot = h('div', { class: 'spotlight' });
+  const recordVs = i => { const n = BOTS[i].name; const gs = profile.games.filter(x => x.opp === n); return { w: gs.filter(x => x.score === 1).length, d: gs.filter(x => x.score === .5).length, l: gs.filter(x => x.score === 0).length }; };
+  const strip = h('div', { class: 'bot-strip' });
+  const playBtn = h('button', { class: 'play-big', onclick: () => { haptic(14); beep('start'); if (typeof screenWipe === 'function') screenWipe('center', () => startBotGame()); else startBotGame(); } });
+  const stakes = h('div', { class: 'stakes' });
   const drawStakes = () => {
     const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
-    stakes.innerHTML = ''; if (playSel.rated) { stakes.append(h('span', { class: 'pill live' }, `Win ${f(eloDelta(L.r, br, 1, K))}`), h('span', { class: 'pill' }, `Draw ${f(eloDelta(L.r, br, .5, K))}`), h('span', { class: 'pill', style: { color: 'var(--bad)' } }, `Loss ${f(eloDelta(L.r, br, 0, K))}`)); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'pill' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); } else stakes.append(h('span', { class: 'pill' }, 'Casual: your rating stays the same'));
+    stakes.innerHTML = '';
+    if (playSel.rated) { stakes.append(h('span', { class: 'st win' }, `Win ${f(eloDelta(L.r, br, 1, K))}`), h('span', { class: 'st' }, `Draw ${f(eloDelta(L.r, br, .5, K))}`), h('span', { class: 'st loss' }, `Loss ${f(eloDelta(L.r, br, 0, K))}`)); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'st' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); }
+    else stakes.append(h('span', { class: 'st' }, 'Casual: your rating stays the same'));
   };
-  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), `Play ${BOTS[playSel.bot].name}`); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
-  drawGrid();
-  setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollTo({ left: on.offsetLeft - grid.clientWidth / 2 + on.clientWidth / 2, behavior: 'auto' }); }, 0);
-  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
-  if (profile.current && profile.current.mode === 'bot' && !profile.current.result) { const cb = BOTS[profile.current.bot]; main.append(h('button', { class: 'resume-card', onclick: () => { gameHidden = false; haptic(8); render(); } }, avatar(cb.avatar, 46), h('div', { class: 'grow' }, h('b', null, `Game vs ${cb.name}`), h('small', null, `${profile.current.moves.length} moves played. Tap to continue.`)), h('span', { class: 'go' }, icon('play', 20)))); }
-  main.append(
-    h('div', { class: 'stage' }, roomArt('arena'), h('div', { class: 'stage-lab' }, h('h2', null, 'The Arena'), h('small', null, 'Pick an opponent and make your move')), h('button', { class: 'btn sm stage-btn', onclick: () => openAnalysis() }, icon('search', 16), 'Analysis board')),
-    h('div', null, h('h3', { class: 'sect', style: { margin: '2px 2px 0' } }, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name}, rating ${r.r}. The highlighted bot is your best match.`)),
-    grid,
-    h('div', { class: 'card stack setup' },
-      h('div', null, h('div', { class: 'lbl' }, 'Play as'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
-      h('div', null, h('div', { class: 'lbl' }, 'Time control'), tcPicker(playSel)),
-      h('div', null, h('div', { class: 'lbl' }, 'Starting position'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant')),
-      h('div', null, h('div', { class: 'lbl' }, 'Game type'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual + Coach']], 'rated')),
-      playBtn, stakes));
+  const drawAll = () => {
+    const b = BOTS[playSel.bot], rec = recordVs(playSel.bot), beaten = (stats().beaten || {})[playSel.bot + 1];
+    spot.innerHTML = '';
+    spot.append(h('div', { class: 'sp-av' }, avatar(b.avatar, 96), beaten ? h('span', { class: 'sp-beaten' }, icon('check', 14), 'Beaten') : null),
+      h('div', { class: 'sp-info' }, h('div', { class: 'sp-lvl' }, `Level ${playSel.bot + 1}`), h('b', { class: 'sp-name' }, b.name), h('div', { class: 'sp-rt' }, icon('star', 14), ` ${b.rating}`), h('p', null, b.blurb),
+        rec.w + rec.d + rec.l ? h('div', { class: 'sp-rec' }, h('span', { class: 'w' }, `${rec.w} won`), h('span', null, `${rec.d} drawn`), h('span', { class: 'l' }, `${rec.l} lost`)) : h('div', { class: 'sp-rec muted' }, 'First meeting')));
+    strip.innerHTML = '';
+    BOTS.forEach((bt, i) => strip.append(h('button', { class: 'bs' + (i === playSel.bot ? ' on' : '') + ((stats().beaten || {})[i + 1] ? ' beat' : ''), 'aria-label': bt.name, onclick: () => { if (playSel.bot !== i) { playSel.bot = i; beep('card'); haptic(5); drawAll(); if (typeof fxPop === 'function') fxPop(spot); } } }, avatar(bt.avatar, 40), h('small', null, String(bt.rating)))));
+    playBtn.innerHTML = ''; playBtn.append(icon('play', 22), h('span', null, `Play ${b.name}`));
+    drawStakes();
+    const on = strip.querySelector('.bs.on'); if (on) setTimeout(() => strip.scrollTo({ left: on.offsetLeft - strip.clientWidth / 2 + on.clientWidth / 2, behavior: 'smooth' }), 0);
+  };
+  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; beep('toggle'); d(); drawStakes(); } }, l))); }; d(); return el; };
+  drawAll();
+  main.append(spot, strip);
+  main.append(h('div', { class: 'card setup2' },
+    h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Play as'), seg([['w', [pieceImg('wk')]], ['r', [icon('dice', 18)]], ['b', [pieceImg('bk')]]], 'color')),
+    h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Game'), seg([[true, [icon('trophy', 16), ' Rated']], [false, [icon('learn', 16), ' Coach']]], 'rated')),
+    h('div', { class: 'srow col' }, h('span', { class: 'lbl' }, 'Clock'), tcPicker(playSel)),
+    h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Start'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant'))));
+  main.append(h('div', { class: 'play-dock' }, stakes, playBtn));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated, tc = playSel.tc) {
   const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
@@ -1236,27 +1253,54 @@ let courseOpen = null;
 function courseIcon(c) { return ['pawn', 'king', 'rook', 'queen', 'knight', 'bishop'].includes(c.icon) ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + { pawn: 'p', king: 'k', rook: 'r', queen: 'q', knight: 'n', bishop: 'b' }[c.icon]]})` } }) : h('div', { class: 'ic dark' }, icon(c.icon || 'book', 24)); }
 function renderCourse(main) {
   const C = courseOpen, done = C.lessons.filter(l => profile.lessons[lessonKey(l)]).length;
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { courseOpen = null; render(); } }, icon('back', 18), 'Learn'), h('h2', { class: 'grow' }, C.title)));
-  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done, ${tr(C.level)}`)));
-  const list = h('div', { class: 'lessons' });
-  C.lessons.forEach((l, k) => { l.course = C; list.append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, h('div', { class: 'ic dark' }, h('b', null, String(k + 1))), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc || '')), h('span', { class: 'ck' + (profile.lessons[lessonKey(l)] ? ' done' : '') }, icon(profile.lessons[lessonKey(l)] ? 'check' : 'next', 20)))); });
-  main.append(list);
+  main.append(h('div', { class: 'course-head' }, h('button', { class: 'icon-btn', 'aria-label': 'Back', onclick: () => { courseOpen = null; navDir = 'back'; render(); } }, icon('back', 20)),
+    h('div', { class: 'grow' }, h('h2', null, C.title), h('small', null, `${done} of ${C.lessons.length} lessons done, ${tr(C.level)}`))));
+  main.append(h('div', { class: 'card course-intro' }, h('p', null, C.desc), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } }))));
+  C.lessons.forEach(l => { l.course = C; });
+  main.append(lessonPath(C.lessons.map((l, k) => ({ key: lessonKey(l), title: l.title, art: h('b', { class: 'lp-num' }, String(k + 1)), open: () => { lessonOpen = l; lessonStep = 0; render(); } }))));
 }
+let learnTab = 'path';
+function lessonStarsEl(key) { const n = (profile.lessonStars || {})[key] || (profile.lessons[key] ? 1 : 0); const el = h('div', { class: 'lstars' }); for (let i = 0; i < 3; i++) el.append(h('i', { class: i < n ? 'on' : '' }, icon('star', 13))); return el; }
 function renderLearn(main) {
   if (lessonOpen) return renderLesson(main);
   if (courseOpen) return renderCourse(main);
-  const done = LESSONS.filter(l => profile.lessons[l.id]).length;
-  main.append(stageBanner('library', 'The Library', 'Lessons and courses for every level'));
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
-  if (typeof COURSES !== 'undefined' && COURSES.length) {
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${tr(c.level)}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
-    main.append(h('h3', { class: 'sect', style: { marginTop: '6px' } }, 'Beginner course'));
+  const done = LESSONS.filter(l => profile.lessons[l.id]).length, next = LESSONS.find(l => !profile.lessons[l.id]);
+  const totalStars = LESSONS.reduce((a, l) => a + ((profile.lessonStars || {})[l.id] || (profile.lessons[l.id] ? 1 : 0)), 0);
+  main.append(stageBanner('library', 'The Library', `${done} of ${LESSONS.length} lessons, ${totalStars} of ${LESSONS.length * 3} stars`));
+  const tabs = h('div', { class: 'seg learn-tabs' }); [['path', [icon('route', 16), ' Beginner path']], ['courses', [icon('book', 16), ' Courses']]].forEach(([v, l]) => tabs.append(h('button', { class: learnTab === v ? 'on' : '', onclick: () => { learnTab = v; beep('toggle'); render(); } }, l)));
+  main.append(tabs);
+  if (learnTab === 'courses') {
+    main.append(h('div', { class: 'course-cards' }, COURSES.map((c, ci) => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length;
+      return h('button', { class: 'course-card c' + ci, onclick: () => { courseOpen = c; beep('open'); render(); window.scrollTo(0, 0); } }, h('div', { class: 'cc-ic' }, courseIcon(c)), h('div', { class: 'grow' }, h('b', null, c.title), h('small', null, c.desc), h('div', { class: 'cc-meta' }, h('span', { class: 'pill' }, tr(c.level)), h('span', null, `${d} of ${c.lessons.length} lessons`)), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } })))); })));
+    main.append(h('button', { class: 'course-card world', onclick: () => { worldView = null; go('world'); } }, h('div', { class: 'cc-ic' }, icon('globe', 26)), h('div', { class: 'grow' }, h('b', null, 'World Games'), h('small', null, 'Xiangqi, shogi, janggi and more, each with its own course'))));
+    return;
   }
-  let groupEl = null, lastGroup = null;
-  for (const l of LESSONS) {
-    if (l.group !== lastGroup) { lastGroup = l.group; groupEl = h('div', { class: 'lgroup' }, h('h3', null, l.group), h('div', { class: 'lessons' })); main.append(groupEl); }
-    $('.lessons', groupEl).append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, lessonIcon(l), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc)), h('span', { class: 'ck' + (profile.lessons[l.id] ? ' done' : '') }, icon(profile.lessons[l.id] ? 'check' : 'next', 20))));
+  main.append(lessonPath(LESSONS.map(l => ({ key: l.id, title: l.title, group: l.group, art: l.piece ? h('img', { src: PIECE_URL['w' + l.piece], alt: '' }) : icon(l.icon || 'learn', 26), open: () => { lessonOpen = l; lessonStep = 0; render(); } })),
+    { say: next ? (done === 0 ? "Hoo-hoo! Tap the glowing circle to start your first lesson." : `Great work! Next up: ${next.title}.`) : 'You finished the whole path. Try a course next!', mood: done ? 'wave' : 'talk' }));
+}
+// A winding trail of lesson nodes (used by the beginner path, courses and World Games courses).
+// items: [{key, title, group?, art, open(), done?, stars?}]
+function lessonPath(items, opts = {}) {
+  const isDone = it => it.done != null ? it.done : !!profile.lessons[it.key];
+  const next = items.find(it => !isDone(it));
+  const path = h('div', { class: 'lpath' });
+  if (opts.say) path.append(h('div', { class: 'lp-hoot' }, typeof hootEl === 'function' ? hootEl(opts.mood || 'talk', 64) : hoot(64), h('div', { class: 'lp-say' }, opts.say)));
+  const offs = [0, 46, 70, 46, 0, -46, -70, -46];
+  let lastGroup = null, k = 0;
+  for (const it of items) {
+    if (it.group && it.group !== lastGroup) { lastGroup = it.group; const gl = items.filter(x => x.group === it.group); path.append(h('div', { class: 'lp-chapter' }, h('b', null, it.group), h('small', null, `${gl.filter(isDone).length} / ${gl.length}`))); }
+    const d = isDone(it), nx = it === next;
+    const stars = h('div', { class: 'lstars' }); const n = it.stars != null ? it.stars : ((profile.lessonStars || {})[it.key] || (d ? 1 : 0)); for (let i = 0; i < 3; i++) stars.append(h('i', { class: i < n ? 'on' : '' }, icon('star', 13)));
+    const node = h('button', { class: 'lp-node' + (d ? ' done' : '') + (nx ? ' next' : ''), onclick: () => { beep('open'); haptic(8); it.open(); } },
+      h('span', { class: 'lp-disc' }, it.art), h('span', { class: 'lp-lab' }, h('b', null, it.title), stars));
+    node.style.setProperty('--x', offs[k % offs.length] + 'px'); path.append(node); k++;
   }
+  requestAnimationFrame(() => { const pr = path.getBoundingClientRect(); if (!pr.width) return; const pts = [...path.querySelectorAll('.lp-disc')].map(d => { const r = d.getBoundingClientRect(); return [r.left - pr.left + r.width / 2, r.top - pr.top + r.height / 2]; });
+    let d = ''; pts.forEach((p, i) => { if (!i) { d = `M${p[0]} ${p[1]}`; return; } const q = pts[i - 1], my = (q[1] + p[1]) / 2; d += ` C${q[0]} ${my} ${p[0]} ${my} ${p[0]} ${p[1]}`; });
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'lp-trail'); svg.setAttribute('width', pr.width); svg.setAttribute('height', pr.height);
+    const pa = document.createElementNS('http://www.w3.org/2000/svg', 'path'); pa.setAttribute('d', d); svg.append(pa); path.prepend(svg); });
+  if (next) setTimeout(() => { const n = path.querySelector('.lp-node.next'); if (n && n.getBoundingClientRect().top > innerHeight - 160) n.scrollIntoView({ block: 'center', behavior: 'smooth' }); }, 350);
+  return path;
 }
 function fenToBoard(fen) { return new E.Position(fen.includes(' ') ? fen : fen + ' w - - 0 1').board; }
 function boardFromPieces(spec) { // spec: {'d4':'R', 'e5':'p'}
@@ -1415,54 +1459,6 @@ function sparkline(arr, color, emptyMsg) {
   const el = h('div'); el.innerHTML = `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d} L${W} ${H} L0 ${H} Z" fill="${color}" opacity=".15"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
   return el;
 }
-function renderMe(main) {
-  if (meView === 'style') return renderStyle(main);
-  if (meView === 'insights') return renderInsights(main);
-  main.append(stageBanner('trophy', 'Trophy Hall', profile.name ? `${profile.name}'s room` : 'Your ratings, trophies and style'));
-  main.append(levelCard());
-  main.append(h('div', { class: 'modes' },
-    h('button', { class: 'mode-card', onclick: () => { meView = 'insights'; render(); } }, icon('chart', 26), h('b', null, 'Insights'), h('small', null, `${(profile.reviews || []).length} reviewed games`)),
-    h('button', { class: 'mode-card', onclick: () => { meView = 'style'; render(); } }, icon('palette', 26), h('b', null, 'Style'), h('small', null, 'Boards, pieces, avatar'))));
-  const L = profile.ladder, lg = leagueOf(L.r), hu = profile.human, pr = profile.puzzle;
-  const nameInp = h('input', { class: 'input', placeholder: 'Your name', value: profile.name, maxlength: 20, onchange: e => { profile.name = e.target.value.trim(); saveProfile(); } });
-  const botGames = profile.games.filter(g => !g.online);
-  const w = botGames.filter(g => g.score === 1).length, l = botGames.filter(g => g.score === 0).length, d = botGames.filter(g => g.score === 0.5).length;
-  main.append(h('div', { class: 'card stack' }, h('div', { class: 'lbl' }, 'Your name'), nameInp));
-  // Bot League card with progress to the next league
-  const bar = h('div', { style: { height: '10px', borderRadius: '6px', background: 'var(--bg2)', overflow: 'hidden', margin: '8px 0 4px' } }, h('div', { style: { height: '100%', width: Math.round(lg.pct * 100) + '%', background: 'linear-gradient(90deg,#ffc56b,#ff9f43)' } }));
-  main.append(h('div', { class: 'card' },
-    h('div', { class: 'row' }, h('img', { src: PIECE_URL['w' + lg.piece], style: { width: '52px', height: '52px', background: 'var(--light)', borderRadius: '14px', padding: '4px' } }),
-      h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Bot League'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
-      h('div', { style: { fontSize: '30px', fontWeight: 900 } }, L.r)),
-    bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached!'),
-    sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w} won, ${l} lost, ${d} drawn`)));
-  main.append(h('div', { class: 'stats' },
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, profile.server ? Math.round(profile.server.r) + (profile.server.provisional ? '?' : '') : '800?'), h('div', { class: 'l' }, profile.server && profile.server.games ? `${profile.server.games} lobby games` : 'Play the World to start')),
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
-  main.append(trophyCard());
-  if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
-  main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
-  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', { class: g.moves ? 'tap' : '', onclick: () => g.moves && openReview({ startFen: g.startFen, moves: g.moves, color: g.color || null, white: g.color === 'b' ? g.opp : (profile.name || 'You'), black: g.color === 'b' ? (profile.name || 'You') : g.opp }) }, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
-  main.append(h('div', { class: 'card stack' },
-    h('h3', null, 'How ratings work'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
-    h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
-    h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', { class: 'tbl-bot' }, avatar(bt.avatar, 24), h('span', null, bt.name)), h('td', null, bt.rating)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for rated games in Play the World. The server checks every move and keeps the rating, so nobody can fake a result. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
-  const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
-  if (!standalone) main.append(h('div', { class: 'card row' }, h('div', { class: 'ic dark lesson-ic' }, icon('download', 22)), h('div', { class: 'grow' }, h('b', null, 'Install Knight Club'), h('div', { class: 'small muted' }, 'Add it to your home screen. It works offline too.')),
-    h('button', { class: 'btn sm primary', onclick: async () => { if (typeof installPrompt !== 'undefined' && installPrompt) { installPrompt.prompt(); installPrompt = null; } else modal((box, close) => box.append(h('h2', null, 'Install the app'), h('p', null, h('b', null, 'iPhone / iPad: '), 'open this page in Safari, tap the Share button, then "Add to Home Screen".'), h('p', null, h('b', null, 'Android: '), 'open the browser menu and tap "Install app" or "Add to Home screen".'), h('p', { class: 'muted small' }, 'Once installed, puzzles, lessons and bot games work without internet.'), h('button', { class: 'btn primary block', onclick: close }, 'Got it'))); } }, 'Install')));
-  main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, icon('globe', 20), h('b', { class: 'grow' }, 'Language')), h('div', { class: 'muted small', style: { margin: '2px 0 8px' } }, 'Menus, lessons and coach tips'), languagePicker()));
-  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
-  main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
-  main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
-  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), h('br'), 'Free and open source (GPL-3.0), with Stockfish 19 and Fairy-Stockfish.'));
-}
-
-// older saves had one Glicko "rating" for bots; move it onto the new ladder
 function migrate(p) {
   if (!p.v || p.v < 2) {
     if (p.rating) p.ladder = { r: Math.max(100, Math.min(3000, Math.round(p.rating.r))), games: p.games.filter(g => g.rated).length, peak: Math.round(p.rating.r) };
@@ -1498,6 +1494,7 @@ function boot() {
   const saved = loadLocal();
   if (saved) { const wasOld = !saved.v; profile = Object.assign(DEFAULT_PROFILE(), saved); if (wasOld) profile.v = 1; profile = migrate(profile); }
   soundOn = profile.sound !== false;
+  if (typeof applyLoginGifts === 'function') applyLoginGifts();
   applyStyle();
   buildTabs();
   const hr = (location.hash || '').slice(1); if (ROUTES[hr]) route = hr;

@@ -188,20 +188,18 @@ function renderWorldGames(main) {
   if (worldView && worldView.g) return renderWorldGamePage(main);
   const wp = worldPrefs();
   main.append(stageBanner('atlas', tr('World Games'), tr('Chess has cousins all over the world. Learn them and play them here.')));
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, tr('Hoo! Every game here comes from the same old ancestor as chess. Each one has a lesson course, bots to play, and an English piece set so the pieces are easy to read.'))));
-  const card = id => {
+  const tile = (id, small) => {
     const m = worldMeta(id), lessons = (typeof WORLD_COURSES !== 'undefined' && WORLD_COURSES[id]) ? WORLD_COURSES[id].lessons : [];
-    const done = lessons.filter(l => wp.lessons[id + '/' + l.id]).length;
+    const done = lessons.filter(l => wp.lessons[id + '/' + l.id]).length, rec = wp.games[id] || {};
     const face = h('div', { class: 'wface' });
     if (isChessBoardVariant(id)) face.append(h('img', { src: PIECE_URL[{ crazyhouse: 'wn', '3check': 'wq', kingofthehill: 'wk', atomic: 'wr', horde: 'wp', antichess: 'wb' }[id]], alt: '' }));
-    else face.innerHTML = wpSvg(id, WORLD_FACE[id], 'w', false, wp.style === 'trad' ? 'trad' : 'trad');
-    return h('button', { class: 'wgame', onclick: () => { haptic(8); worldView = { g: id }; render(); window.scrollTo(0, 0); } }, face,
-      h('div', { class: 'grow' }, h('b', null, tr(m.name)), h('small', null, [m.english ? tr(m.english) : null, m.origin ? tr(m.origin) : null].filter(Boolean).join(', ')),
-        lessons.length ? h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / lessons.length * 100) + '%' } })) : null),
-      icon('next', 20));
+    else face.innerHTML = { makruk: wpSvg(id, 'R', 'w', false, 'eng'), sittuyin: wpSvg(id, 'S', 'b', false, 'eng'), shatranj: wpSvg(id, 'B', 'w', false, 'eng') }[id] || wpSvg(id, WORLD_FACE[id], 'w', false, 'trad');
+    return h('button', { class: 'wtile' + (small ? ' small' : '') + ' wt-' + id, onclick: () => { haptic(8); beep('open'); worldView = { g: id }; render(); window.scrollTo(0, 0); } }, face,
+      h('b', null, tr(m.name)), h('small', null, small ? '' : tr(m.english && m.english !== m.name ? m.english : m.origin || '')),
+      lessons.length ? h('div', { class: 'wt-prog' }, h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / lessons.length * 100) + '%' } })), rec.wins ? h('span', null, icon('trophy', 12), ` ${rec.wins}`) : null) : null);
   };
-  main.append(h('h3', { class: 'sect' }, tr('Games from around the world')), h('div', { class: 'wgames' }, WORLD_REGIONAL.map(card)));
-  main.append(h('h3', { class: 'sect' }, tr('Chess with a twist')), h('div', { class: 'wgames' }, WORLD_TWISTS.map(card)));
+  main.append(h('h3', { class: 'sect' }, tr('Games from around the world')), h('div', { class: 'wtiles' }, WORLD_REGIONAL.map(id => tile(id))));
+  main.append(h('h3', { class: 'sect' }, tr('Chess with a twist')), h('div', { class: 'wtiles small' }, WORLD_TWISTS.map(id => tile(id, true))));
 }
 function styleToggle(onChange) {
   const seg = h('div', { class: 'seg' });
@@ -211,28 +209,38 @@ function styleToggle(onChange) {
 function renderWorldGamePage(main) {
   const id = worldView.g, m = worldMeta(id), wp = worldPrefs(), rec = wp.games[id] || {};
   const course = typeof WORLD_COURSES !== 'undefined' ? WORLD_COURSES[id] : null;
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { worldView = null; render(); } }, icon('back', 18), tr('World Games')), h('div', { class: 'grow' })));
+  const done = course ? course.lessons.filter(l => wp.lessons[id + '/' + l.id]).length : 0;
+  if (!worldView.tab) worldView.tab = course && done < Math.min(3, course.lessons.length) ? 'learn' : 'play';
   const strip = h('div', { class: 'wstrip' });
   if (isChessBoardVariant(id)) ['wk', 'wq', 'wr', 'wb', 'wn', 'wp'].forEach(k => strip.append(h('img', { src: PIECE_URL[k], alt: '' })));
   else Object.keys(WP_KIND[id] || {}).forEach((L, i) => { const t = h('span'); t.innerHTML = wpSvg(id, L, i % 2 ? 'b' : 'w', false, worldStyle()); strip.append(t); });
-  main.append(h('div', { class: 'card paper whead' }, strip, h('h2', null, tr(m.name)), m.english && m.english !== m.name ? h('div', { class: 'muted' }, tr(m.english)) : null, m.blurb ? h('p', null, tr(m.blurb)) : null));
-  if (course) {
-    const done = course.lessons.filter(l => wp.lessons[id + '/' + l.id]).length;
-    const next = course.lessons.find(l => !wp.lessons[id + '/' + l.id]) || course.lessons[0];
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, tr('Learn to play')), h('div', { class: 'lessons' }, course.lessons.map((l, li) => h('button', { class: 'lesson' + (l === next && done < course.lessons.length ? ' hero' : ''), onclick: () => { worldView = { g: id, lesson: l, step: 0 }; render(); window.scrollTo(0, 0); } },
-      h('div', { class: 'lesson-ic wnum' }, String(li + 1)), h('div', { class: 'grow' }, h('div', { class: 't' }, tr(l.title)), h('div', { class: 'd' }, tr(l.desc || ''))), h('span', { class: 'ck' + (wp.lessons[id + '/' + l.id] ? ' done' : '') }, icon(wp.lessons[id + '/' + l.id] ? 'check' : 'next', 20)))))));
+  main.append(h('div', { class: 'course-head' }, h('button', { class: 'icon-btn', 'aria-label': 'World Games', onclick: () => { worldView = null; navDir = 'back'; render(); } }, icon('back', 20)),
+    h('div', { class: 'grow' }, h('h2', null, tr(m.name)), h('small', null, [m.english && m.english !== m.name ? tr(m.english) : null, m.origin ? tr(m.origin) : null].filter(Boolean).join(', ')))));
+  main.append(h('div', { class: 'card paper whead' }, strip, m.blurb ? h('p', null, tr(m.blurb)) : null,
+    h('div', { class: 'wstats' }, course ? h('span', null, icon('learn', 15), ` ${done} / ${course.lessons.length} lessons`) : null, h('span', null, icon('trophy', 15), ` ${rec.wins || 0} wins`), rec.best ? h('span', null, icon('star', 15), ` Beat level ${rec.best}`) : null)));
+  const tabs = h('div', { class: 'seg' }); [[course ? 'learn' : null, [icon('learn', 16), ' Learn']], ['play', [icon('play', 16), ' Play']], [isChessBoardVariant(id) ? null : 'pieces', [icon('eye', 16), ' Pieces']]].filter(([v]) => v).forEach(([v, l]) => tabs.append(h('button', { class: worldView.tab === v ? 'on' : '', onclick: () => { worldView.tab = v; beep('toggle'); render(); } }, l)));
+  main.append(tabs);
+  if (worldView.tab === 'learn' && course) {
+    main.append(lessonPath(course.lessons.map((l, li) => ({ key: id + '/' + l.id, title: tr(l.title), done: !!wp.lessons[id + '/' + l.id], stars: (wp.stars || {})[id + '/' + l.id] || (wp.lessons[id + '/' + l.id] ? 1 : 0), art: h('b', { class: 'lp-num' }, String(li + 1)), open: () => { worldView = { g: id, lesson: l, step: 0, tab: 'learn' }; render(); } }))));
+    return;
   }
-  // play
+  if (worldView.tab === 'pieces') { main.append(h('div', { class: 'card' }, h('h3', null, tr('Piece style')), styleToggle(() => render()))); main.append(pieceGuide(id)); return; }
+  // play: pick a bot like in the Arena
   const sel = worldView.sel = worldView.sel || { lvl: Math.min(8, (rec.best || 0) + 1), color: 'w' };
-  const grid = h('div', { class: 'bots scroller' });
-  const drawGrid = () => { grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (sel.lvl === i + 1 ? ' on' : ''), onclick: () => { sel.lvl = i + 1; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, `Level ${i + 1}`), (rec.beat || {})[i + 1] ? h('div', { class: 'bl' }, icon('check', 14), ' ' + tr('Beaten')) : null))); };
-  drawGrid(); setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollLeft = on.offsetLeft - 40; }, 0);
-  const colSeg = h('div', { class: 'seg' }); const dc = () => { colSeg.innerHTML = ''; [['w', `${sideName(id, 'w')} (moves first)`], ['b', sideName(id, 'b')]].forEach(([v, l]) => colSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; dc(); } }, l))); }; dc();
-  main.append(h('div', { class: 'card' }, h('h3', null, tr('Play a bot')), grid, h('div', { class: 'lbl' }, tr('You play')), colSeg,
-    h('div', { class: 'row', style: { marginTop: '10px' } },
-      h('button', { class: 'btn primary grow', onclick: () => startWorldGame(id, { bot: sel.lvl, color: sel.color }) }, icon('play', 18), `Play ${BOTS[sel.lvl - 1].name}`),
-      h('button', { class: 'btn grow', onclick: () => startWorldGame(id, { local: true }) }, icon('friends', 18), tr('Pass & Play')))));
-  if (!isChessBoardVariant(id)) { main.append(h('div', { class: 'card' }, h('h3', null, tr('Piece style')), styleToggle(() => render()))); main.append(pieceGuide(id)); }
+  const spot = h('div', { class: 'spotlight' }), bstrip = h('div', { class: 'bot-strip' });
+  const playBtn = h('button', { class: 'play-big', onclick: () => { haptic(14); beep('start'); startWorldGame(id, { bot: sel.lvl, color: sel.color }); } });
+  const draw = () => {
+    const b = BOTS[sel.lvl - 1], beaten = (rec.beat || {})[sel.lvl];
+    spot.innerHTML = ''; spot.append(h('div', { class: 'sp-av' }, avatar(b.avatar, 86), beaten ? h('span', { class: 'sp-beaten' }, icon('check', 14), 'Beaten') : null),
+      h('div', { class: 'sp-info' }, h('div', { class: 'sp-lvl' }, `Level ${sel.lvl}`), h('b', { class: 'sp-name' }, b.name), h('p', null, ['Learning the moves', 'Plays for fun', 'Spots simple tricks', 'A steady player', 'Plans ahead', 'Strong and sharp', 'Expert level', 'Full strength'][sel.lvl - 1])));
+    bstrip.innerHTML = ''; BOTS.forEach((bt, i) => bstrip.append(h('button', { class: 'bs' + (sel.lvl === i + 1 ? ' on' : '') + ((rec.beat || {})[i + 1] ? ' beat' : ''), onclick: () => { sel.lvl = i + 1; beep('card'); draw(); } }, avatar(bt.avatar, 40), h('small', null, `Lv ${i + 1}`))));
+    playBtn.innerHTML = ''; playBtn.append(icon('play', 22), h('span', null, `Play ${b.name}`));
+  };
+  draw();
+  const colSeg = h('div', { class: 'seg' }); const dc = () => { colSeg.innerHTML = ''; [['w', `${sideName(id, 'w')} (moves first)`], ['b', sideName(id, 'b')]].forEach(([v, l]) => colSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; beep('toggle'); dc(); } }, l))); }; dc();
+  main.append(spot, bstrip, h('div', { class: 'card setup2' }, h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Play as'), colSeg)),
+    h('button', { class: 'card lesson', onclick: () => startWorldGame(id, { local: true }) }, h('div', { class: 'ic dark' }, icon('friends', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device')), h('span', { class: 'ck' }, icon('next', 20))),
+    h('div', { class: 'play-dock' }, playBtn));
 }
 function pieceGuide(id) {
   const map = WP_KIND[id] || {}; const rows = [];

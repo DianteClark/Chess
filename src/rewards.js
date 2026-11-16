@@ -28,6 +28,9 @@ const BOARD_THEMES = [
   { id: 'ember', name: 'Ember', light: '#f6dcc4', dark: '#b4553a', req: { ach: 'rush20' } },
   { id: 'midnight', name: 'Midnight', light: '#8a97b8', dark: '#3b4466', req: { ach: 'league_rook' } },
   { id: 'royal', name: 'Royal Gold', light: '#f7ebc5', dark: '#8d6a2b', req: { ach: 'beat_tower' } },
+  { id: 'mint', name: 'Mint Tea', light: '#e4f3e8', dark: '#5fa58a', req: { ach: 'review1' } },
+  { id: 'atlas', name: 'Atlas', light: '#efe3c8', dark: '#4f7d8f', req: { ach: 'world3' } },
+  { id: 'dusk', name: 'Dusk', light: '#f1d9c6', dark: '#6d5a8c', req: { ach: 'nightowl' } },
 ];
 // piece sets: colors, outline weight and an optional gradient sheen
 const PIECE_SETS = [
@@ -40,6 +43,7 @@ const PIECE_SETS = [
   { id: 'gilded', name: 'Gilded', w: ['#ffe9a8', '#8a5a12'], b: ['#5d6470', '#e9edf3'], sw: 1.6, grad: true, req: { ach: 'league_queen' } },
   { id: 'jade', name: 'Jade', w: ['#e6f6ea', '#2f7a4f'], b: ['#5a2f2f', '#f2c9a0'], sw: 1.7, req: { ach: 'daily7' } },
   { id: 'neon', name: 'Neon', w: ['#1b1f2e', '#5ef2c2'], b: ['#1b1f2e', '#ff6fb5'], sw: 2.2, req: { level: 10 } },
+  { id: 'scholar', name: 'Scholar', w: ['#fbf4e3', '#7a4a2b'], b: ['#24493b', '#efbb4f'], sw: 1.7, grad: true, req: { ach: 'review10' } },
 ];
 const AVATAR_CHOICES = [
   { id: 'you', name: 'Player', req: null }, { id: 'friend', name: 'Pal', req: null },
@@ -90,6 +94,8 @@ const ACHIEVEMENTS = [
   { id: 'level5', name: 'Rising Star', desc: 'Reach level 5.', icon: 'star', tier: 1, test: (s, p) => levelInfo(p.xp || 0).lvl >= 5 },
   { id: 'level10', name: 'Shining Star', desc: 'Reach level 10.', icon: 'star', tier: 2, test: (s, p) => levelInfo(p.xp || 0).lvl >= 10 },
   { id: 'level20', name: 'Superstar', desc: 'Reach level 20.', icon: 'star', tier: 3, test: (s, p) => levelInfo(p.xp || 0).lvl >= 20 },
+  { id: 'login7', name: 'Loyal Member', desc: 'Claim all 7 daily rewards in a row.', icon: 'calendar', tier: 2, test: (s, p) => ((p.login || {}).best || 0) >= 7 },
+  { id: 'login30', name: 'Clubhouse Regular', desc: 'Keep a 30 day login streak.', icon: 'flame', tier: 3, test: (s, p) => ((p.login || {}).best || 0) >= 30 },
   { id: 'world1', name: 'Passport', desc: 'Play a World Games game.', icon: 'globe', tier: 1, test: s => (s.worldGames || 0) >= 1 },
   { id: 'world3', name: 'World Traveler', desc: 'Play 3 different World Games.', icon: 'globe', tier: 2, test: s => Object.keys(s.worldPlayed || {}).length >= 3 },
   { id: 'world6', name: 'Globetrotter', desc: 'Play 6 different World Games.', icon: 'route', tier: 3, test: s => Object.keys(s.worldPlayed || {}).length >= 6 },
@@ -98,6 +104,29 @@ const ACHIEVEMENTS = [
   { id: 'chess960', name: 'Shuffled', desc: 'Finish a game of Chess960.', icon: 'dice', tier: 1, test: s => (s.games960 || 0) >= 1 },
 ];
 const TIER_NAME = ['', 'Bronze', 'Silver', 'Gold'];
+// how close a locked achievement is: (stats, profile) => [have, need]. One-off feats have no entry.
+const ACH_PROG = {
+  lessons5: (s, p) => [Object.keys(p.lessons).length, 5], lessonsAll: (s, p) => [LESSONS.filter(l => p.lessons[l.id]).length, LESSONS.length],
+  win25: s => [s.wins || 0, 25], win_mate10: s => [s.mates || 0, 10], beat4: s => [Object.keys(s.beaten || {}).length, 4],
+  league_knight: (s, p) => [p.ladder.games ? p.ladder.peak || 0 : 0, 600], league_bishop: (s, p) => [p.ladder.games ? p.ladder.peak || 0 : 0, 900], league_rook: (s, p) => [p.ladder.games ? p.ladder.peak || 0 : 0, 1200],
+  league_queen: (s, p) => [p.ladder.games ? p.ladder.peak || 0 : 0, 1500], league_king: (s, p) => [p.ladder.games ? p.ladder.peak || 0 : 0, 1800],
+  puzzles10: s => [s.puzzles || 0, 10], puzzles25: s => [s.puzzles || 0, 25], puzzles100: s => [s.puzzles || 0, 100],
+  patterns: (s, p) => { const z = PUZZLES.filter(q => q.cat === 'pattern'); return [z.filter(q => p.tried[q.id] === 1).length, z.length]; },
+  rush10: (s, p) => [Math.max(0, ...Object.values(p.rushBest || {})), 10], rush20: (s, p) => [Math.max(0, ...Object.values(p.rushBest || {})), 20], rush30: (s, p) => [Math.max(0, ...Object.values(p.rushBest || {})), 30],
+  daily3: (s, p) => [(p.daily || {}).best || 0, 3], daily7: (s, p) => [(p.daily || {}).best || 0, 7], daily30: (s, p) => [(p.daily || {}).best || 0, 30],
+  review10: s => [s.reviews || 0, 10], level5: (s, p) => [levelInfo(p.xp || 0).lvl, 5], level10: (s, p) => [levelInfo(p.xp || 0).lvl, 10], level20: (s, p) => [levelInfo(p.xp || 0).lvl, 20],
+  world3: s => [Object.keys(s.worldPlayed || {}).length, 3], world6: s => [Object.keys(s.worldPlayed || {}).length, 6],
+};
+function achProgress(a) {
+  const f = ACH_PROG[a.id]; if (!f) return null;
+  try { const [n, g] = f(stats(), profile); return [Math.max(0, Math.min(n, g)), g]; } catch (e) { return null; }
+}
+// sound packs for Me > Style (the synthesized packs live in audio.js)
+const SOUND_PACKS = [
+  { id: 'wood', name: 'Wooden', sub: 'Wooden clacks', req: null },
+  { id: 'soft', name: 'Soft', sub: 'Felt and bells', req: null },
+  { id: 'retro', name: 'Retro', sub: 'Chiptune', req: null },
+];
 
 function reqMet(req) {
   if (!req) return true;
@@ -274,45 +303,168 @@ function shade(hex, amt) {
 }
 
 // ---------- Me tab sections ----------
+// Level badge + XP bar (used on the player card in Me)
 function levelCard() {
   const li = levelInfo(profile.xp || 0);
-  return h('div', { class: 'card levelcard' },
-    h('div', { class: 'row' }, h('div', { class: 'lvlnum' }, li.lvl), h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Level'), h('div', { style: { fontSize: '19px', fontWeight: 900 } }, li.title), h('div', { class: 'small muted' }, `${li.into} / ${li.need} XP to level ${li.lvl + 1}`)),
-      null),
-    h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(li.into / li.need * 100) + '%' } })));
+  return h('div', { class: 'me-lvl' },
+    h('div', { class: 'me-lvl-badge', 'aria-label': `Level ${li.lvl}` }, h('b', null, String(li.lvl))),
+    h('div', { class: 'grow' },
+      h('div', { class: 'me-xpbar' }, h('div', { style: { width: Math.round(li.into / li.need * 100) + '%' } })),
+      h('div', { class: 'me-xptxt' }, `${li.into} / ${li.need} XP to level ${li.lvl + 1}`)));
 }
+// what a locked item still needs: [have, need] or null
+function reqProgress(req) {
+  if (!req) return null;
+  if (req.level) return [Math.min(levelInfo(profile.xp || 0).lvl, req.level), req.level];
+  if (req.ach) { const a = ACHIEVEMENTS.find(x => x.id === req.ach); return a ? achProgress(a) : null; }
+  return null;
+}
+function reqShort(req) {
+  if (!req) return '';
+  if (req.level) return `Level ${req.level}`;
+  if (req.ach) { const a = ACHIEVEMENTS.find(x => x.id === req.ach); return a ? a.name : ''; }
+  if (req.beat) return `Beat ${BOT_LEVELS[req.beat - 1].name}`;
+  return '';
+}
+// one medal: ribbon + metal disc. Locked medals are dark, with a ring that fills as you get closer.
+function medalEl(a, big) {
+  const has = (profile.ach || {})[a.id], pr = has ? null : achProgress(a);
+  const disc = h('div', { class: 'tc-disc' }, icon(a.icon, big ? 46 : 22));
+  if (pr) disc.style.setProperty('--p', Math.round(pr[0] / pr[1] * 100));
+  return h('div', { class: 'tc-medal t' + a.tier + (has ? ' got' : '') + (pr ? ' prog' : '') + (big ? ' big' : '') }, h('i', { class: 'tc-rib' }), disc);
+}
+function trophySheet(a) {
+  const has = (profile.ach || {})[a.id], pr = has ? null : achProgress(a);
+  const unlocks = BOARD_THEMES.concat(PIECE_SETS).filter(t => t.req && t.req.ach === a.id);
+  beep('open');
+  modal((box, close) => box.append(
+    h('div', { class: 'tc-sheet' + (has ? ' got' : '') }, h('div', { class: 'tc-rays' }), medalEl(a, true)),
+    h('div', { class: 'center' }, h('span', { class: 'tc-tier t' + a.tier }, TIER_NAME[a.tier])),
+    h('h2', { class: 'center', style: { marginTop: '8px' } }, a.name),
+    h('p', { class: 'center muted', style: { margin: '4px 0 12px' } }, a.desc),
+    has ? h('p', { class: 'center small tc-earned' }, icon('check', 16), `Earned ${new Date(has).toLocaleDateString()}`)
+      : pr ? h('div', { class: 'tc-progress' }, h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(pr[0] / pr[1] * 100) + '%' } })), h('div', { class: 'small muted center' }, `${pr[0]} / ${pr[1]}`))
+        : h('p', { class: 'center small muted' }, icon('key', 15), ' Not earned yet'),
+    unlocks.length ? h('div', { class: 'tc-unlocks' }, unlocks.map(t => h('div', { class: 'tc-unl' }, t.light ? styleSwatch(t) : pieceArt(t), h('div', null, h('small', null, t.light ? 'Unlocks a board' : 'Unlocks a piece set'), h('b', null, t.name))))) : null,
+    h('button', { class: 'btn primary block', style: { marginTop: '14px' }, onclick: () => { beep('close'); close(); } }, 'OK')));
+  if (has && typeof fxBurst === 'function') setTimeout(() => { const m = document.querySelector('.tc-sheet .tc-disc'); if (m) fxBurst(m, 'sparks', { count: 18 }); }, 250);
+}
+// The trophy cabinet: earned medals first (gold to bronze), then the locked ones, closest first.
 function trophyCard() {
-  const got = ACHIEVEMENTS.filter(a => (profile.ach || {})[a.id]).length;
-  const grid = h('div', { class: 'achs' }, ACHIEVEMENTS.map(a => {
-    const has = (profile.ach || {})[a.id];
-    return h('button', { class: 'ach t' + a.tier + (has ? ' got' : ''), onclick: () => modal((box, close) => box.append(h('div', { class: 'achbig t' + a.tier + (has ? ' got' : '') }, icon(a.icon, 40)), h('h2', { class: 'center' }, a.name), h('p', { class: 'center muted' }, a.desc), h('p', { class: 'center small' }, has ? `${TIER_NAME[a.tier]} · earned ${new Date(has).toLocaleDateString()}` : `${TIER_NAME[a.tier]} · locked`), h('button', { class: 'btn primary block', onclick: close }, 'OK'))) }, icon(a.icon, 22));
-  }));
-  return h('div', { class: 'card' }, h('div', { class: 'row' }, h('b', { class: 'grow' }, 'Trophy Room'), h('span', { class: 'pill' }, `${got} / ${ACHIEVEMENTS.length}`)), grid);
+  const A = profile.ach || {}, got = ACHIEVEMENTS.filter(a => A[a.id]);
+  const tiers = [3, 2, 1].map(t => [t, got.filter(a => a.tier === t).length]);
+  const pct = a => { const p = achProgress(a); return p ? p[0] / p[1] : 0; };
+  const order = got.slice().sort((a, b) => b.tier - a.tier || A[b.id] - A[a.id]).concat(ACHIEVEMENTS.filter(a => !A[a.id]).sort((a, b) => pct(b) - pct(a)));
+  const next = ACHIEVEMENTS.filter(a => !A[a.id] && achProgress(a) && pct(a) > 0 && pct(a) < 1).sort((a, b) => pct(b) - pct(a))[0];
+  const wrap = h('div', { class: 'tc' });
+  wrap.append(h('div', { class: 'tc-sum' },
+    h('div', { class: 'tc-count' }, h('b', null, String(got.length)), h('span', null, `/ ${ACHIEVEMENTS.length}`)),
+    h('div', { class: 'grow' }, h('div', { class: 'tc-lbl' }, 'Trophies collected'), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(got.length / ACHIEVEMENTS.length * 100) + '%' } }))),
+    h('div', { class: 'tc-tiers' }, tiers.map(([t, n]) => h('span', { class: 'tc-coin t' + t, title: TIER_NAME[t] }, h('i'), String(n))))));
+  if (next) { const pr = achProgress(next); wrap.append(h('button', { class: 'tc-next', onclick: () => trophySheet(next) }, medalEl(next), h('div', { class: 'grow' }, h('small', null, 'Almost there'), h('b', null, next.name), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(pr[0] / pr[1] * 100) + '%' } }))), h('span', { class: 'tc-nnum' }, `${pr[0]} / ${pr[1]}`))); }
+  let k = 0;
+  wrap.append(h('div', { class: 'tc-cab' }, h('div', { class: 'achs tc-shelves' }, order.map(a => {
+    const has = A[a.id], b = h('button', { class: 'tc-slot', 'aria-label': a.name, onclick: () => trophySheet(a) }, medalEl(a));
+    if (has) b.style.setProperty('--d', (k++ * 0.09).toFixed(2) + 's');
+    return b;
+  }))));
+  return wrap;
 }
+function styleSwatch(t) { return h('div', { class: 'swatch' }, h('i', { style: { background: t.light } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.light } })); }
+function pieceArt(t) { const urls = buildPieceSet(t, {}); return h('div', { class: 'pset' }, h('img', { src: urls.wn, alt: '' }), h('img', { src: urls.bq, alt: '' })); }
+const SOUND_ART = {
+  wood: '<svg viewBox="0 0 48 48"><rect x="7" y="17" width="34" height="16" rx="4" fill="#b57a48" stroke="#4a2a16" stroke-width="2.5"/><path d="M11 22h26M11 27h26" stroke="#7a4a2b" stroke-width="1.6" opacity=".7"/><path d="M30 6l6 9" stroke="#4a2a16" stroke-width="3" stroke-linecap="round"/><circle cx="29" cy="5" r="3.5" fill="#efbb4f" stroke="#4a2a16" stroke-width="2"/><path d="M6 39q4-3 8 0M34 39q4-3 8 0" stroke="#ffe39a" stroke-width="2" fill="none" stroke-linecap="round"/></svg>',
+  soft: '<svg viewBox="0 0 48 48"><path d="M24 7c-7 0-11 5-11 12v8l-4 6h30l-4-6v-8c0-7-4-12-11-12z" fill="#ffe39a" stroke="#a8741b" stroke-width="2.5" stroke-linejoin="round"/><circle cx="24" cy="37" r="4" fill="#efbb4f" stroke="#a8741b" stroke-width="2.5"/><path d="M5 18q-2 6 1 11M43 18q2 6-1 11" stroke="#9ccfff" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>',
+  retro: '<svg viewBox="0 0 48 48"><rect x="8" y="9" width="32" height="30" rx="5" fill="#3b4466" stroke="#1b1f2e" stroke-width="2.5"/><path d="M14 16h4v4h-4zM22 16h4v4h-4zM30 16h4v4h-4zM18 24h4v4h-4zM26 24h4v4h-4zM14 32h20v2H14z" fill="#5ef2c2"/><path d="M14 16h4v4h-4zM30 24h4v4h-4z" fill="#ff6fb5"/></svg>',
+};
+// the moves the Style preview board plays, one per tap
+const STYLE_LINE = ['e2e4', 'e7e5', 'g1f3', 'b8c6', 'f1c4', 'g8f6', 'd2d3', 'f8c5', 'e1g1', 'd7d6', 'c2c3', 'a7a6'];
 let meView = null;
 function renderStyle(main) {
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { meView = null; render(); } }, icon('back', 18), 'Me'), h('h2', { class: 'grow' }, 'Style')));
   const st = profile.style = profile.style || {};
-  // preview board
-  const pv = new BoardView({}); pv.set({ board: new E.Position('r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4').board, last: [sqFromName('g8'), sqFromName('f6')] });
-  main.append(h('div', { class: 'preview' }, pv.el));
-  const section = (title, items, key, render1) => {
-    main.append(h('h3', { class: 'sect' }, title));
-    main.append(h('div', { class: 'stylegrid' }, items.map(it => {
-      const ok = reqMet(it.req), on = (st[key] || items[0].id) === it.id;
-      return h('button', { class: 'stylecell' + (on ? ' on' : '') + (ok ? '' : ' locked'), onclick: () => { if (!ok) return toast('Locked: ' + reqText(it.req)); st[key] = it.id; saveProfile(); applyStyle(); render(); } },
-        render1(it), h('b', null, it.name), h('small', null, ok ? (on ? 'In use' : 'Tap to use') : reqText(it.req)), ok ? null : h('span', { class: 'lock' }, icon('key', 14)));
-    })));
+  const cur = key => st[key] || { board: BOARD_THEMES[0].id, pieces: PIECE_SETS[0].id, avatar: 'you', sound: 'wood' }[key];
+  // live preview: a board that plays a move whenever you change something
+  const pv = new BoardView({});
+  let ply = 6; const posAt = n => { const p = new E.Position(START_FEN); for (let i = 0; i < n; i++) p.make(p.moveFromUci(STYLE_LINE[i])); return p; };
+  const look = { board: cur('board'), pieces: cur('pieces') };
+  const paint = () => {
+    const bt = BOARD_THEMES.find(t => t.id === look.board) || BOARD_THEMES[0];
+    pv.el.style.setProperty('--light', bt.light); pv.el.style.setProperty('--dark', bt.dark);
+    const ps = PIECE_SETS.find(t => t.id === look.pieces) || PIECE_SETS[0];
+    const urls = look.pieces === cur('pieces') ? PIECE_URL : buildPieceSet(ps, {});
+    for (const s in pv.pieceEls) pv.pieceEls[s].style.backgroundImage = `url(${urls[pieceKey(pv.board[s])]})`;
   };
-  section('Boards', BOARD_THEMES, 'board', t => h('div', { class: 'swatch' }, h('i', { style: { background: t.light } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.light } })));
-  section('Pieces', PIECE_SETS, 'pieces', t => { const urls = buildPieceSet(t, {}); return h('div', { class: 'pset' }, h('img', { src: urls.wn }), h('img', { src: urls.bq })); });
-  section('Avatar', AVATAR_CHOICES, 'avatar', t => avatar(t.id, 46));
-  main.append(h('h3', { class: 'sect' }, 'Sounds'));
-  const sseg = h('div', { class: 'seg' }); const drawS = () => { sseg.innerHTML = ''; [['wood', 'Wooden'], ['soft', 'Soft'], ['retro', 'Retro']].forEach(([v, l]) => sseg.append(h('button', { class: (st.sound || 'wood') === v ? 'on' : '', onclick: () => { st.sound = v; saveProfile(); drawS(); beep('move'); setTimeout(() => beep('capture'), 250); setTimeout(() => beep('check'), 500); } }, l))); }; drawS();
-  main.append(sseg);
-  main.append(h('h3', { class: 'sect' }, 'Board options'));
-  const toggle = (label, key) => h('div', { class: 'card row' }, h('b', { class: 'grow' }, label), h('button', { class: 'btn sm', onclick: () => { st[key] = st[key] === false; saveProfile(); applyStyle(); render(); } }, st[key] === false ? 'Off' : 'On'));
-  main.append(toggle('Show coordinates', 'coords'), toggle('Animate moves', 'anim'), toggle('Show legal move dots', 'dots'));
+  const step = () => {
+    if (ply >= STYLE_LINE.length) { ply = 4; pv.set({ board: posAt(ply).board }); }
+    const u = STYLE_LINE[ply], from = sqFromName(u.slice(0, 2)), to = sqFromName(u.slice(2, 4));
+    ply++; pv.set({ board: posAt(ply).board, last: [from, to] }, [from, to]); paint();
+  };
+  pv.set({ board: posAt(ply).board, last: [sqFromName('g8'), sqFromName('f6')] });
+  const info = h('div', { class: 'sty-info' });
+  let infoTimer = null;
+  const showInfo = (it, kind) => {
+    clearTimeout(infoTimer); info.innerHTML = '';
+    if (!it) {
+      const bt = BOARD_THEMES.find(t => t.id === cur('board')) || BOARD_THEMES[0], ps = PIECE_SETS.find(t => t.id === cur('pieces')) || PIECE_SETS[0];
+      info.className = 'sty-info';
+      const av = AVATAR_CHOICES.find(t => t.id === cur('avatar')) || AVATAR_CHOICES[0], sp = SOUND_PACKS.find(t => t.id === cur('sound')) || SOUND_PACKS[0];
+      info.append(h('div', { class: 'grow' }, h('small', null, 'Your look'), h('ul', { class: 'sty-look' }, [['board', bt.name], ['crown', ps.name], ['user', av.name], ['soundOn', sp.name]].map(([ic, n]) => h('li', null, icon(ic, 16), h('span', null, n))))));
+      return;
+    }
+    const ok = reqMet(it.req), pr = reqProgress(it.req);
+    info.className = 'sty-info' + (ok ? ' ok' : ' locked');
+    info.append(h('div', { class: 'sty-ii' }, icon(ok ? 'check' : 'key', 18)), h('div', { class: 'grow' }, h('small', null, ok ? 'Equipped' : 'Preview: locked'), h('b', null, it.name),
+      ok ? null : h('div', { class: 'sty-req' }, reqText(it.req), pr ? h('span', null, `${pr[0]} / ${pr[1]}`) : null),
+      !ok && pr ? h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(pr[0] / pr[1] * 100) + '%' } })) : null));
+    if (!ok && kind) infoTimer = setTimeout(() => { if (!info.isConnected) return; look.board = cur('board'); look.pieces = cur('pieces'); paint(); showInfo(null); refreshAll(); }, 4200);
+  };
+  main.append(h('div', { class: 'sty-stage' }, h('div', { class: 'sty-board' }, pv.el), info));
+  paint(); showInfo(null);
+  const rows = [];
+  const refreshAll = () => rows.forEach(f => f());
+  const section = (title, items, key, art) => {
+    const owned = items.filter(it => reqMet(it.req)).length;
+    const row = h('div', { class: 'sty-row', role: 'listbox', 'aria-label': title });
+    const cells = items.map(it => {
+      const ok = reqMet(it.req), pr = ok ? null : reqProgress(it.req);
+      const cell = h('button', { class: 'sty-item' + (ok ? '' : ' locked'), role: 'option', onclick: () => pick(it, cell) },
+        h('div', { class: 'sty-art' }, art(it), ok ? null : h('span', { class: 'lock' }, icon('key', 13))),
+        h('b', null, it.name),
+        h('small', null, ok ? (key === 'sound' ? it.sub : '') : reqShort(it.req)),
+        pr ? h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(pr[0] / pr[1] * 100) + '%' } })) : null,
+        h('span', { class: 'sty-on' }, icon('check', 13)));
+      cell.dataset.id = it.id; return cell;
+    });
+    const pick = (it, cell) => {
+      haptic(8);
+      if (!reqMet(it.req)) {
+        beep('error');
+        if (key === 'board' || key === 'pieces') { look[key] = it.id; paint(); }
+        showInfo(it, key); refreshAll(); cell.classList.add('peek');
+        if (typeof fxShake === 'function') fxShake(cell.querySelector('.lock') || cell);
+        return;
+      }
+      const same = cur(key) === it.id;
+      st[key] = it.id; saveProfile(); applyStyle();
+      look.board = cur('board'); look.pieces = cur('pieces');
+      showInfo(it); refreshAll();
+      cell.classList.remove('pop'); void cell.offsetWidth; cell.classList.add('pop');
+      if (key === 'sound') { beep('move'); setTimeout(() => beep('capture'), 260); setTimeout(() => beep('check'), 520); step(); }
+      else { beep(same ? 'tap' : 'pop'); if (!same) { step(); if (typeof fxBurst === 'function') fxBurst(cell, 'sparks', { count: 14 }); } }
+      if (key === 'avatar') document.querySelectorAll('.me-av img.av-img').forEach(im => { im.src = avatar(it.id, 8).src; });
+      paint();
+    };
+    const refresh = () => cells.forEach(c => { c.classList.toggle('on', c.dataset.id === cur(key)); c.classList.toggle('peek', (key === 'board' || key === 'pieces') && look[key] === c.dataset.id && c.dataset.id !== cur(key)); c.setAttribute('aria-selected', c.dataset.id === cur(key) ? 'true' : 'false'); });
+    rows.push(refresh); refresh();
+    row.append(...cells);
+    main.append(h('section', { class: 'sty-sec' }, h('div', { class: 'sty-head' }, h('h3', null, title), h('span', { class: 'pill' }, `${owned} / ${items.length}`)), row));
+    // bring the equipped one into view
+    requestAnimationFrame(() => { const on = row.querySelector('.on'); if (on && row.scrollWidth > row.clientWidth) row.scrollLeft = Math.max(0, on.offsetLeft - row.clientWidth / 2 + on.offsetWidth / 2); });
+  };
+  section('Boards', BOARD_THEMES, 'board', styleSwatch);
+  section('Piece sets', PIECE_SETS, 'pieces', pieceArt);
+  section('Avatars', AVATAR_CHOICES, 'avatar', t => avatar(t.id, 56));
+  section('Sounds', SOUND_PACKS, 'sound', t => h('div', { class: 'sty-snd', html: SOUND_ART[t.id] }));
 }
 
 // ---------- daily quests ----------

@@ -14,7 +14,7 @@ function getLobby() {
   lobby.on('me', me => { profile.server = { r: me.r, rd: me.rd, games: me.games, provisional: me.provisional, id: me.id }; saveProfile(); });
   lobby.on('seeks', rerender);
   lobby.on('mySeek', rerender);
-  lobby.on('stats', st => { lobbyStats = st; });
+  lobby.on('stats', st => { lobbyStats = st; const el = document.getElementById('lw-sub'); if (el && lobbyView === 'home') el.textContent = lobbyOnlineText(); });
   lobby.on('leaderboard', pl => { lobbyLb = pl; rerender(); });
   lobby.on('chat', c => { (lobbyChat[c.gameId] = lobbyChat[c.gameId] || []).push(c); if (lobbyGameHook) lobbyGameHook('chat', c); });
   lobby.on('error', e => { const msg = { inGame: 'Finish your current game first.', seekGone: 'That game was already taken.', badName: 'That name is not allowed, so a default name is used.', rateLimit: 'Slow down a little!', noCrypto: 'This browser cannot create a secure player key.', illegal: 'That move is not legal.', notYourTurn: 'Not your turn.' }[e.code]; if (msg) toast(msg); });
@@ -29,46 +29,116 @@ function getLobby() {
 let lobbyGameHook = null, lobbyCurrent = null;
 function lobbyName() { return (profile.name || '').replace(/[^A-Za-z0-9 _-]/g, '').slice(0, 20) || null; }
 // lobby states shown in the status pill: tr('connecting') tr('online') tr('offline')
+let lobbyStatsAt = 0, lobbyQuickAt = 0;
+const LOBBY_TC_KIND = { 60: 'Bullet', 180: 'Blitz', 300: 'Blitz', 600: 'Rapid', 900: 'Rapid', 1800: 'Classical' };
+function lobbyStatusPill(lb) {
+  const st = lb ? lb.state : 'offline';
+  return h('span', { class: 'lw-status ' + st, role: 'status' }, h('i'), st);
+}
+function lobbyHead(title, sub, back, lb) {
+  return h('div', { class: 'lw-head' },
+    h('button', { class: 'fs-back', 'aria-label': 'Back', onclick: () => { haptic(6); beep('back'); navDir = 'back'; back(); } }, icon('back', 22)),
+    h('div', { class: 'lw-title' }, h('b', null, title), sub ? h('small', { id: 'lw-sub' }, sub) : null),
+    lobbyStatusPill(lb));
+}
+function lobbyOnlineText() { return lobbyStats ? `${lobbyStats.online} online · ${lobbyStats.games} games live` : 'Players from around the world'; }
+// initials badge for other players (their avatars are not shared, names only)
+function lobbyInitial(name, size) {
+  const n = (name || '?').trim(); let hsh = 0; for (const c of n) hsh = (hsh * 31 + c.charCodeAt(0)) % 360;
+  return h('span', { class: 'lw-init', style: { width: size + 'px', height: size + 'px', fontSize: Math.round(size * .45) + 'px', background: `hsl(${hsh},45%,42%)` } }, n[0].toUpperCase());
+}
+function lobbyFmtTime(ms) { const s = Math.max(0, Math.floor(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 function renderWorld(main) {
   const lb = getLobby();
   if (lobbyView === 'game' && lb && lb.games[lobbyCurrent]) return renderLobbyGame(main, lb);
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { friendView = 'menu'; render(); } }, icon('back', 18), 'Back'), h('h2', { class: 'grow' }, 'Play the World'), lb && lb.state === 'online' ? h('span', { class: 'pill live' }, 'online') : h('span', { class: 'pill' }, lb ? lb.state : 'offline')));
-  if (!lb) { main.append(h('div', { class: 'card' }, 'This browser cannot connect to the lobby.')); return; }
-  if (lb.state === 'offline') lb.connect(lobbyName());
   if (lobbyView === 'leaderboard') return renderLeaderboard(main, lb);
-  const me = lb.me;
-  main.append(h('div', { class: 'card row' }, avatar(myAvatar(), 44), h('div', { class: 'grow' }, h('b', null, me ? me.name : 'Connecting…'), h('div', { class: 'small muted' }, me ? `Online rating ${Math.round(me.r)}${me.provisional ? '?' : ''} · ${me.games} games` : 'Setting up your secure player key')),
-    h('button', { class: 'btn sm', onclick: () => { lobbyView = 'leaderboard'; lb.leaderboard(); render(); } }, icon('medal', 18), 'Top 50')));
-  if (lb.state !== 'online') { main.append(h('div', { class: 'card center muted' }, icon('hourglass', 18), ' Connecting to the lobby…')); return; }
-  if (!profile.name) main.append(h('p', { class: 'small muted' }, 'Tip: set your name in the Me tab so opponents know who you are.'));
-  // my open seek
-  if (lb.mySeek) {
-    const s = lb.mySeek;
-    main.append(h('div', { class: 'card stack center' }, icon('hourglass', 26), h('b', null, s.quick ? 'Finding an opponent…' : 'Waiting for someone to accept your game…'), h('div', { class: 'muted small' }, `${tcLabel(s.tc.base, s.tc.inc)} · ${s.rated ? 'Rated' : 'Casual'}`), h('button', { class: 'btn', onclick: () => lb.cancelSeek() }, 'Cancel')));
+  const root = h('div', { class: 'lw' }); main.append(root);
+  root.append(lobbyHead('Play the World', lobbyOnlineText(), () => { friendView = 'menu'; render(); }, lb));
+  if (!lb) { root.append(h('div', { class: 'card center' }, 'This browser cannot connect to the lobby.')); return; }
+  if (lb.state === 'offline') lb.connect(lobbyName());
+  const online = lb.state === 'online', me = lb.me, sel = lobbySel;
+  if (online && Date.now() - lobbyStatsAt > 15000) { lobbyStatsAt = Date.now(); lb.stats(); }
+  // your online rating card
+  const r = me ? Math.round(me.r) : profile.server ? Math.round(profile.server.r) : null;
+  const prov = me ? me.provisional : profile.server ? profile.server.provisional : true;
+  const games = me ? me.games : profile.server ? profile.server.games : 0;
+  root.append(h('div', { class: 'lw-me' },
+    h('div', { class: 'av' }, avatar(myAvatar(), 50)),
+    h('div', { class: 'who' }, h('b', null, me ? me.name : (lobbyName() || 'You')), h('small', null, me ? (prov ? `Placement: ${games} of 5 games` : `${games} games played`) : 'Setting up your secure player key')),
+    h('div', { class: 'rt' }, h('small', null, icon('globe', 13), ' Online'), h('b', null, r != null ? `${r}${prov ? '?' : ''}` : '–')),
+    h('button', { class: 'lw-lbbtn', 'aria-label': 'Top 50', onclick: () => { beep('open'); lobbyView = 'leaderboard'; if (online) lb.leaderboard(); render(); } }, icon('medal', 22), h('small', null, 'Top 50'))));
+  if (!profile.name) root.append(h('p', { class: 'small muted lw-tip' }, 'Tip: set your name in the Me tab so opponents know who you are.'));
+  // matchmaking: big Quick Play button, or the radar while searching
+  const s = lb.mySeek;
+  const hero = h('div', { class: 'lw-hero' + (s ? ' searching' : '') });
+  root.append(hero);
+  if (s) {
+    const startAt = s.created ? s.created - lb.offset : (lobbyQuickAt || Date.now());
+    const el = h('b', { class: 'lw-time' }, lobbyFmtTime(Date.now() - startAt));
+    const radar = h('div', { class: 'lw-radar' }, h('i'), h('i'), h('i'), h('div', { class: 'sweep' }), h('div', { class: 'core' }, avatar(myAvatar(), 64)));
+    radar.style.setProperty('--t0', `-${((Date.now() - startAt) % 2400) / 1000}s`);
+    hero.append(radar, h('div', { class: 'lw-find' }, h('b', null, s.quick ? 'Finding an opponent…' : 'Waiting for someone to accept your game…'), h('div', { class: 'lw-meta' }, h('span', { class: 'pill' }, icon('clock', 14), tcLabel(s.tc.base, s.tc.inc)), h('span', { class: 'pill' }, s.rated ? 'Rated' : 'Casual'), el)),
+      h('button', { class: 'btn lw-cancel', onclick: () => { beep('back'); lb.cancelSeek(); } }, icon('x', 18), 'Cancel'));
+    const iv = setInterval(() => { if (!el.isConnected) return clearInterval(iv); el.textContent = lobbyFmtTime(Date.now() - startAt); }, 1000);
+    cleanups.push(() => clearInterval(iv));
   } else {
-    main.append(h('h3', { class: 'sect' }, 'Quick play'));
-    main.append(h('div', { class: 'tcs' }, LobbyClient.TIME_CONTROLS.map(([b, i]) => h('button', { onclick: () => lb.quick({ base: b, inc: i }, true) }, h('b', null, tcLabel(b, i)), h('small', null, TIME_CONTROLS.find(t => t[0] === b && t[1] === i)[2])))));
-    main.append(h('p', { class: 'small muted' }, 'Quick play pairs you with someone near your rating. All lobby games are checked by the server, so the ratings can be trusted.'));
-    const sel = lobbySel;
+    const [qb, qi] = parseTc(sel.qtc || '180+2');
+    const chips = h('div', { class: 'lw-tcs', role: 'radiogroup', 'aria-label': 'Time control' });
+    const qbtn = h('button', { class: 'lw-quick', disabled: !online, onclick: () => { haptic(12); beep('confirm'); lobbyQuickAt = Date.now(); const [b, i] = parseTc(sel.qtc || '180+2'); lb.quick({ base: b, inc: i }, sel.rated); } },
+      h('span', { class: 'ring' }), h('span', { class: 'lab' }, icon('play', 30), h('b', null, 'Quick Play'), h('small', { class: 'lw-qtc' }, online ? `${tcLabel(qb, qi)} · ${sel.rated ? 'Rated' : 'Casual'}` : 'Connecting…')));
+    const label = () => { const [b, i] = parseTc(sel.qtc || '180+2'); qbtn.querySelector('.lw-qtc').textContent = online ? `${tcLabel(b, i)} · ${sel.rated ? 'Rated' : 'Casual'}` : 'Connecting…'; };
+    const drawChips = () => { chips.innerHTML = ''; LobbyClient.TIME_CONTROLS.forEach(([b, i]) => { const k = `${b}+${i}`; chips.append(h('button', { class: (sel.qtc || '180+2') === k ? 'on' : '', role: 'radio', 'aria-checked': String((sel.qtc || '180+2') === k), onclick: () => { beep('tap'); sel.qtc = k; drawChips(); label(); } }, h('b', null, tcLabel(b, i)), h('small', null, LOBBY_TC_KIND[b] || ''))); }); };
+    drawChips();
+    const ratedSeg = h('div', { class: 'seg lw-rated' }); const drawR = () => { ratedSeg.innerHTML = ''; [[true, 'Rated'], [false, 'Casual']].forEach(([v, l]) => ratedSeg.append(h('button', { class: sel.rated === v ? 'on' : '', onclick: () => { beep('toggle'); sel.rated = v; drawR(); label(); } }, l))); }; drawR();
+    hero.append(qbtn, chips, h('div', { class: 'lw-row' }, ratedSeg, h('button', { class: 'btn sm lw-custom', disabled: !online, onclick: () => lobbyCustomSheet(lb) }, icon('plus', 18), 'Custom game')));
+    setTimeout(() => { const on = chips.querySelector('.on'); if (on) chips.scrollLeft = on.offsetLeft - chips.clientWidth / 2 + on.offsetWidth / 2; }, 0);
+  }
+  // open games, as compact rows
+  root.append(h('div', { class: 'lw-sect' }, h('h3', { class: 'sect' }, 'Open games'), h('small', { class: 'muted' }, 'Server-checked, so ratings can be trusted')));
+  if (!online) { root.append(h('div', { class: 'lw-empty' }, h('span', { class: 'dots' }, h('i'), h('i'), h('i')), 'Connecting to the lobby…')); return; }
+  if (!lb._subs.seeks) lb.subscribeSeeks();
+  const list = (lb.seeks || []).filter(x => !me || x.pid !== me.id);
+  if (!list.length) { root.append(h('div', { class: 'lw-empty' }, icon('hourglass', 20), 'No open games right now. Use Quick Play or post your own!')); return; }
+  root.append(h('div', { class: 'lw-list' }, list.map(x => h('div', { class: 'lw-seek' },
+    lobbyInitial(x.name, 38),
+    h('div', { class: 'who' }, h('b', null, x.name), h('small', null, `${Math.round(x.r)}${x.provisional ? '?' : ''}`)),
+    h('span', { class: 'lw-tc' }, h('b', null, tcLabel(x.tc.base, x.tc.inc)), h('small', null, x.rated ? 'Rated' : 'Casual')),
+    x.color && x.color !== 'r' ? h('span', { class: 'lw-col', title: x.color === 'w' ? 'They play White' : 'They play Black' }, pieceImg(x.color + 'k', 20)) : null,
+    h('button', { class: 'btn sm primary', onclick: () => { haptic(10); beep('confirm'); lb.accept(x.id); } }, 'Play')))));
+}
+// custom game: a bottom sheet with time control, color and rated
+function lobbyCustomSheet(lb) {
+  const sel = lobbySel;
+  modal((box, close) => {
     const colorSeg = h('div', { class: 'seg' }); const drawC = () => { colorSeg.innerHTML = ''; [['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]].forEach(([v, l]) => colorSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; drawC(); } }, l))); }; drawC();
     const ratedSeg = h('div', { class: 'seg' }); const drawR = () => { ratedSeg.innerHTML = ''; [[true, 'Rated'], [false, 'Casual']].forEach(([v, l]) => ratedSeg.append(h('button', { class: sel.rated === v ? 'on' : '', onclick: () => { sel.rated = v; drawR(); } }, l))); }; drawR();
     const tcSel = { tc: sel.tc }; const tcs = tcPicker(tcSel, () => { sel.tc = tcSel.tc; });
     tcs.firstChild && tcs.firstChild.remove(); // no untimed games in the lobby
-    main.append(h('details', { class: 'card' }, h('summary', null, h('b', null, 'Create a custom game')), h('div', { class: 'stack', style: { marginTop: '10px' } }, tcs, colorSeg, ratedSeg,
-      h('button', { class: 'btn primary block', onclick: () => { const [b, i] = parseTc(sel.tc === '0+0' ? '300+0' : sel.tc); lb.seek({ base: b, inc: i }, sel.color, sel.rated); } }, icon('plus', 18), 'Post game'))));
-  }
-  main.append(h('h3', { class: 'sect' }, 'Open games'));
-  if (!lb._subs.seeks) lb.subscribeSeeks();
-  const list = (lb.seeks || []).filter(s => !me || s.pid !== me.id);
-  if (!list.length) main.append(h('div', { class: 'card muted small center' }, 'No open games right now. Use Quick play or post your own!'));
-  else main.append(h('div', { class: 'card' }, h('table', { class: 'tbl' }, list.map(s => h('tr', null, h('td', null, h('b', null, s.name), h('div', { class: 'small muted' }, `${Math.round(s.r)}${s.provisional ? '?' : ''}`)), h('td', null, tcLabel(s.tc.base, s.tc.inc), h('div', { class: 'small muted' }, s.rated ? 'Rated' : 'Casual')), h('td', null, h('button', { class: 'btn sm primary', onclick: () => lb.accept(s.id) }, 'Play')))))));
+    box.append(h('h2', null, 'Custom game'), h('p', { class: 'muted small' }, 'Post a game to the lobby. Anyone can accept it.'), h('div', { class: 'stack', style: { gap: '10px' } }, tcs, colorSeg, ratedSeg,
+      h('button', { class: 'btn primary block', onclick: () => { close(); const [b, i] = parseTc(sel.tc === '0+0' ? '300+0' : sel.tc); lobbyQuickAt = Date.now(); lb.seek({ base: b, inc: i }, sel.color, sel.rated); } }, icon('plus', 18), 'Post game')));
+  });
 }
 function renderLeaderboard(main, lb) {
-  main.append(h('button', { class: 'btn sm', onclick: () => { lobbyView = 'home'; render(); } }, icon('back', 18), 'Lobby'));
-  main.append(h('h3', { class: 'sect' }, 'Top 50 players'));
-  if (!lobbyLb) { main.append(h('div', { class: 'card muted center' }, 'Loading…')); lb.fetchLeaderboard().then(p => { lobbyLb = p; render(); }).catch(() => { }); return; }
-  if (!lobbyLb.length) { main.append(h('div', { class: 'card muted center small' }, 'No ranked players yet. Play 5 rated lobby games to appear here!')); return; }
-  main.append(h('div', { class: 'card' }, h('table', { class: 'tbl' }, lobbyLb.map((p, i) => h('tr', { class: lb.me && p.id === lb.me.id ? 'me' : '' }, h('td', null, h('b', null, (i + 1) + '.')), h('td', null, p.name, h('div', { class: 'small muted' }, `${p.wins}W ${p.losses}L ${p.draws}D`)), h('td', null, Math.round(p.r)))))));
+  const root = h('div', { class: 'lw' }); main.append(root);
+  root.append(lobbyHead('Top 50 players', 'Rated lobby games only', () => { lobbyView = 'home'; render(); }, lb));
+  if (!lb) return;
+  if (!lobbyLb) { root.append(h('div', { class: 'lw-empty' }, h('span', { class: 'dots' }, h('i'), h('i'), h('i')), 'Loading…')); lb.fetchLeaderboard().then(p => { lobbyLb = p; if (lobbyView === 'leaderboard') render(); }).catch(() => { }); return; }
+  if (!lobbyLb.length) { root.append(h('div', { class: 'lw-empty' }, icon('medal', 20), 'No ranked players yet. Play 5 rated lobby games to appear here!')); return; }
+  const meId = lb.me && lb.me.id;
+  const top = lobbyLb.slice(0, 3);
+  const spot = (p, place) => p ? h('div', { class: `lw-pod p${place}` + (p.id === meId ? ' me' : '') },
+    place === 1 ? h('span', { class: 'crown' }, icon('crown', 22)) : null,
+    lobbyInitial(p.name, place === 1 ? 58 : 46),
+    h('b', { class: 'nm' }, p.name), h('span', { class: 'r' }, Math.round(p.r)),
+    h('div', { class: 'step' }, h('span', null, place))) : h('div', { class: `lw-pod p${place} none` });
+  root.append(h('div', { class: 'lw-podium' }, spot(top[1], 2), spot(top[0], 1), spot(top[2], 3)));
+  const rest = lobbyLb.slice(3);
+  if (rest.length) root.append(h('div', { class: 'lw-list lw-lb' }, rest.map((p, i) => h('div', { class: 'lw-lrow' + (p.id === meId ? ' me' : '') },
+    h('span', { class: 'rk' }, i + 4), lobbyInitial(p.name, 32),
+    h('div', { class: 'who' }, h('b', null, p.name), h('small', null, `${p.wins}W ${p.losses}L ${p.draws}D`)),
+    h('b', { class: 'r' }, Math.round(p.r))))));
+  const mine = meId ? lobbyLb.findIndex(p => p.id === meId) : -1;
+  if (lb.me && mine < 0) root.append(h('div', { class: 'lw-you' }, avatar(myAvatar(), 36), h('div', { class: 'who' }, h('b', null, 'You'), h('small', null, lb.me.provisional ? 'Play 5 rated games to get ranked' : 'Not in the top 50 yet. Keep playing!')), h('b', { class: 'r' }, Math.round(lb.me.r))));
 }
 function renderLobbyGame(main, lb) {
   let gm = lb.games[lobbyCurrent];
