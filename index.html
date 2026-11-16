@@ -1,0 +1,2090 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141a2e">
+<meta name="description" content="Knight Club: play chess against bots, solve puzzles, learn to play, and challenge friends peer-to-peer.">
+<title>Knight Club Chess</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>:root{
+  --bg:#141a2e; --bg2:#1c2440; --card:#232d4f; --card2:#2b3760; --line:#34416e;
+  --text:#f3f1ea; --muted:#a9b0c9; --accent:#ffb547; --accent2:#ff8a5c; --good:#4fd18b; --bad:#ff6b6b; --blue:#6fb3ff;
+  --light:#f0e2c6; --dark:#b5875a; --r:16px;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:'Nunito',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:16px;line-height:1.4}
+body{min-height:100vh;padding-bottom:calc(76px + var(--safe-b))}
+button{font-family:inherit;font-size:inherit;color:inherit;border:0;cursor:pointer;background:none}
+input{font-family:inherit;font-size:16px}
+h1,h2,h3{margin:0;line-height:1.15}
+.app{max-width:560px;margin:0 auto;padding:12px 14px 20px}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:900;font-size:22px;letter-spacing:.2px}
+.logo img{width:30px;height:30px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);padding:6px 10px;border-radius:999px;font-weight:800;font-size:14px}
+.chip small{color:var(--muted);font-weight:700}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.stack>*+*{margin-top:12px}
+.row{display:flex;gap:10px;align-items:center}
+.grow{flex:1}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;font-weight:800;background:var(--card2);border:1px solid var(--line);transition:transform .08s,filter .15s;min-height:46px}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:linear-gradient(180deg,#ffc56b,#ff9f43);color:#3a2205;border:0;box-shadow:0 4px 0 #c96f1a}
+.btn.primary:active{box-shadow:0 1px 0 #c96f1a;transform:translateY(3px)}
+.btn.good{background:var(--good);color:#06301a;border:0}
+.btn.ghost{background:transparent}
+.btn.block{width:100%}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sm{padding:8px 10px;min-height:38px;font-size:14px;border-radius:12px}
+.seg{display:flex;background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:9px 6px;border-radius:10px;font-weight:800;color:var(--muted);font-size:14px}
+.seg button.on{background:var(--card2);color:var(--text)}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(20,26,46,.96);backdrop-filter:blur(10px);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 6px calc(6px + var(--safe-b));z-index:20}
+.tabs .inner{display:flex;max-width:560px;width:100%}
+.tabs button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0;color:var(--muted);font-size:12px;font-weight:800;border-radius:12px}
+.tabs button .ic{font-size:22px;line-height:1}
+.tabs button.on{color:var(--accent);background:rgba(255,181,71,.08)}
+/* board */
+.board-wrap{position:relative;width:100%;aspect-ratio:1;border-radius:10px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,.35),0 0 0 3px #3b2a1b;touch-action:none;user-select:none;-webkit-user-select:none}
+.board{position:absolute;inset:0}
+.sq{position:absolute;width:12.5%;height:12.5%}
+.sq.l{background:var(--light)} .sq.d{background:var(--dark)}
+.sq .co{position:absolute;font-size:10px;font-weight:900;opacity:.75;pointer-events:none}
+.sq .co.f{right:3px;bottom:1px} .sq .co.r{left:3px;top:1px}
+.sq.l .co{color:var(--dark)} .sq.d .co{color:var(--light)}
+.sq.last::after{content:'';position:absolute;inset:0;background:rgba(255,213,0,.38)}
+.sq.sel::after{content:'';position:absolute;inset:0;background:rgba(80,200,120,.5)}
+.sq.hint::after{content:'';position:absolute;inset:0;background:rgba(111,179,255,.55);animation:pulse 1s infinite alternate}
+.sq.mark::after{content:'';position:absolute;inset:0;background:rgba(111,179,255,.4)}
+.sq.check::before{content:'';position:absolute;inset:0;background:radial-gradient(circle,rgba(255,40,40,.95) 0%,rgba(255,40,40,.5) 40%,rgba(255,40,40,0) 72%)}
+.sq .dot{position:absolute;left:50%;top:50%;width:30%;height:30%;margin:-15% 0 0 -15%;border-radius:50%;background:rgba(20,30,20,.28);z-index:3;pointer-events:none}
+.sq .ring{position:absolute;inset:4%;border-radius:50%;border:5px solid rgba(20,30,20,.28);z-index:3;pointer-events:none}
+.sq .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:min(7vw,34px);z-index:4;pointer-events:none;animation:bob 1.2s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(-2px) scale(.95)}to{transform:translateY(2px) scale(1.05)}}
+@keyframes pulse{from{opacity:.5}to{opacity:1}}
+.pieces{position:absolute;inset:0;pointer-events:none}
+.piece{position:absolute;width:12.5%;height:12.5%;background-size:100%;background-repeat:no-repeat;z-index:5;transition:left .18s ease,top .18s ease;will-change:left,top}
+.piece.drag{transition:none;z-index:50;transform:scale(1.25);filter:drop-shadow(0 6px 6px rgba(0,0,0,.35))}
+.piece.noanim{transition:none}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:60;display:flex;align-items:center;justify-content:center}
+.fx .burst{font-size:64px;animation:pop .7s ease-out forwards}
+@keyframes pop{0%{transform:scale(.2);opacity:0}40%{transform:scale(1.2);opacity:1}100%{transform:scale(1);opacity:0}}
+/* players */
+.pbar{display:flex;align-items:center;gap:10px;padding:8px 4px}
+.avatar{width:38px;height:38px;border-radius:12px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:22px;flex:none}
+.pname{font-weight:900;font-size:15px}
+.prating{color:var(--muted);font-weight:700;font-size:13px}
+.caps{display:flex;align-items:center;min-height:18px;flex-wrap:wrap}
+.caps img{width:16px;height:16px;margin-right:-4px}
+.caps b{margin-left:8px;font-size:12px;color:var(--muted)}
+.thinking{font-size:12px;color:var(--accent);font-weight:800}
+.turnmark{width:10px;height:10px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good)}
+.moves{display:flex;gap:4px;overflow-x:auto;padding:8px 2px;scrollbar-width:none;font-size:14px;white-space:nowrap}
+.moves::-webkit-scrollbar{display:none}
+.moves .n{color:var(--muted);font-weight:700;padding:3px 0 3px 4px}
+.moves .m{padding:3px 7px;border-radius:8px;font-weight:800}
+.moves .m.cur{background:var(--card2);color:var(--accent)}
+.controls{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.controls .btn{padding:8px 2px;flex-direction:column;gap:0;font-size:11px;min-height:54px}
+.controls .btn .ic{font-size:20px}
+.nav{display:flex;gap:6px;justify-content:center;margin:2px 0}
+.nav .btn{flex:1;min-height:36px;padding:4px}
+/* bot list */
+.bots{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.bot{text-align:left;background:var(--card);border:2px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.bot.on{border-color:var(--accent);background:#2e3150}
+.bot .av{font-size:30px}
+.bot .nm{font-weight:900}
+.bot .rt{font-weight:800;color:var(--accent);font-size:14px}
+.bot .bl{font-size:12px;color:var(--muted)}
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(5,8,18,.65);display:flex;align-items:flex-end;justify-content:center;z-index:100;padding:12px;animation:fade .15s}
+@media(min-width:600px){.modal-bg{align-items:center}}
+.modal{background:var(--bg2);border:1px solid var(--line);border-radius:22px;padding:20px;width:100%;max-width:440px;animation:up .2s ease-out;max-height:90vh;overflow:auto}
+@keyframes fade{from{opacity:0}} @keyframes up{from{transform:translateY(30px);opacity:0}}
+.modal h2{font-size:24px;margin-bottom:6px}
+.big-emoji{font-size:54px;text-align:center}
+.promo{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.promo button{background:var(--light);border-radius:14px;aspect-ratio:1;background-size:80%;background-position:center;background-repeat:no-repeat}
+.delta{font-weight:900;font-size:20px}
+.delta.up{color:var(--good)} .delta.down{color:var(--bad)}
+/* learn */
+.lessons{display:grid;gap:10px}
+.lgroup h3{font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:14px 2px 8px}
+.lesson{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:10px 12px;text-align:left;width:100%}
+.lesson .ic{width:44px;height:44px;border-radius:12px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:24px;flex:none;background-size:80%;background-position:center;background-repeat:no-repeat}
+.lesson .t{font-weight:900}
+.lesson .d{font-size:13px;color:var(--muted)}
+.lesson .ck{margin-left:auto;font-size:20px}
+.bubble{display:flex;gap:10px;align-items:flex-start}
+.bubble .who{font-size:40px;line-height:1}
+.bubble .txt{background:#fff8ea;color:#2d2416;border-radius:18px;border-top-left-radius:4px;padding:12px 14px;font-size:17px;font-weight:700;flex:1}
+.bubble .txt b{color:#c2410c}
+.dots{display:flex;gap:6px;justify-content:center}
+.dots i{width:8px;height:8px;border-radius:50%;background:var(--line)} .dots i.on{background:var(--accent)} .dots i.done{background:var(--good)}
+.taskmsg{text-align:center;font-weight:900;min-height:24px}
+.taskmsg.good{color:var(--good)} .taskmsg.bad{color:var(--bad)}
+/* puzzles */
+.cats{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cats::-webkit-scrollbar{display:none}
+.cats button{white-space:nowrap;padding:8px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-weight:800;font-size:13px;color:var(--muted)}
+.cats button.on{background:var(--accent);color:#3a2205;border-color:var(--accent)}
+.banner{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:var(--card);border:1px solid var(--line);font-weight:800}
+.banner.good{background:rgba(79,209,139,.15);border-color:var(--good)}
+.banner.bad{background:rgba(255,107,107,.13);border-color:var(--bad)}
+.tomove{width:18px;height:18px;border-radius:50%;border:2px solid #888;flex:none}
+/* stats */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat .v{font-size:30px;font-weight:900}
+.stat .l{font-size:13px;color:var(--muted);font-weight:700}
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl td{padding:7px 4px;border-bottom:1px solid var(--line)}
+.tbl td:last-child{text-align:right;font-weight:800}
+.spark{width:100%;height:70px;display:block}
+.code{font-size:38px;font-weight:900;letter-spacing:8px;text-align:center;color:var(--accent);background:var(--bg2);border-radius:14px;padding:10px;border:2px dashed var(--line)}
+.input{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg2);color:var(--text);font-weight:800}
+.code-input{text-transform:uppercase;letter-spacing:6px;text-align:center;font-size:26px}
+.toast{position:fixed;left:50%;top:14px;transform:translateX(-50%);background:var(--card2);border:1px solid var(--line);padding:10px 16px;border-radius:999px;font-weight:800;z-index:200;animation:up .2s;box-shadow:0 8px 20px rgba(0,0,0,.3);max-width:92vw;text-align:center}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:800;background:var(--card2);color:var(--muted)}
+.pill.live{background:rgba(79,209,139,.2);color:var(--good)}
+.hidden{display:none!important}
+.center{text-align:center}
+a{color:var(--blue)}
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<script>// Chess rules engine + search. Written as one self-contained factory so it can run
+// in the page, in a Web Worker (via Function.toString), and in Node for testing.
+function ChessEngineFactory() {
+  'use strict';
+  const P = 1, N = 2, B = 3, R = 4, Q = 5, K = 6, BLACK = 8;
+  const WHITE_SIDE = 0, BLACK_SIDE = 1;
+  const F_CAP = 1, F_EP = 2, F_CASTLE = 4, F_DOUBLE = 8;
+  const N_OFF = [33, 31, 18, 14, -33, -31, -18, -14];
+  const K_OFF = [1, -1, 16, -16, 17, 15, -17, -15];
+  const B_OFF = [17, 15, -17, -15];
+  const R_OFF = [1, -1, 16, -16];
+  const PIECE_CHARS = ' PNBRQK  pnbrqk';
+
+  // ---------- zobrist ----------
+  let seed = 0x2545F491;
+  function rnd() { seed ^= seed << 13; seed ^= seed >>> 17; seed ^= seed << 5; return seed >>> 0; }
+  const Z1 = new Uint32Array(16 * 128), Z2 = new Uint32Array(16 * 128);
+  for (let i = 0; i < Z1.length; i++) { Z1[i] = rnd(); Z2[i] = rnd(); }
+  const ZC1 = new Uint32Array(16), ZC2 = new Uint32Array(16);
+  for (let i = 0; i < 16; i++) { ZC1[i] = rnd(); ZC2[i] = rnd(); }
+  const ZE1 = new Uint32Array(8), ZE2 = new Uint32Array(8);
+  for (let i = 0; i < 8; i++) { ZE1[i] = rnd(); ZE2[i] = rnd(); }
+  const ZS1 = rnd(), ZS2 = rnd();
+
+  const CASTLE_MASK = new Uint8Array(128).fill(15);
+  CASTLE_MASK[4] = 15 & ~3; CASTLE_MASK[7] = 15 & ~1; CASTLE_MASK[0] = 15 & ~2;
+  CASTLE_MASK[116] = 15 & ~12; CASTLE_MASK[119] = 15 & ~4; CASTLE_MASK[112] = 15 & ~8;
+
+  const sqName = s => 'abcdefgh'[s & 7] + ((s >> 4) + 1);
+  const sqFromName = n => (n.charCodeAt(0) - 97) + (n.charCodeAt(1) - 49) * 16;
+  const mFrom = m => m & 127, mTo = m => (m >> 7) & 127, mPromo = m => (m >> 14) & 15, mFlags = m => (m >> 18) & 15;
+  const mk = (from, to, promo, flags) => from | (to << 7) | (promo << 14) | (flags << 18);
+  const colorOf = p => (p & BLACK) ? 1 : 0;
+
+  class Position {
+    constructor(fen) {
+      this.board = new Int8Array(128);
+      this.load(fen || 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    }
+    load(fen) {
+      const parts = fen.trim().split(/\s+/);
+      this.board.fill(0);
+      let rank = 7, file = 0;
+      for (const c of parts[0]) {
+        if (c === '/') { rank--; file = 0; continue; }
+        if (c >= '1' && c <= '8') { file += +c; continue; }
+        const idx = PIECE_CHARS.indexOf(c);
+        if (idx < 0) throw new Error('bad fen');
+        this.board[rank * 16 + file] = idx;
+        file++;
+      }
+      this.turn = parts[1] === 'b' ? 1 : 0;
+      this.castle = 0;
+      const c = parts[2] || '-';
+      if (c.includes('K')) this.castle |= 1; if (c.includes('Q')) this.castle |= 2;
+      if (c.includes('k')) this.castle |= 4; if (c.includes('q')) this.castle |= 8;
+      this.ep = (parts[3] && parts[3] !== '-') ? sqFromName(parts[3]) : -1;
+      this.half = parts[4] ? +parts[4] : 0;
+      this.full = parts[5] ? +parts[5] : 1;
+      this.kings = [-1, -1];
+      for (let s = 0; s < 128; s++) {
+        if (s & 0x88) { s += 7; continue; }
+        if (this.board[s] === K) this.kings[0] = s;
+        if (this.board[s] === (K | BLACK)) this.kings[1] = s;
+      }
+      // sanitize castling rights against actual piece placement
+      const b = this.board;
+      if (!(b[4] === K && b[7] === R)) this.castle &= ~1;
+      if (!(b[4] === K && b[0] === R)) this.castle &= ~2;
+      if (!(b[116] === (K | BLACK) && b[119] === (R | BLACK))) this.castle &= ~4;
+      if (!(b[116] === (K | BLACK) && b[112] === (R | BLACK))) this.castle &= ~8;
+      if (this.ep >= 0 && !this.epCapturable(this.ep, this.turn)) this.ep = -1;
+      this.stack = [];
+      this.computeHash();
+      this.hist1 = [this.h1]; this.hist2 = [this.h2];
+    }
+    epCapturable(epSq, side) {
+      // is there a pawn of `side` that could capture onto epSq?
+      const pawn = side === 0 ? P : (P | BLACK);
+      const from1 = side === 0 ? epSq - 15 : epSq + 15, from2 = side === 0 ? epSq - 17 : epSq + 17;
+      return (!(from1 & 0x88) && this.board[from1] === pawn) || (!(from2 & 0x88) && this.board[from2] === pawn);
+    }
+    computeHash() {
+      let h1 = 0, h2 = 0;
+      for (let s = 0; s < 128; s++) {
+        if (s & 0x88) { s += 7; continue; }
+        const p = this.board[s];
+        if (p) { h1 ^= Z1[p * 128 + s]; h2 ^= Z2[p * 128 + s]; }
+      }
+      h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+      if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+      if (this.turn) { h1 ^= ZS1; h2 ^= ZS2; }
+      this.h1 = h1 >>> 0; this.h2 = h2 >>> 0;
+    }
+    fen() {
+      let out = '';
+      for (let r = 7; r >= 0; r--) {
+        let empty = 0;
+        for (let f = 0; f < 8; f++) {
+          const p = this.board[r * 16 + f];
+          if (!p) { empty++; continue; }
+          if (empty) { out += empty; empty = 0; }
+          out += PIECE_CHARS[p];
+        }
+        if (empty) out += empty;
+        if (r) out += '/';
+      }
+      let c = '';
+      if (this.castle & 1) c += 'K'; if (this.castle & 2) c += 'Q';
+      if (this.castle & 4) c += 'k'; if (this.castle & 8) c += 'q';
+      return `${out} ${this.turn ? 'b' : 'w'} ${c || '-'} ${this.ep >= 0 ? sqName(this.ep) : '-'} ${this.half} ${this.full}`;
+    }
+    clone() { const p = new Position(this.fen()); return p; }
+
+    attacked(sq, by) {
+      const b = this.board;
+      if (by === 0) {
+        let s = sq - 15; if (!(s & 0x88) && b[s] === P) return true;
+        s = sq - 17; if (!(s & 0x88) && b[s] === P) return true;
+      } else {
+        let s = sq + 15; if (!(s & 0x88) && b[s] === (P | BLACK)) return true;
+        s = sq + 17; if (!(s & 0x88) && b[s] === (P | BLACK)) return true;
+      }
+      const cb = by ? BLACK : 0;
+      for (let i = 0; i < 8; i++) { const s = sq + N_OFF[i]; if (!(s & 0x88) && b[s] === (N | cb)) return true; }
+      for (let i = 0; i < 8; i++) { const s = sq + K_OFF[i]; if (!(s & 0x88) && b[s] === (K | cb)) return true; }
+      for (let i = 0; i < 4; i++) {
+        const d = B_OFF[i]; let s = sq + d;
+        while (!(s & 0x88)) {
+          const p = b[s];
+          if (p) { if (p === (B | cb) || p === (Q | cb)) return true; break; }
+          s += d;
+        }
+      }
+      for (let i = 0; i < 4; i++) {
+        const d = R_OFF[i]; let s = sq + d;
+        while (!(s & 0x88)) {
+          const p = b[s];
+          if (p) { if (p === (R | cb) || p === (Q | cb)) return true; break; }
+          s += d;
+        }
+      }
+      return false;
+    }
+    inCheck(side = this.turn) { return this.attacked(this.kings[side], side ^ 1); }
+
+    // pseudo-legal move generation. capturesOnly for quiescence.
+    genMoves(capturesOnly = false) {
+      const moves = [];
+      const b = this.board, us = this.turn, them = us ^ 1, cb = us ? BLACK : 0;
+      const dir = us ? -16 : 16, startRank = us ? 6 : 1, promoRank = us ? 0 : 7;
+      for (let sq = 0; sq < 128; sq++) {
+        if (sq & 0x88) { sq += 7; continue; }
+        const p = b[sq];
+        if (!p || colorOf(p) !== us) continue;
+        const t = p & 7;
+        if (t === P) {
+          const one = sq + dir;
+          if (!(one & 0x88) && b[one] === 0) {
+            if ((one >> 4) === promoRank) {
+              moves.push(mk(sq, one, Q, 0));
+              if (!capturesOnly) { moves.push(mk(sq, one, R, 0)); moves.push(mk(sq, one, B, 0)); moves.push(mk(sq, one, N, 0)); }
+            } else if (!capturesOnly) {
+              moves.push(mk(sq, one, 0, 0));
+              const two = one + dir;
+              if ((sq >> 4) === startRank && b[two] === 0) moves.push(mk(sq, two, 0, F_DOUBLE));
+            }
+          }
+          for (let k = 0; k < 2; k++) {
+            const to = sq + dir + (k ? 1 : -1);
+            if (to & 0x88) continue;
+            const tp = b[to];
+            if (tp && colorOf(tp) === them) {
+              if ((to >> 4) === promoRank) {
+                moves.push(mk(sq, to, Q, F_CAP));
+                if (!capturesOnly) { moves.push(mk(sq, to, R, F_CAP)); moves.push(mk(sq, to, B, F_CAP)); moves.push(mk(sq, to, N, F_CAP)); }
+              } else moves.push(mk(sq, to, 0, F_CAP));
+            } else if (to === this.ep) moves.push(mk(sq, to, 0, F_CAP | F_EP));
+          }
+        } else if (t === N || t === K) {
+          const offs = t === N ? N_OFF : K_OFF;
+          for (let i = 0; i < 8; i++) {
+            const to = sq + offs[i];
+            if (to & 0x88) continue;
+            const tp = b[to];
+            if (!tp) { if (!capturesOnly) moves.push(mk(sq, to, 0, 0)); }
+            else if (colorOf(tp) === them) moves.push(mk(sq, to, 0, F_CAP));
+          }
+          if (t === K && !capturesOnly) {
+            if (us === 0 && sq === 4) {
+              if ((this.castle & 1) && !b[5] && !b[6] && !this.attacked(4, 1) && !this.attacked(5, 1) && !this.attacked(6, 1)) moves.push(mk(4, 6, 0, F_CASTLE));
+              if ((this.castle & 2) && !b[3] && !b[2] && !b[1] && !this.attacked(4, 1) && !this.attacked(3, 1) && !this.attacked(2, 1)) moves.push(mk(4, 2, 0, F_CASTLE));
+            } else if (us === 1 && sq === 116) {
+              if ((this.castle & 4) && !b[117] && !b[118] && !this.attacked(116, 0) && !this.attacked(117, 0) && !this.attacked(118, 0)) moves.push(mk(116, 118, 0, F_CASTLE));
+              if ((this.castle & 8) && !b[115] && !b[114] && !b[113] && !this.attacked(116, 0) && !this.attacked(115, 0) && !this.attacked(114, 0)) moves.push(mk(116, 114, 0, F_CASTLE));
+            }
+          }
+        } else {
+          const offs = t === B ? B_OFF : t === R ? R_OFF : K_OFF;
+          for (let i = 0; i < offs.length; i++) {
+            const d = offs[i]; let to = sq + d;
+            while (!(to & 0x88)) {
+              const tp = b[to];
+              if (!tp) { if (!capturesOnly) moves.push(mk(sq, to, 0, 0)); }
+              else { if (colorOf(tp) === them) moves.push(mk(sq, to, 0, F_CAP)); break; }
+              to += d;
+            }
+          }
+        }
+      }
+      return moves;
+    }
+
+    make(m) {
+      const b = this.board, from = mFrom(m), to = mTo(m), promo = mPromo(m), flags = mFlags(m);
+      const us = this.turn, piece = b[from], dir = us ? -16 : 16;
+      const capSq = (flags & F_EP) ? to - dir : to;
+      const captured = b[capSq];
+      this.stack.push({ m, captured, castle: this.castle, ep: this.ep, half: this.half, h1: this.h1, h2: this.h2 });
+      let h1 = this.h1, h2 = this.h2;
+      // remove moving piece
+      h1 ^= Z1[piece * 128 + from]; h2 ^= Z2[piece * 128 + from];
+      if (captured) { h1 ^= Z1[captured * 128 + capSq]; h2 ^= Z2[captured * 128 + capSq]; b[capSq] = 0; }
+      const placed = promo ? (promo | (us ? BLACK : 0)) : piece;
+      b[from] = 0; b[to] = placed;
+      h1 ^= Z1[placed * 128 + to]; h2 ^= Z2[placed * 128 + to];
+      if (flags & F_CASTLE) {
+        let rf, rt;
+        if (to === 6) { rf = 7; rt = 5; } else if (to === 2) { rf = 0; rt = 3; }
+        else if (to === 118) { rf = 119; rt = 117; } else { rf = 112; rt = 115; }
+        const rook = b[rf]; b[rf] = 0; b[rt] = rook;
+        h1 ^= Z1[rook * 128 + rf] ^ Z1[rook * 128 + rt]; h2 ^= Z2[rook * 128 + rf] ^ Z2[rook * 128 + rt];
+      }
+      if ((piece & 7) === K) this.kings[us] = to;
+      // castling rights
+      h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+      this.castle &= CASTLE_MASK[from] & CASTLE_MASK[to];
+      h1 ^= ZC1[this.castle]; h2 ^= ZC2[this.castle];
+      // en passant
+      if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+      this.ep = -1;
+      if (flags & F_DOUBLE) {
+        const epSq = from + dir;
+        if (this.epCapturable(epSq, us ^ 1)) { this.ep = epSq; h1 ^= ZE1[epSq & 7]; h2 ^= ZE2[epSq & 7]; }
+      }
+      this.half = ((piece & 7) === P || captured) ? 0 : this.half + 1;
+      if (us === 1) this.full++;
+      this.turn = us ^ 1;
+      h1 ^= ZS1; h2 ^= ZS2;
+      this.h1 = h1 >>> 0; this.h2 = h2 >>> 0;
+      this.hist1.push(this.h1); this.hist2.push(this.h2);
+    }
+    unmake() {
+      const u = this.stack.pop();
+      const m = u.m, b = this.board, from = mFrom(m), to = mTo(m), promo = mPromo(m), flags = mFlags(m);
+      this.turn ^= 1;
+      const us = this.turn, dir = us ? -16 : 16;
+      let piece = b[to];
+      if (promo) piece = P | (us ? BLACK : 0);
+      b[from] = piece; b[to] = 0;
+      if (u.captured) { const capSq = (flags & F_EP) ? to - dir : to; b[capSq] = u.captured; }
+      if (flags & F_CASTLE) {
+        let rf, rt;
+        if (to === 6) { rf = 7; rt = 5; } else if (to === 2) { rf = 0; rt = 3; }
+        else if (to === 118) { rf = 119; rt = 117; } else { rf = 112; rt = 115; }
+        b[rf] = b[rt]; b[rt] = 0;
+      }
+      if ((piece & 7) === K) this.kings[us] = from;
+      if (us === 1) this.full--;
+      this.castle = u.castle; this.ep = u.ep; this.half = u.half; this.h1 = u.h1; this.h2 = u.h2;
+      this.hist1.pop(); this.hist2.pop();
+    }
+    makeNull() {
+      this.stack.push({ m: 0, captured: 0, castle: this.castle, ep: this.ep, half: this.half, h1: this.h1, h2: this.h2, nul: true });
+      let h1 = this.h1, h2 = this.h2;
+      if (this.ep >= 0) { h1 ^= ZE1[this.ep & 7]; h2 ^= ZE2[this.ep & 7]; }
+      this.ep = -1; this.turn ^= 1; h1 ^= ZS1; h2 ^= ZS2;
+      this.h1 = h1 >>> 0; this.h2 = h2 >>> 0; this.half++;
+      this.hist1.push(this.h1); this.hist2.push(this.h2);
+    }
+    unmakeNull() {
+      const u = this.stack.pop();
+      this.turn ^= 1; this.ep = u.ep; this.half = u.half; this.h1 = u.h1; this.h2 = u.h2;
+      this.hist1.pop(); this.hist2.pop();
+    }
+    // make a move and report whether it was legal (if not, it is undone)
+    tryMake(m) {
+      this.make(m);
+      if (this.attacked(this.kings[this.turn ^ 1], this.turn)) { this.unmake(); return false; }
+      return true;
+    }
+    legalMoves() {
+      const out = [];
+      for (const m of this.genMoves()) if (this.tryMake(m)) { this.unmake(); out.push(m); }
+      return out;
+    }
+    hasLegalMove() {
+      for (const m of this.genMoves()) if (this.tryMake(m)) { this.unmake(); return true; }
+      return false;
+    }
+    repetitionCount() {
+      // how many times the current position has occurred (including now)
+      const n = this.hist1.length - 1, h1 = this.h1, h2 = this.h2;
+      let count = 1;
+      for (let i = n - 2; i >= 0 && i >= n - this.half; i -= 2)
+        if (this.hist1[i] === h1 && this.hist2[i] === h2) count++;
+      return count;
+    }
+    insufficientMaterial() {
+      let minors = 0, bishopColors = [0, 0], knights = 0;
+      for (let s = 0; s < 128; s++) {
+        if (s & 0x88) { s += 7; continue; }
+        const t = this.board[s] & 7;
+        if (!t || t === K) continue;
+        if (t === P || t === R || t === Q) return false;
+        minors++;
+        if (t === N) knights++; else bishopColors[((s >> 4) + (s & 7)) & 1]++;
+      }
+      if (minors <= 1) return true;
+      if (knights === 0 && (bishopColors[0] === 0 || bishopColors[1] === 0)) return true;
+      return false;
+    }
+    // game status: {over, result:'1-0'|'0-1'|'1/2-1/2', reason}
+    status() {
+      const hasMove = this.hasLegalMove();
+      if (!hasMove) {
+        if (this.inCheck()) return { over: true, result: this.turn ? '1-0' : '0-1', reason: 'checkmate' };
+        return { over: true, result: '1/2-1/2', reason: 'stalemate' };
+      }
+      if (this.insufficientMaterial()) return { over: true, result: '1/2-1/2', reason: 'insufficient material' };
+      if (this.half >= 100) return { over: true, result: '1/2-1/2', reason: '50-move rule' };
+      if (this.repetitionCount() >= 3) return { over: true, result: '1/2-1/2', reason: 'threefold repetition' };
+      return { over: false };
+    }
+    pieceAt(name) { return this.board[sqFromName(name)]; }
+
+    // ---------- notation ----------
+    uci(m) { return sqName(mFrom(m)) + sqName(mTo(m)) + (mPromo(m) ? 'nbrq'[mPromo(m) - 2] : ''); }
+    moveFromUci(str, legal) {
+      legal = legal || this.legalMoves();
+      const from = sqFromName(str.slice(0, 2)), to = sqFromName(str.slice(2, 4));
+      const pr = str[4] ? 'nbrq'.indexOf(str[4]) + 2 : 0;
+      return legal.find(m => mFrom(m) === from && mTo(m) === to && mPromo(m) === pr) || 0;
+    }
+    san(m, legal) {
+      legal = legal || this.legalMoves();
+      const from = mFrom(m), to = mTo(m), flags = mFlags(m), piece = this.board[from], t = piece & 7;
+      let s;
+      if (flags & F_CASTLE) s = (to & 7) === 6 ? 'O-O' : 'O-O-O';
+      else {
+        s = '';
+        if (t === P) {
+          if (flags & F_CAP) s += 'abcdefgh'[from & 7] + 'x';
+          s += sqName(to);
+          if (mPromo(m)) s += '=' + 'NBRQ'[mPromo(m) - 2];
+        } else {
+          s += ' PNBRQK'[t];
+          const others = legal.filter(o => o !== m && mTo(o) === to && (this.board[mFrom(o)] === piece));
+          if (others.length) {
+            const sameFile = others.some(o => (mFrom(o) & 7) === (from & 7));
+            const sameRank = others.some(o => (mFrom(o) >> 4) === (from >> 4));
+            if (!sameFile) s += 'abcdefgh'[from & 7];
+            else if (!sameRank) s += (from >> 4) + 1;
+            else s += sqName(from);
+          }
+          if (flags & F_CAP) s += 'x';
+          s += sqName(to);
+        }
+      }
+      this.make(m);
+      if (this.inCheck()) s += this.hasLegalMove() ? '+' : '#';
+      this.unmake();
+      return s;
+    }
+    moveFromSan(san) {
+      const legal = this.legalMoves();
+      const clean = x => x.replace(/[+#?!]/g, '');
+      return legal.find(m => clean(this.san(m, legal)) === clean(san)) || 0;
+    }
+  }
+
+  // =============== EVALUATION ===============
+  const VAL = [0, 100, 320, 330, 500, 900, 0];
+  const PHASE_W = [0, 0, 1, 1, 2, 4, 0];
+  const PST = {
+    1: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
+    2: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,0,0,0,-20,-40, -30,0,10,15,15,10,0,-30, -30,5,15,20,20,15,5,-30, -30,0,15,20,20,15,0,-30, -30,5,10,15,15,10,5,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
+    3: [-20,-10,-10,-10,-10,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,10,10,5,0,-10, -10,5,5,10,10,5,5,-10, -10,0,10,10,10,10,0,-10, -10,10,10,10,10,10,10,-10, -10,5,0,0,0,0,5,-10, -20,-10,-10,-10,-10,-10,-10,-20],
+    4: [0,0,0,0,0,0,0,0, 5,10,10,10,10,10,10,5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, 0,0,0,5,5,0,0,0],
+    5: [-20,-10,-10,-5,-5,-10,-10,-20, -10,0,0,0,0,0,0,-10, -10,0,5,5,5,5,0,-10, -5,0,5,5,5,5,0,-5, 0,0,5,5,5,5,0,-5, -10,5,5,5,5,5,0,-10, -10,0,5,0,0,0,0,-10, -20,-10,-10,-5,-5,-10,-10,-20],
+    6: [-30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -30,-40,-40,-50,-50,-40,-40,-30, -20,-30,-30,-40,-40,-30,-30,-20, -10,-20,-20,-20,-20,-20,-20,-10, 20,20,0,0,0,0,20,20, 20,30,10,0,0,10,30,20],
+    7: [-50,-40,-30,-20,-20,-30,-40,-50, -30,-20,-10,0,0,-10,-20,-30, -30,-10,20,30,30,20,-10,-30, -30,-10,30,40,40,30,-10,-30, -30,-10,30,40,40,30,-10,-30, -30,-10,20,30,30,20,-10,-30, -30,-30,0,0,0,0,-30,-30, -50,-30,-30,-30,-30,-30,-30,-50],
+  };
+  const PASSED = [0, 5, 10, 20, 35, 60, 100, 0];
+
+  function evaluate(pos, noiseAmp, noiseSalt) {
+    const b = pos.board;
+    let mg = 0, phase = 0, kingMg = 0, kingEg = 0;
+    const mat = [0, 0], pawnFiles = [new Int8Array(8), new Int8Array(8)];
+    const bishops = [0, 0];
+    let pawnCount = [0, 0];
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = b[s]; if (!p) continue;
+      const t = p & 7, c = colorOf(p), r = s >> 4, f = s & 7;
+      const idx = c === 0 ? (7 - r) * 8 + f : r * 8 + f;
+      const sign = c === 0 ? 1 : -1;
+      phase += PHASE_W[t];
+      if (t === K) { kingMg += sign * PST[6][idx]; kingEg += sign * PST[7][idx]; continue; }
+      mat[c] += VAL[t];
+      mg += sign * (VAL[t] + PST[t][idx]);
+      if (t === P) { pawnFiles[c][f]++; pawnCount[c]++; }
+      if (t === B) bishops[c]++;
+    }
+    if (phase > 24) phase = 24;
+    let score = mg + (kingMg * phase + kingEg * (24 - phase)) / 24;
+    if (bishops[0] >= 2) score += 30; if (bishops[1] >= 2) score -= 30;
+    // pawn structure: doubled, isolated, passed
+    const egW = (24 - phase) / 24;
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = b[s]; if ((p & 7) !== P) continue;
+      const c = colorOf(p), f = s & 7, r = s >> 4, sign = c ? -1 : 1;
+      const own = pawnFiles[c];
+      if ((f === 0 || !own[f - 1]) && (f === 7 || !own[f + 1])) score -= sign * 12;
+      // passed?
+      let passed = true;
+      const dir = c ? -1 : 1;
+      for (let rr = r + dir; rr >= 0 && rr <= 7 && passed; rr += dir)
+        for (let ff = Math.max(0, f - 1); ff <= Math.min(7, f + 1); ff++)
+          if (b[rr * 16 + ff] === (P | (c ? 0 : BLACK))) { passed = false; break; }
+      if (passed) { const adv = c ? 7 - r : r; score += sign * PASSED[adv] * (0.5 + egW); }
+    }
+    for (let f = 0; f < 8; f++) {
+      if (pawnFiles[0][f] > 1) score -= 10 * (pawnFiles[0][f] - 1);
+      if (pawnFiles[1][f] > 1) score += 10 * (pawnFiles[1][f] - 1);
+    }
+    // mop-up: drive a lone king to the edge when clearly winning
+    const diff = mat[0] - mat[1];
+    if (Math.abs(diff) >= 300) {
+      const win = diff > 0 ? 0 : 1, lose = win ^ 1;
+      if (pawnCount[lose] === 0 && mat[lose] <= 330) {
+        const lk = pos.kings[lose], wk = pos.kings[win];
+        const lr = lk >> 4, lf = lk & 7;
+        const center = Math.max(3 - lr, lr - 4) + Math.max(3 - lf, lf - 4);
+        const dist = Math.abs((wk >> 4) - lr) + Math.abs((wk & 7) - lf);
+        const bonus = 10 * center + 4 * (14 - dist);
+        score += win === 0 ? bonus : -bonus;
+      }
+    }
+    if (noiseAmp) {
+      let x = (pos.h1 ^ noiseSalt) >>> 0;
+      x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0; x = Math.imul(x ^ (x >>> 16), 0x45d9f3b) >>> 0; x = (x ^ (x >>> 16)) >>> 0;
+      score += (x % (2 * noiseAmp + 1)) - noiseAmp;
+    }
+    score = Math.round(score);
+    return pos.turn === 0 ? score + 10 : -score + 10; // small tempo bonus
+  }
+
+  // =============== SEARCH ===============
+  const MATE = 100000, INF = 1000000;
+  const TT_BITS = 18, TT_SIZE = 1 << TT_BITS, TT_MASK = TT_SIZE - 1;
+  const MVV = [0, 1, 3, 3, 5, 9, 20];
+
+  class Searcher {
+    constructor() {
+      this.ttKey = new Uint32Array(TT_SIZE);
+      this.ttMove = new Int32Array(TT_SIZE);
+      this.ttScore = new Int32Array(TT_SIZE);
+      this.ttDepth = new Int8Array(TT_SIZE);
+      this.ttFlag = new Int8Array(TT_SIZE);
+      this.killers = [];
+      this.history = new Int32Array(128 * 128);
+    }
+    clear() { this.ttKey.fill(0); this.ttFlag.fill(0); this.history.fill(0); }
+    // opts: {maxDepth, maxNodes, timeMs, noise, salt}
+    search(pos, opts) {
+      this.pos = pos; this.nodes = 0; this.stop = false;
+      this.maxNodes = opts.maxNodes || Infinity;
+      this.deadline = opts.timeMs ? Date.now() + opts.timeMs : Infinity;
+      this.noise = opts.noise || 0; this.salt = opts.salt || 0;
+      this.killers = []; for (let i = 0; i < 128; i++) this.killers.push([0, 0]);
+      this.history.fill(0);
+      const legal = pos.legalMoves();
+      if (!legal.length) return { move: 0, score: pos.inCheck() ? -MATE : 0, depth: 0 };
+      let best = legal[0], bestScore = -INF, depthDone = 0;
+      const maxDepth = opts.maxDepth || 64;
+      for (let d = 1; d <= maxDepth; d++) {
+        this.rootBest = 0;
+        const sc = this.negamax(d, -INF, INF, 0, false);
+        if (this.stop) {
+          if (this.rootBest && this.rootBestScore > bestScore - 50 && depthDone > 0) { /* partial result: keep previous for safety */ }
+          break;
+        }
+        best = this.rootBest || best; bestScore = sc; depthDone = d;
+        if (Math.abs(sc) > MATE - 200 && d >= (MATE - Math.abs(sc)) ) break; // found a mate
+        if (legal.length === 1 && d >= 2) break;
+      }
+      return { move: best, score: bestScore, depth: depthDone, nodes: this.nodes };
+    }
+    checkStop() {
+      if (this.nodes >= this.maxNodes) this.stop = true;
+      else if ((this.nodes & 1023) === 0 && Date.now() > this.deadline) this.stop = true;
+    }
+    ttProbe(pos) {
+      const i = pos.h1 & TT_MASK;
+      return (this.ttFlag[i] && this.ttKey[i] === pos.h2) ? i : -1;
+    }
+    ttStore(pos, depth, score, flag, move, ply) {
+      const i = pos.h1 & TT_MASK;
+      if (this.ttFlag[i] && this.ttKey[i] === pos.h2 && this.ttDepth[i] > depth && flag !== 1) return;
+      if (score > MATE - 500) score += ply; else if (score < -MATE + 500) score -= ply;
+      this.ttKey[i] = pos.h2; this.ttMove[i] = move; this.ttScore[i] = score; this.ttDepth[i] = depth; this.ttFlag[i] = flag;
+    }
+    orderMoves(moves, ttMove, ply) {
+      const b = this.pos.board, scores = new Int32Array(moves.length);
+      const k = this.killers[ply] || [0, 0];
+      for (let i = 0; i < moves.length; i++) {
+        const m = moves[i];
+        if (m === ttMove) { scores[i] = 10000000; continue; }
+        const fl = mFlags(m);
+        if (fl & F_CAP) {
+          const victim = (fl & F_EP) ? P : (b[mTo(m)] & 7);
+          scores[i] = 1000000 + MVV[victim] * 100 - MVV[b[mFrom(m)] & 7];
+        } else if (mPromo(m)) scores[i] = 900000 + mPromo(m);
+        else if (m === k[0]) scores[i] = 800000;
+        else if (m === k[1]) scores[i] = 700000;
+        else scores[i] = this.history[mFrom(m) * 128 + mTo(m)];
+      }
+      // insertion sort by score desc
+      for (let i = 1; i < moves.length; i++) {
+        const m = moves[i], s = scores[i]; let j = i - 1;
+        while (j >= 0 && scores[j] < s) { moves[j + 1] = moves[j]; scores[j + 1] = scores[j]; j--; }
+        moves[j + 1] = m; scores[j + 1] = s;
+      }
+      return moves;
+    }
+    hasNonPawn(side) {
+      const b = this.pos.board, cb = side ? BLACK : 0;
+      for (let s = 0; s < 128; s++) {
+        if (s & 0x88) { s += 7; continue; }
+        const p = b[s]; if (p && (p & BLACK) === cb) { const t = p & 7; if (t !== P && t !== K) return true; }
+      }
+      return false;
+    }
+    negamax(depth, alpha, beta, ply, wasNull) {
+      const pos = this.pos;
+      this.nodes++;
+      if ((this.nodes & 255) === 0) this.checkStop();
+      if (this.stop) return 0;
+      if (ply > 0) {
+        if (pos.half >= 100 || pos.insufficientMaterial()) return 0;
+        // repetition: any repeat counts as draw inside the tree
+        const n = pos.hist1.length - 1;
+        for (let i = n - 2; i >= 0 && i >= n - pos.half; i -= 2)
+          if (pos.hist1[i] === pos.h1 && pos.hist2[i] === pos.h2) return 0;
+        // mate distance pruning
+        alpha = Math.max(alpha, -MATE + ply); beta = Math.min(beta, MATE - ply - 1);
+        if (alpha >= beta) return alpha;
+      }
+      const inCheck = pos.inCheck();
+      if (inCheck) depth++;
+      if (depth <= 0) return this.quiesce(alpha, beta, ply, 0);
+      if (ply >= 100) return evaluate(pos, this.noise, this.salt);
+
+      let ttMove = 0;
+      const ti = this.ttProbe(pos);
+      if (ti >= 0) {
+        ttMove = this.ttMove[ti];
+        if (ply > 0 && this.ttDepth[ti] >= depth) {
+          let s = this.ttScore[ti];
+          if (s > MATE - 500) s -= ply; else if (s < -MATE + 500) s += ply;
+          const f = this.ttFlag[ti];
+          if (f === 1) return s;
+          if (f === 2 && s >= beta) return s;
+          if (f === 3 && s <= alpha) return s;
+        }
+      }
+      const pvNode = beta - alpha > 1;
+      // null move pruning
+      if (!pvNode && !inCheck && !wasNull && depth >= 3 && ply > 0 && this.hasNonPawn(pos.turn)) {
+        const se = evaluate(pos, this.noise, this.salt);
+        if (se >= beta) {
+          pos.makeNull();
+          const s = -this.negamax(depth - 3, -beta, -beta + 1, ply + 1, true);
+          pos.unmakeNull();
+          if (this.stop) return 0;
+          if (s >= beta && s < MATE - 500) return beta;
+        }
+      }
+      const moves = this.orderMoves(pos.genMoves(), ttMove, ply);
+      let bestScore = -INF, bestMove = 0, legal = 0;
+      const origAlpha = alpha;
+      for (let i = 0; i < moves.length; i++) {
+        const m = moves[i];
+        if (!pos.tryMake(m)) continue;
+        legal++;
+        const quiet = !(mFlags(m) & F_CAP) && !mPromo(m);
+        let score;
+        if (legal === 1) score = -this.negamax(depth - 1, -beta, -alpha, ply + 1, false);
+        else {
+          let red = 0;
+          if (depth >= 3 && legal > 4 && quiet && !inCheck && !pos.inCheck()) red = legal > 10 ? 2 : 1;
+          score = -this.negamax(depth - 1 - red, -alpha - 1, -alpha, ply + 1, false);
+          if (score > alpha && red) score = -this.negamax(depth - 1, -alpha - 1, -alpha, ply + 1, false);
+          if (score > alpha && score < beta) score = -this.negamax(depth - 1, -beta, -alpha, ply + 1, false);
+        }
+        pos.unmake();
+        if (this.stop) return 0;
+        if (score > bestScore) {
+          bestScore = score; bestMove = m;
+          if (ply === 0) { this.rootBest = m; this.rootBestScore = score; }
+          if (score > alpha) {
+            alpha = score;
+            if (alpha >= beta) {
+              if (quiet) {
+                const k = this.killers[ply];
+                if (k && k[0] !== m) { k[1] = k[0]; k[0] = m; }
+                this.history[mFrom(m) * 128 + mTo(m)] += depth * depth;
+              }
+              break;
+            }
+          }
+        }
+      }
+      if (!legal) return inCheck ? -MATE + ply : 0;
+      const flag = bestScore >= beta ? 2 : bestScore > origAlpha ? 1 : 3;
+      this.ttStore(pos, depth, bestScore, flag, bestMove, ply);
+      return bestScore;
+    }
+    quiesce(alpha, beta, ply, qd) {
+      const pos = this.pos;
+      this.nodes++;
+      if ((this.nodes & 255) === 0) this.checkStop();
+      if (this.stop) return 0;
+      const stand = evaluate(pos, this.noise, this.salt);
+      if (stand >= beta) return stand;
+      if (stand > alpha) alpha = stand;
+      if (qd > 8) return stand;
+      const moves = this.orderMoves(pos.genMoves(true), 0, 127);
+      const b = pos.board;
+      let best = stand;
+      for (const m of moves) {
+        const fl = mFlags(m);
+        const victim = (fl & F_EP) ? P : (b[mTo(m)] & 7);
+        if (!mPromo(m) && stand + VAL[victim] + 200 < alpha) continue; // delta pruning
+        if (!pos.tryMake(m)) continue;
+        const s = -this.quiesce(-beta, -alpha, ply + 1, qd + 1);
+        pos.unmake();
+        if (this.stop) return 0;
+        if (s > best) { best = s; if (s > alpha) { alpha = s; if (s >= beta) break; } }
+      }
+      return best;
+    }
+  }
+
+  // =============== MATE SOLVER (for puzzles) ===============
+  // returns true if side to move can force mate within n moves
+  function canMateIn(pos, n) {
+    if (n <= 0) return false;
+    const moves = orderForMate(pos, pos.genMoves());
+    for (const m of moves) {
+      if (!pos.tryMake(m)) continue;
+      const ok = defenderLoses(pos, n - 1);
+      pos.unmake();
+      if (ok) return true;
+    }
+    return false;
+  }
+  function defenderLoses(pos, n) {
+    // side to move is defender; true if every reply leads to mate within n more attacker moves
+    let any = false;
+    const moves = pos.genMoves();
+    for (const m of moves) {
+      if (!pos.tryMake(m)) continue;
+      any = true;
+      const ok = n > 0 && canMateIn(pos, n);
+      pos.unmake();
+      if (!ok) return false;
+    }
+    if (!any) return pos.inCheck(); // checkmate yes, stalemate no
+    return true;
+  }
+  function orderForMate(pos, moves) {
+    // checks first, then captures
+    const sc = moves.map(m => {
+      let s = 0;
+      if (mFlags(m) & F_CAP) s += 1;
+      if (mPromo(m) === Q) s += 1;
+      if (pos.tryMake(m)) { if (pos.inCheck()) s += 10; pos.unmake(); } else s = -100;
+      return s;
+    });
+    return moves.map((m, i) => [m, sc[i]]).filter(x => x[1] > -100).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+  }
+  // all attacker moves that force mate within n
+  function matingMoves(pos, n) {
+    const out = [];
+    for (const m of pos.legalMoves()) {
+      pos.make(m);
+      if (defenderLoses(pos, n - 1)) out.push(m);
+      pos.unmake();
+    }
+    return out;
+  }
+  // shortest mate length (in moves) for side to move up to maxN, or 0
+  function mateLength(pos, maxN) { for (let n = 1; n <= maxN; n++) if (canMateIn(pos, n)) return n; return 0; }
+
+  const api = { Position, Searcher, evaluate, canMateIn, matingMoves, mateLength, defenderLoses, sqName, sqFromName,
+    mFrom, mTo, mPromo, mFlags, F_CAP, F_EP, F_CASTLE, F_DOUBLE, P, N, B, R, Q, K, BLACK, MATE, PIECE_CHARS };
+  return api;
+}
+
+</script>
+<script>// Bot personalities + opening book. Shared by the app and the calibration script.
+const BOT_LEVELS = [
+  { id: 1, name: 'Pip',        avatar: '🐣', blurb: 'Just learned how the pieces move.',         depth: 1, nodes: 2000,   noise: 160, blunder: 0.45, book: 0 },
+  { id: 2, name: 'Bea',        avatar: '🐝', blurb: 'Likes grabbing pieces. Forgets to defend.', depth: 1, nodes: 3000,   noise: 100, blunder: 0.27, book: 0 },
+  { id: 3, name: 'Milo',       avatar: '🦊', blurb: 'Spots free pieces, misses traps.',          depth: 1, nodes: 5000,   noise: 60,  blunder: 0.13, book: 2 },
+  { id: 4, name: 'Rosa',       avatar: '🦉', blurb: 'Careful, but misses tricks.',               depth: 2, nodes: 10000,  noise: 45,  blunder: 0.08, book: 4 },
+  { id: 5, name: 'Sir Knight', avatar: '🐴', blurb: 'Plays solid, loves forks.',                 depth: 2, nodes: 20000,  noise: 25,  blunder: 0.03, book: 6 },
+  { id: 6, name: 'Bishop Bo',  avatar: '🧙', blurb: 'Thinks a few moves deep.',                  depth: 3, nodes: 40000,  noise: 15,  blunder: 0.01, book: 8 },
+  { id: 7, name: 'Queen Vera', avatar: '👑', blurb: 'Strong club player.',                       depth: 5, nodes: 80000,  noise: 6,   blunder: 0.0,  book: 10 },
+  { id: 8, name: 'The Tower',  avatar: '🏰', blurb: 'Full strength. Good luck!',                depth: 64, nodes: 350000, noise: 0,   blunder: 0.0,  book: 12 },
+];
+// A small book of sound openings (SAN). Bots follow a random line for `book` plies.
+const OPENINGS = [
+  ['e4','e5','Nf3','Nc6','Bb5','a6','Ba4','Nf6'], ['e4','e5','Nf3','Nc6','Bc4','Bc5','c3','Nf6'],
+  ['e4','e5','Nf3','Nc6','d4','exd4','Nxd4','Nf6'], ['e4','e5','Nf3','Nf6','Nxe5','d6','Nf3','Nxe4'],
+  ['e4','c5','Nf3','d6','d4','cxd4','Nxd4','Nf6'], ['e4','c5','Nf3','Nc6','d4','cxd4','Nxd4','g6'],
+  ['e4','c5','Nc3','Nc6','g3','g6','Bg2','Bg7'], ['e4','e6','d4','d5','Nc3','Nf6','Bg5','Be7'],
+  ['e4','e6','d4','d5','e5','c5','c3','Nc6'], ['e4','c6','d4','d5','Nc3','dxe4','Nxe4','Bf5'],
+  ['e4','d5','exd5','Qxd5','Nc3','Qa5','d4','Nf6'], ['e4','d6','d4','Nf6','Nc3','g6','Nf3','Bg7'],
+  ['d4','d5','c4','e6','Nc3','Nf6','Bg5','Be7'], ['d4','d5','c4','c6','Nf3','Nf6','Nc3','dxc4'],
+  ['d4','d5','c4','dxc4','Nf3','Nf6','e3','e6'], ['d4','Nf6','c4','g6','Nc3','Bg7','e4','d6'],
+  ['d4','Nf6','c4','e6','Nc3','Bb4','e3','O-O'], ['d4','Nf6','c4','e6','Nf3','b6','g3','Bb7'],
+  ['d4','d5','Nf3','Nf6','Bf4','e6','e3','c5'], ['d4','f5','g3','Nf6','Bg2','g6','Nf3','Bg7'],
+  ['c4','e5','Nc3','Nf6','Nf3','Nc6','g3','d5'], ['c4','c5','Nc3','Nc6','g3','g6','Bg2','Bg7'],
+  ['Nf3','d5','g3','Nf6','Bg2','e6','O-O','Be7'], ['Nf3','Nf6','c4','b6','g3','Bb7','Bg2','e6'],
+  ['e4','e5','Nc3','Nf6','f4','d5','fxe5','Nxe4'], ['e4','e5','f4','exf4','Nf3','g5','h4','g4'],
+  ['e4','Nf6','e5','Nd5','d4','d6','Nf3','Bg4'], ['e4','g6','d4','Bg7','Nc3','d6','Be3','a6'],
+  ['d4','e6','c4','Bb4+','Bd2','Qe7','Nf3','Nf6'], ['e4','e5','Nf3','d6','d4','Nf6','Nc3','Nbd7'],
+];
+// pick a bot move. rng: () => [0,1). salt: per-game number. Returns uci string.
+function botChooseMove(E, searcher, pos, level, rng, salt, plyIndex, bookLine) {
+  const legal = pos.legalMoves();
+  if (!legal.length) return null;
+  if (bookLine && plyIndex < level.book && plyIndex < bookLine.length) {
+    const m = pos.moveFromSan(bookLine[plyIndex]);
+    if (m) return { uci: pos.uci(m), book: true };
+  }
+  if (level.blunder && rng() < level.blunder) {
+    const m = legal[Math.floor(rng() * legal.length)];
+    return { uci: pos.uci(m), blunder: true };
+  }
+  const r = searcher.search(pos, { maxDepth: level.depth, maxNodes: level.nodes, noise: level.noise, salt });
+  return { uci: pos.uci(r.move || legal[0]), score: r.score, depth: r.depth };
+}
+
+</script>
+<script>// Kids' "Learn to Play" course. Step types:
+//  text  - Professor Hoot explains; optional display board (FEN), marks, showMoves (dots for a piece)
+//  stars - move your piece to collect every star (and capture black pieces if captureAll)
+//  goal  - real chess position; succeed by reaching the goal (check, mate, castle, promote, move)
+const LESSONS = [
+  { id: 'board', group: 'The Basics', icon: '🏁', title: 'The Chessboard', desc: '64 squares and how to name them', steps: [
+    { type: 'text', text: 'Welcome to chess! It is a battle between two armies: <b>White</b> and <b>Black</b>. White always moves first.', board: '8/8/8/8/8/8/8/8' },
+    { type: 'text', text: 'The board has <b>64 squares</b>: 8 rows and 8 columns. The columns are called <b>files</b> (a to h). The rows are called <b>ranks</b> (1 to 8).', board: '8/8/8/8/8/8/8/8', marks: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] },
+    { type: 'text', text: 'Every square has a name made from its file letter and rank number, like a map! The blue square is <b>e4</b>.', board: '8/8/8/8/8/8/8/8', marks: ['e4'] },
+    { type: 'text', text: 'Golden rule for setting up: the bottom-right corner is always a <b>light</b> square. Remember: <b>"Light on the right!"</b>', board: '8/8/8/8/8/8/8/8', marks: ['h1'] },
+  ] },
+  { id: 'setup', group: 'The Basics', icon: '🧩', title: 'Setting Up', desc: 'Where every piece starts', steps: [
+    { type: 'text', text: 'Each army has <b>16 pieces</b>: 1 king, 1 queen, 2 rooks, 2 bishops, 2 knights and 8 pawns.', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR' },
+    { type: 'text', text: 'The <b>rooks</b> go in the corners. Next to them are the <b>knights</b>, then the <b>bishops</b>.', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', marks: ['a1', 'h1', 'b1', 'g1', 'c1', 'f1'] },
+    { type: 'text', text: 'The <b>queen goes on her own color</b>: the white queen on a light square, the black queen on a dark square. The <b>king</b> takes the last spot.', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', marks: ['d1', 'd8', 'e1', 'e8'] },
+    { type: 'text', text: 'The 8 <b>pawns</b> stand in a row in front, like a shield. Now you are ready to meet the pieces!', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', marks: ['a2', 'b2', 'c2', 'd2', 'e2', 'f2', 'g2', 'h2'] },
+  ] },
+  { id: 'rook', group: 'Meet the Pieces', piece: 'r', title: 'The Rook', desc: 'Straight lines, any distance', steps: [
+    { type: 'text', text: 'The <b>rook</b> moves in straight lines: up, down, left or right, as far as it wants. The dots show where it can go.', board: '8/8/8/8/3R4/8/8/8', showMoves: 'd4' },
+    { type: 'stars', text: 'Your turn! Tap the rook, then tap where it should go. <b>Collect all the stars!</b>', pieces: { a1: 'R' }, stars: ['a6', 'f6', 'f2'], par: 3 },
+    { type: 'text', text: 'A rook <b>cannot jump</b> over other pieces. If something is in the way, it has to stop.', board: '8/8/8/3P4/1P1R2P1/8/3P4/8', showMoves: 'd4' },
+    { type: 'stars', text: 'Your own pawn is blocking the way up. Find a path around it!', pieces: { a1: 'R', a4: 'P' }, fixed: ['a4'], stars: ['a6', 'h6'], par: 3 },
+  ] },
+  { id: 'bishop', group: 'Meet the Pieces', piece: 'b', title: 'The Bishop', desc: 'Diagonals only', steps: [
+    { type: 'text', text: 'The <b>bishop</b> moves <b>diagonally</b>, as far as it wants. A bishop stays on the same color square for the whole game!', board: '8/8/8/8/3B4/8/8/8', showMoves: 'd4' },
+    { type: 'stars', text: 'Collect the stars with your bishop. Look for the diagonals!', pieces: { c1: 'B' }, stars: ['e3', 'g5', 'd8'], par: 3 },
+    { type: 'stars', text: 'Trickier! Plan your path.', pieces: { f1: 'B' }, stars: ['b5', 'e8', 'h5', 'd1'], par: 4 },
+  ] },
+  { id: 'queen', group: 'Meet the Pieces', piece: 'q', title: 'The Queen', desc: 'The most powerful piece', steps: [
+    { type: 'text', text: 'The <b>queen</b> is the most powerful piece. She moves like a rook <b>and</b> a bishop: straight or diagonal, any distance.', board: '8/8/8/8/3Q4/8/8/8', showMoves: 'd4' },
+    { type: 'stars', text: 'Zoom around the board with your queen!', pieces: { d1: 'Q' }, stars: ['d5', 'h5', 'e8', 'a4'], par: 4 },
+  ] },
+  { id: 'king', group: 'Meet the Pieces', piece: 'k', title: 'The King', desc: 'Slow but super important', steps: [
+    { type: 'text', text: 'The <b>king</b> is the most important piece. If your king gets trapped, you lose! He moves just <b>one square</b> in any direction.', board: '8/8/8/8/3K4/8/8/8', showMoves: 'd4' },
+    { type: 'stars', text: 'Walk the king to every star, one step at a time.', pieces: { e1: 'K' }, stars: ['e2', 'f3', 'f4', 'e5'], par: 4 },
+  ] },
+  { id: 'knight', group: 'Meet the Pieces', piece: 'n', title: 'The Knight', desc: 'The L-shaped jumper', steps: [
+    { type: 'text', text: 'The <b>knight</b> moves in an <b>L shape</b>: two squares one way, then one square to the side.', board: '8/8/8/8/3N4/8/8/8', showMoves: 'd4' },
+    { type: 'text', text: 'The knight is the only piece that can <b>jump over</b> other pieces! Nothing can block it.', board: '8/8/8/2PPP3/2PNP3/2PPP3/8/8', showMoves: 'd4' },
+    { type: 'stars', text: 'Hop to every star!', pieces: { b1: 'N' }, stars: ['c3', 'e4', 'f6', 'g8'], par: 4 },
+    { type: 'stars', text: 'Jump right over your pawns!', pieces: { g1: 'N', f2: 'P', g2: 'P', h2: 'P' }, fixed: ['f2', 'g2', 'h2'], stars: ['f3', 'e5', 'c6'], par: 3 },
+  ] },
+  { id: 'pawn', group: 'Meet the Pieces', piece: 'p', title: 'The Pawn', desc: 'Small but brave', steps: [
+    { type: 'text', text: 'Pawns move <b>straight forward one square</b>. On its very first move, a pawn may move <b>two squares</b>. Pawns never move backward!', board: '8/8/8/8/8/8/4P3/8', showMoves: 'e2' },
+    { type: 'stars', text: 'March your pawn to the stars.', pieces: { e2: 'P' }, stars: ['e4', 'e5', 'e6'], par: 3 },
+    { type: 'text', text: 'Pawns <b>capture differently</b>: one square <b>diagonally forward</b>. A pawn cannot capture straight ahead.', board: '8/8/8/3pr3/4P3/8/8/8', showMoves: 'e4' },
+    { type: 'stars', text: 'Capture all the black pieces with your pawn!', pieces: { d2: 'P', c3: 'p', b4: 'n', c5: 'b' }, stars: [], captureAll: true, par: 3 },
+  ] },
+  { id: 'capture', group: 'Playing the Game', icon: '🎯', title: 'Capturing', desc: 'Taking enemy pieces', steps: [
+    { type: 'text', text: 'You <b>capture</b> by moving onto a square with an enemy piece. The captured piece leaves the board. You can never capture your own pieces.' },
+    { type: 'stars', text: 'Use your queen to capture every black piece!', pieces: { d1: 'Q', d7: 'p', h3: 'n', a3: 'b' }, stars: [], captureAll: true, par: 3 },
+    { type: 'stars', text: 'Now with a knight. Hop, hop, capture!', pieces: { b1: 'N', c3: 'p', e4: 'p', g5: 'r' }, stars: [], captureAll: true, par: 3 },
+  ] },
+  { id: 'values', group: 'Playing the Game', icon: '💎', title: 'Piece Values', desc: 'Which pieces are worth more?', steps: [
+    { type: 'text', text: 'Pieces have points: <b>Pawn = 1</b>, <b>Knight = 3</b>, <b>Bishop = 3</b>, <b>Rook = 5</b>, <b>Queen = 9</b>. The king is <b>priceless</b>, because you can never trade him!' },
+    { type: 'text', text: 'Try not to give away a big piece for a small one. Trading your queen (9) for a knight (3) is a bad deal!' },
+    { type: 'goal', text: 'Your knight can capture two pieces. Pick the <b>most valuable</b> one!', fen: '4k3/8/3q1p2/8/4N3/8/8/4K3 w - - 0 1', goal: 'move', moves: ['e4d6'], success: '🎉 Yes! The queen is worth 9 points!', fail: 'That piece is worth less. Look for the queen!' },
+  ] },
+  { id: 'check', group: 'Playing the Game', icon: '⚠️', title: 'Check!', desc: 'Attacking the king', steps: [
+    { type: 'text', text: 'When a piece attacks the enemy king, it is called <b>check</b>. The king must get out of check right away!', board: '4k3/8/8/8/8/8/8/R3K3', marks: ['e8'] },
+    { type: 'goal', text: 'Put the black king in <b>check</b>!', fen: '4k3/8/8/8/8/8/8/R3K3 w - - 0 1', goal: 'check', success: '🎉 Check! The king is under attack.' },
+    { type: 'text', text: 'There are <b>3 ways</b> to escape check:<br>1. <b>Move</b> the king to a safe square.<br>2. <b>Block</b> the attack with another piece.<br>3. <b>Capture</b> the attacking piece.' },
+    { type: 'goal', text: 'Your king is in check from the black queen. <b>Capture it</b> with your king!', fen: '4k3/8/8/8/8/8/3q4/4K3 w - - 0 1', goal: 'move', moves: ['e1d2'], success: '🎉 Captured! Your king is safe.', fail: 'Your king is safe, but you can do better. Capture the queen!' },
+    { type: 'goal', text: 'The black rook gives check. <b>Block</b> it with your bishop!', fen: '4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1', goal: 'move', moves: ['d2e3'], success: '🎉 Blocked! The bishop shields the king.', fail: 'That works too, but this time use the bishop to block!' },
+  ] },
+  { id: 'mate', group: 'Playing the Game', icon: '👑', title: 'Checkmate!', desc: 'How you win the game', steps: [
+    { type: 'text', text: '<b>Checkmate</b> means the king is in check and there is <b>no way to escape</b>. Checkmate wins the game!', board: 'R5k1/5ppp/8/8/8/8/8/6K1', marks: ['g8'] },
+    { type: 'goal', text: 'The black king is stuck behind its own pawns. Find <b>checkmate in one move</b>!', fen: '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1', goal: 'mate', success: '👑 Checkmate! That is called a back-rank mate.' },
+    { type: 'goal', text: 'Your king helps your queen. Find the <b>checkmate</b>!', fen: '4k3/8/4K3/8/8/8/8/7Q w - - 0 1', goal: 'mate', success: '👑 Checkmate! Teamwork!' },
+    { type: 'goal', text: 'A famous trap! The square f7 is weak. Find <b>checkmate</b>!', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', goal: 'mate', success: "👑 Checkmate! That's Scholar's Mate. Watch out for it in your own games!" },
+  ] },
+  { id: 'castling', group: 'Special Moves', icon: '🏰', title: 'Castling', desc: 'Tuck your king in safe', steps: [
+    { type: 'text', text: '<b>Castling</b> is a special move that keeps your king safe. The king moves <b>two squares</b> toward a rook, and the rook <b>hops over</b> to the other side of the king.', board: '4k3/8/8/8/8/8/8/R3K2R', marks: ['e1', 'g1', 'f1', 'h1'] },
+    { type: 'text', text: 'You can castle only if: the king and that rook <b>have not moved</b> yet, nothing is <b>between</b> them, and the king is <b>not in check</b> and won\'t pass through check.' },
+    { type: 'goal', text: 'Castle! Tap your king, then tap the square <b>two steps to the right</b>.', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 1', goal: 'castle', success: '🎉 Castled! Your king is tucked away safely.', fail: 'Not quite. Tap the king, then the square two steps toward the rook.' },
+  ] },
+  { id: 'promotion', group: 'Special Moves', icon: '✨', title: 'Promotion', desc: 'A pawn becomes a queen', steps: [
+    { type: 'text', text: 'When a pawn reaches the <b>other side</b> of the board, it gets <b>promoted</b>! It turns into a queen, rook, bishop or knight. Usually a queen!', board: '8/4P3/8/8/8/8/8/8', marks: ['e8'] },
+    { type: 'goal', text: 'Push your pawn to the end and <b>promote</b> it!', fen: 'k7/4P3/8/8/8/8/8/6K1 w - - 0 1', goal: 'promote', success: '✨ A brand new queen!' },
+    { type: 'stars', text: 'Walk your pawn all the way up. It becomes a queen at the top! Then grab the last star.', pieces: { b2: 'P' }, stars: ['b4', 'b8', 'h2'], promote: true, par: 6 },
+  ] },
+  { id: 'enpassant', group: 'Special Moves', icon: '🥷', title: 'En Passant', desc: 'The sneaky pawn capture', steps: [
+    { type: 'text', text: '<b>En passant</b> (say "on pah-SAHN") is a sneaky pawn rule. If an enemy pawn jumps <b>two squares</b> and lands right <b>next to</b> your pawn, you can capture it as if it had moved only one square.' },
+    { type: 'text', text: 'You must do it <b>right away</b>, on your very next move, or the chance is gone!', board: '4k3/8/8/3pP3/8/8/8/4K3', marks: ['d5', 'd6'] },
+    { type: 'goal', text: 'Black just moved a pawn two squares to d5. Capture it <b>en passant</b>! (Move your pawn to d6.)', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', goal: 'move', moves: ['e5d6'], success: '🥷 Sneaky! The black pawn is gone.', fail: 'Try moving your e5 pawn diagonally to d6.' },
+  ] },
+  { id: 'draws', group: 'Winning & Drawing', icon: '🤝', title: 'Stalemate & Draws', desc: 'When nobody wins', steps: [
+    { type: 'text', text: '<b>Stalemate</b>: it is your turn, you are <b>not</b> in check, but you have <b>no legal moves</b>. That is a <b>draw</b> (a tie), even if you have fewer pieces!', board: '7k/5Q2/6K1/8/8/8/8/8', marks: ['h8'] },
+    { type: 'text', text: 'Other draws:<br>• Both players <b>agree</b> to a draw.<br>• The same position happens <b>3 times</b>.<br>• <b>Not enough pieces</b> to checkmate (like king vs king).<br>• <b>50 moves</b> by each player with no capture or pawn move.' },
+    { type: 'goal', text: 'Careful! Some queen moves cause stalemate. Find the <b>checkmate</b> instead.', fen: '7k/4Q3/6K1/8/8/8/8/8 w - - 0 1', goal: 'mate', success: '👑 Checkmate, not stalemate. Well done!' },
+  ] },
+  { id: 'tips', group: 'Winning & Drawing', icon: '🌟', title: 'Winning Tips', desc: 'Play like a champion', steps: [
+    { type: 'text', text: '<b>Start strong:</b><br>1. Move a center pawn (e or d pawn).<br>2. Bring out your <b>knights and bishops</b>.<br>3. <b>Castle</b> early to keep your king safe.<br>4. Don\'t bring your queen out too early.' },
+    { type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>🔍 What is my opponent attacking?<br>🎁 Can I capture something for free?<br>🛡️ Is my piece safe on its new square?' },
+    { type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick 🐣. Then try the <b>Puzzles</b> to get even better.', mascot: '🦉' },
+  ] },
+];
+
+</script>
+<script>const PUZZLE_DATA = [{"fen":"6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1","line":["d1d8"],"n":1,"cat":"pattern","name":"Back-Rank Mate","tip":"The king is trapped behind its own pawns.","rating":700},{"fen":"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4","line":["h5f7"],"n":1,"cat":"pattern","name":"Scholar's Mate","tip":"f7 is only defended by the king.","rating":700},{"fen":"rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2","line":["d8h4"],"n":1,"cat":"pattern","name":"Fool's Mate","tip":"White opened the diagonal to their own king.","rating":700},{"fen":"6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1","line":["g5f7"],"n":1,"cat":"pattern","name":"Smothered Mate","tip":"The king's own pieces block every escape.","rating":700},{"fen":"r6k/6pp/7N/8/8/1Q6/8/6K1 w - - 0 1","line":["b3g8","a8g8","h6f7"],"n":2,"cat":"pattern","name":"Philidor's Smothered Mate","tip":"Sacrifice the queen to force a piece onto g8.","rating":1000},{"fen":"8/4N1pk/8/8/8/8/2K5/R7 w - - 0 1","line":["a1h1"],"n":1,"cat":"pattern","name":"Anastasia's Mate","tip":"The knight guards g8 and g6.","rating":700},{"fen":"7k/R7/5N2/8/8/8/8/7K w - - 0 1","line":["a7h7"],"n":1,"cat":"pattern","name":"Arabian Mate","tip":"Rook and knight work as a team.","rating":700},{"fen":"6k1/R7/8/8/8/8/8/1R4K1 w - - 0 1","line":["b1b8"],"n":1,"cat":"pattern","name":"Ladder Mate","tip":"One rook holds the 7th rank.","rating":700},{"fen":"4k3/8/4K3/8/7Q/8/8/8 w - - 0 1","line":["h4e7"],"n":1,"cat":"pattern","name":"Queen Kiss","tip":"Your king protects the queen right in front of the enemy king.","rating":700},{"fen":"2kr4/p2p4/8/8/5B2/8/4B3/6K1 w - - 0 1","line":["e2a6"],"n":1,"cat":"pattern","name":"Boden's Mate","tip":"Two bishops on crossing diagonals.","rating":700},{"fen":"1k6/ppp5/8/8/8/8/8/K3R3 w - - 0 1","line":["e1e8"],"n":1,"cat":"pattern","name":"Corridor Mate","tip":"A king stuck on the edge behind pawns.","rating":700},{"fen":"5rk1/6p1/6P1/7Q/8/8/8/6K1 w - - 0 1","line":["h5h7"],"n":1,"cat":"pattern","name":"Damiano's Mate","tip":"Your pawn protects the queen.","rating":700},{"fen":"3rkr2/8/8/8/2Q5/8/8/6K1 w - - 0 1","line":["c4e6"],"n":1,"cat":"pattern","name":"Epaulette Mate","tip":"The rooks on each side are like shoulder pads.","rating":700},{"fen":"4k3/5p2/8/6B1/8/8/8/3R2K1 w - - 0 1","line":["d1d8"],"n":1,"cat":"pattern","name":"Opera Mate","tip":"Rook checks on the file; bishop guards the escape.","rating":700},{"fen":"6k1/5p1p/5PpQ/8/8/8/8/6K1 w - - 0 1","line":["h6g7"],"n":1,"cat":"pattern","name":"Lolli Mate","tip":"The f6 pawn supports the queen on g7.","rating":700},{"fen":"5rk1/7p/8/6N1/8/3B4/1B6/6K1 w - - 0 1","line":["d3h7"],"n":1,"cat":"pattern","name":"Blackburne's Mate","tip":"Bishops and a knight cover every square.","rating":700}];
+const CALIB = {"games":0,"ratings":{"1":300,"2":500,"3":700,"4":900,"5":1100,"6":1400,"7":1700,"8":2000}};</script>
+<script>'use strict';
+const E = ChessEngineFactory();
+const $ = (s, el = document) => el.querySelector(s);
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const c of kids.flat(9)) if (c != null && c !== false) el.append(c.nodeType ? c : document.createTextNode(c));
+  return el;
+}
+const sqName = E.sqName, sqFromName = E.sqFromName;
+const rand = () => Math.random();
+function mulberry(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+// ======================= PIECE ART (original SVG) =======================
+const PIECE_SVG = {
+  p: '<path d="M22.5 9.5a5 5 0 0 0-3.2 8.85A6.8 6.8 0 0 0 15.8 24.5c0 2.3 1.1 4.3 2.8 5.6C15 31.6 12 35 12 39.5h21c0-4.5-3-7.9-6.6-9.4 1.7-1.3 2.8-3.3 2.8-5.6a6.8 6.8 0 0 0-3.5-6.15A5 5 0 0 0 22.5 9.5z"/>',
+  r: '<path d="M11 39.5h23V36H11z"/><path d="M13.5 36l1.5-4.5h15l1.5 4.5z"/><path d="M15 31.5l.8-13h13.4l.8 13z"/><path d="M13 18.5l2.5-3h14l2.5 3z"/><path d="M12.5 15.5V9.5h4V12h4V9.5h4V12h4V9.5h4v6z"/>',
+  b: '<path d="M11 39.5c1.5-3 6-4.5 11.5-4.5S32.5 36.5 34 39.5z"/><path d="M16.5 35l1-4h10l1 4z"/><path d="M22.5 11.5c-5 3.5-8.5 8.5-8.5 13.5 0 3.5 2.5 6 8.5 6s8.5-2.5 8.5-6c0-5-3.5-10-8.5-13.5z"/><circle cx="22.5" cy="9" r="2.6"/><path d="M25.5 17.5l-5.5 6" fill="none"/>',
+  q: '<path d="M11.5 39.5h22V36h-22z"/><path d="M13 36c.5-2 .5-3.5 0-5.5h19c-.5 2-.5 3.5 0 5.5z"/><path d="M13 30.5L9 15l6 8.5.5-11 4.5 10 2.5-11.5 2.5 11.5 4.5-10 .5 11 6-8.5-4 15.5z"/><circle cx="9" cy="13.2" r="2"/><circle cx="15.5" cy="10.7" r="2"/><circle cx="22.5" cy="9.2" r="2"/><circle cx="29.5" cy="10.7" r="2"/><circle cx="36" cy="13.2" r="2"/>',
+  k: '<path d="M22.5 5.5v7M19 9h7" fill="none"/><path d="M11.5 39.5h22V36h-22z"/><path d="M13 36c0-2 0-3.5-.5-5h20c-.5 1.5-.5 3-.5 5z"/><path d="M12.5 31c-3-3-4-7-1.5-10 3-3.5 8-2 11.5 2.5 3.5-4.5 8.5-6 11.5-2.5 2.5 3 1.5 7-1.5 10z"/><path d="M22.5 23.5c-1.5-3-2.5-5-2.5-6.5a2.5 2.5 0 0 1 5 0c0 1.5-1 3.5-2.5 6.5z"/>',
+  n: '<path d="M11 39.5h23v-3H11z"/><path d="M13 36.5h19C33 31 34 24 31 18c-1-2.5-2-4-3-5V7.5l-3.5 3.5C21 10.5 17 12 14 15c-2 2.5-3.5 5-4.5 8-.2 1.7 1.1 3.2 2.8 3 1.7-.2 3.7-1.2 6.2-2.5 1 2.5-2.5 5.5-4 8-1.1 2-1.5 3-1.5 5z"/><circle cx="19.5" cy="16.5" r="1.3" class="eye"/>',
+};
+const PIECE_URL = {};
+for (const c of ['w', 'b']) for (const t in PIECE_SVG) {
+  const fill = c === 'w' ? '#fffdf6' : '#2b2730', stroke = c === 'w' ? '#272320' : '#f4ecdc';
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45"><g fill="${fill}" stroke="${stroke}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">${PIECE_SVG[t].replace('class="eye"', `fill="${stroke}" stroke="none"`)}</g></svg>`;
+  PIECE_URL[c + t] = 'data:image/svg+xml;base64,' + btoa(svg);
+}
+const pieceKey = p => ((p & 8) ? 'b' : 'w') + ' pnbrqk'[p & 7];
+const pieceUrl = p => PIECE_URL[pieceKey(p)];
+
+// ======================= SOUND =======================
+let audioCtx = null, soundOn = true;
+function beep(kind) {
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    const cfg = { move: [520, .05, 'triangle'], capture: [300, .09, 'square'], check: [880, .12, 'sine'], win: [660, .35, 'sine'], bad: [180, .2, 'sawtooth'], star: [990, .1, 'sine'] }[kind] || [500, .05, 'sine'];
+    o.type = cfg[2]; o.frequency.setValueAtTime(cfg[0], t);
+    if (kind === 'win') o.frequency.linearRampToValueAtTime(cfg[0] * 1.5, t + .3);
+    g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + cfg[1] + .05);
+    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + cfg[1] + .06);
+  } catch (e) { }
+}
+
+// ======================= UI HELPERS =======================
+function toast(msg, ms = 2200) {
+  const t = h('div', { class: 'toast' }, msg); document.body.append(t);
+  setTimeout(() => t.remove(), ms);
+}
+function modal(build, { dismiss = true } = {}) {
+  const bg = h('div', { class: 'modal-bg' });
+  const box = h('div', { class: 'modal' });
+  bg.append(box); document.body.append(bg);
+  const close = () => bg.remove();
+  if (dismiss) bg.addEventListener('click', e => { if (e.target === bg) close(); });
+  build(box, close);
+  return close;
+}
+function confirmBox(title, text, okLabel, onOk) {
+  modal((box, close) => box.append(
+    h('h2', null, title), h('p', { class: 'muted' }, text),
+    h('div', { class: 'row', style: { marginTop: '14px' } },
+      h('button', { class: 'btn grow', onclick: close }, 'Cancel'),
+      h('button', { class: 'btn primary grow', onclick: () => { close(); onOk(); } }, okLabel))));
+}
+async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); toast('Copied!'); return true; }
+  catch (e) {
+    modal((box, close) => box.append(h('h2', null, 'Copy this'), h('textarea', { class: 'input', style: { height: '110px' }, readonly: true }, text), h('button', { class: 'btn block', style: { marginTop: '10px' }, onclick: close }, 'Done')));
+    return false;
+  }
+}
+
+// ======================= BOARD VIEW =======================
+class BoardView {
+  constructor(opts = {}) {
+    this.opts = opts;
+    this.orient = opts.orient || 'w';
+    this.el = h('div', { class: 'board-wrap' });
+    this.boardEl = h('div', { class: 'board' });
+    this.layer = h('div', { class: 'pieces' });
+    this.fx = h('div', { class: 'fx' });
+    this.el.append(this.boardEl, this.layer, this.fx);
+    this.sqEls = {};
+    for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+      const s = r * 16 + f;
+      const el = h('div', { class: 'sq ' + ((r + f) % 2 ? 'l' : 'd') });
+      this.sqEls[s] = el; this.boardEl.append(el);
+    }
+    this.board = new Int8Array(128);
+    this.sel = -1; this.targets = []; this.marks = {};
+    this.pieceEls = {};
+    this.layout();
+    this.el.addEventListener('pointerdown', e => this.down(e));
+    this.el.addEventListener('pointermove', e => this.move(e));
+    this.el.addEventListener('pointerup', e => this.up(e));
+    this.el.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
+  }
+  pos(s) { const f = s & 7, r = s >> 4; return this.orient === 'w' ? [f, 7 - r] : [7 - f, r]; }
+  layout() {
+    for (const s in this.sqEls) {
+      const [x, y] = this.pos(+s), el = this.sqEls[s];
+      el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%';
+      el.querySelectorAll('.co').forEach(c => c.remove());
+      if (y === 7) el.append(h('span', { class: 'co f' }, 'abcdefgh'[+s & 7]));
+      if (x === 0) el.append(h('span', { class: 'co r' }, String((+s >> 4) + 1)));
+    }
+  }
+  flip() { this.orient = this.orient === 'w' ? 'b' : 'w'; this.layout(); this.draw(); }
+  setOrient(o) { if (o !== this.orient) { this.orient = o; this.layout(); this.draw(); } }
+  // state: {board:Int8Array, last:[from,to], check:sq, stars:Set, marks:{sq:cls}}
+  set(state, animate) {
+    if (state.board) this.board = Int8Array.from(state.board);
+    this.last = state.last || null; this.check = state.check ?? -1;
+    this.stars = state.stars || null; this.marks = state.marks || {};
+    this.sel = -1; this.targets = [];
+    this.draw(animate);
+  }
+  sqAt(e) {
+    const r = this.el.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left) / r.width * 8), y = Math.floor((e.clientY - r.top) / r.height * 8);
+    if (x < 0 || x > 7 || y < 0 || y > 7) return -1;
+    return this.orient === 'w' ? (7 - y) * 16 + x : y * 16 + (7 - x);
+  }
+  draw(animate) {
+    for (const s in this.sqEls) {
+      const el = this.sqEls[s], sq = +s;
+      el.classList.toggle('last', !!this.last && (this.last[0] === sq || this.last[1] === sq));
+      el.classList.toggle('sel', this.sel === sq);
+      el.classList.toggle('check', this.check === sq);
+      el.classList.remove('hint', 'mark');
+      if (this.marks[sq]) el.classList.add(this.marks[sq]);
+      el.querySelectorAll('.dot,.ring,.star').forEach(c => c.remove());
+      if (this.targets.includes(sq)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
+      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, '⭐'));
+    }
+    this.layer.innerHTML = ''; this.pieceEls = {};
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = this.board[s]; if (!p) continue;
+      const el = h('div', { class: 'piece' });
+      el.style.backgroundImage = `url(${pieceUrl(p)})`;
+      let [x, y] = this.pos(s);
+      if (animate && animate[1] === s) {
+        const [fx, fy] = this.pos(animate[0]);
+        el.classList.add('noanim'); el.style.left = fx * 12.5 + '%'; el.style.top = fy * 12.5 + '%';
+        requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.remove('noanim'); el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }));
+      } else { el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }
+      this.layer.append(el); this.pieceEls[s] = el;
+    }
+  }
+  select(sq, targets) { this.sel = sq; this.targets = targets; this.draw(); }
+  clearSel() { if (this.sel >= 0 || this.targets.length) { this.sel = -1; this.targets = []; this.draw(); } }
+  down(e) {
+    const sq = this.sqAt(e); if (sq < 0) return;
+    if (this.sel >= 0 && this.targets.includes(sq)) { this.commit(this.sel, sq, false); return; }
+    const t = this.opts.getTargets ? this.opts.getTargets(sq) : null;
+    if (t && t.length) {
+      this.select(sq, t);
+      const el = this.pieceEls[sq];
+      if (el) {
+        this.drag = { sq, el, x: e.clientX, y: e.clientY, moved: false };
+        try { this.el.setPointerCapture(e.pointerId); } catch (_) { }
+      }
+    } else if (t) { this.select(sq, []); }
+    else this.clearSel();
+  }
+  move(e) {
+    const d = this.drag; if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
+    d.moved = true;
+    const r = this.el.getBoundingClientRect(), w = r.width / 8;
+    d.el.classList.add('drag');
+    d.el.style.left = (e.clientX - r.left - w / 2) + 'px'; d.el.style.top = (e.clientY - r.top - w / 2) + 'px';
+  }
+  up(e) {
+    const d = this.drag; this.drag = null;
+    if (!d || !d.moved) return;
+    const sq = this.sqAt(e);
+    if (sq >= 0 && sq !== d.sq && this.targets.includes(sq)) this.commit(d.sq, sq, true);
+    else { this.draw(); }
+  }
+  commit(from, to, dragged) {
+    this.sel = -1; this.targets = [];
+    if (this.opts.onMove) this.opts.onMove(from, to, dragged);
+  }
+  burst(emoji) {
+    const b = h('div', { class: 'burst' }, emoji); this.fx.append(b); setTimeout(() => b.remove(), 800);
+  }
+}
+
+// ======================= GAME MODEL =======================
+const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+class Game {
+  constructor(fen = START_FEN, moves = []) { this.startFen = fen; this.moves = []; this.sans = []; this.pos = new E.Position(fen); this.lastFromTo = null; for (const u of moves) this.play(u); }
+  legal() { return this.pos.legalMoves(); }
+  play(uci) {
+    const legal = this.legal(), m = this.pos.moveFromUci(uci, legal);
+    if (!m) return null;
+    const san = this.pos.san(m, legal);
+    const cap = !!(E.mFlags(m) & E.F_CAP);
+    this.pos.make(m); this.moves.push(uci); this.sans.push(san);
+    this.lastFromTo = [E.mFrom(m), E.mTo(m)];
+    return { san, cap, check: this.pos.inCheck(), m };
+  }
+  undo() { if (!this.moves.length) return; const mv = this.moves.slice(0, -1); const g = new Game(this.startFen, mv); Object.assign(this, g); }
+  status() { return this.pos.status(); }
+  turn() { return this.pos.turn === 0 ? 'w' : 'b'; }
+  targetsFrom(sq) {
+    const p = this.pos.board[sq];
+    if (!p || ((p & 8) ? 1 : 0) !== this.pos.turn) return null;
+    return [...new Set(this.legal().filter(m => E.mFrom(m) === sq).map(m => E.mTo(m)))];
+  }
+  needsPromo(from, to) { return this.legal().some(m => E.mFrom(m) === from && E.mTo(m) === to && E.mPromo(m)); }
+  boardAt(ply) {
+    const g = new Game(this.startFen, this.moves.slice(0, ply));
+    return { board: g.pos.board, last: g.lastFromTo, check: g.pos.inCheck() ? g.pos.kings[g.pos.turn] : -1 };
+  }
+  viewState() { return { board: this.pos.board, last: this.lastFromTo, check: this.pos.inCheck() ? this.pos.kings[this.pos.turn] : -1 }; }
+  pgnMoves() { let s = ''; this.sans.forEach((x, i) => { if (i % 2 === 0) s += (i / 2 + 1) + '. '; s += x + ' '; }); return s.trim(); }
+}
+function captured(board) {
+  const start = { 1: 8, 2: 2, 3: 2, 4: 2, 5: 1 }, cnt = [{}, {}];
+  for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } const p = board[s]; if (!p) continue; const c = (p & 8) ? 1 : 0, t = p & 7; cnt[c][t] = (cnt[c][t] || 0) + 1; }
+  const val = { 1: 1, 2: 3, 3: 3, 4: 5, 5: 9 };
+  const lost = [[], []]; let mat = [0, 0];
+  for (const c of [0, 1]) for (const t of [5, 4, 3, 2, 1]) { const n = Math.max(0, start[t] - (cnt[c][t] || 0)); for (let i = 0; i < n; i++) lost[c].push(t | (c ? 8 : 0)); mat[c] += (cnt[c][t] || 0) * val[t]; }
+  return { lostBy: lost, diff: mat[0] - mat[1] };
+}
+
+// ======================= ENGINE WORKER =======================
+let worker = null, workerReqs = {}, workerId = 0;
+function initWorker() {
+  try {
+    const src = `${ChessEngineFactory.toString()}\n${mulberry.toString()}\n${botChooseMove.toString()}\n
+      const E = ChessEngineFactory(); const S = new E.Searcher();
+      self.onmessage = e => { const d = e.data; let r;
+        try { const pos = new E.Position(d.fen); for (const u of d.moves) pos.make(pos.moveFromUci(u));
+          if (d.kind === 'bot') r = botChooseMove(E, S, pos, d.level, mulberry(d.seed), d.salt, d.ply, d.book);
+          else { const s = S.search(pos, { maxNodes: d.nodes || 150000, maxDepth: d.depth || 64 }); r = { uci: s.move ? pos.uci(s.move) : null, score: s.score }; }
+        } catch (err) { r = { error: String(err) }; }
+        self.postMessage(Object.assign({ id: d.id }, r)); };`;
+    worker = new Worker(URL.createObjectURL(new Blob([src], { type: 'text/javascript' })));
+    worker.onmessage = e => { const cb = workerReqs[e.data.id]; delete workerReqs[e.data.id]; if (cb) cb(e.data); };
+    worker.onerror = () => { worker = null; };
+  } catch (e) { worker = null; }
+}
+const mainSearcher = new E.Searcher();
+function engineRequest(req) {
+  return new Promise(res => {
+    req.id = ++workerId;
+    if (worker) { workerReqs[req.id] = res; worker.postMessage(req); return; }
+    setTimeout(() => {
+      const pos = new E.Position(req.fen); for (const u of req.moves) pos.make(pos.moveFromUci(u));
+      if (req.kind === 'bot') res(botChooseMove(E, mainSearcher, pos, req.level, mulberry(req.seed), req.salt, req.ply, req.book));
+      else { const s = mainSearcher.search(pos, { maxNodes: req.nodes || 100000 }); res({ uci: s.move ? pos.uci(s.move) : null, score: s.score }); }
+    }, 30);
+  });
+}
+
+// ======================= RATINGS (Glicko-2) =======================
+function glicko2(pl, games) {
+  const S = 173.7178, tau = 0.5;
+  let mu = (pl.r - 1500) / S, phi = pl.rd / S; const sigma = pl.vol;
+  const g = ph => 1 / Math.sqrt(1 + 3 * ph * ph / (Math.PI * Math.PI));
+  let vInv = 0, dSum = 0;
+  for (const gm of games) {
+    const muj = (gm.r - 1500) / S, phj = gm.rd / S, gj = g(phj), Ej = 1 / (1 + Math.exp(-gj * (mu - muj)));
+    vInv += gj * gj * Ej * (1 - Ej); dSum += gj * (gm.s - Ej);
+  }
+  const v = 1 / vInv, delta = v * dSum;
+  const a = Math.log(sigma * sigma), eps = 1e-6;
+  const f = x => { const ex = Math.exp(x); return ex * (delta * delta - phi * phi - v - ex) / (2 * Math.pow(phi * phi + v + ex, 2)) - (x - a) / (tau * tau); };
+  let A = a, B;
+  if (delta * delta > phi * phi + v) B = Math.log(delta * delta - phi * phi - v);
+  else { let k = 1; while (f(a - k * tau) < 0) k++; B = a - k * tau; }
+  let fA = f(A), fB = f(B);
+  for (let i = 0; i < 60 && Math.abs(B - A) > eps; i++) {
+    const C = A + (A - B) * fA / (fB - fA), fC = f(C);
+    if (fC * fB <= 0) { A = B; fA = fB; } else fA /= 2;
+    B = C; fB = fC;
+  }
+  const sig2 = Math.exp(A / 2);
+  const phiStar = Math.sqrt(phi * phi + sig2 * sig2);
+  const phiNew = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+  const muNew = mu + phiNew * phiNew * dSum;
+  return { r: Math.max(100, Math.round((muNew * S + 1500) * 10) / 10), rd: Math.max(45, Math.min(350, phiNew * S)), vol: sig2 };
+}
+const BANDS = [[0, 'Beginner', '🌱'], [600, 'Novice', '🐣'], [1000, 'Intermediate', '🦊'], [1400, 'Club player', '🦉'], [1800, 'Expert', '🧙'], [2200, 'Master level', '👑']];
+const band = r => { let b = BANDS[0]; for (const x of BANDS) if (r >= x[0]) b = x; return b; };
+const fmtR = rt => Math.round(rt.r) + (rt.rd > 110 ? '?' : '');
+
+// ======================= PROFILE STORAGE =======================
+const DEFAULT_PROFILE = () => ({ name: '', rating: { r: 800, rd: 350, vol: 0.06 }, puzzle: { r: 800, rd: 350, vol: 0.06 }, games: [], rHist: [800], pHist: [800], tried: {}, lessons: {}, current: null, sound: true, streak: 0, best: 0, updated: 0 });
+let profile = DEFAULT_PROFILE();
+function loadLocal() { try { const s = localStorage.getItem('kc-profile'); if (s) return JSON.parse(s); } catch (e) { } return null; }
+function saveProfile() { profile.updated = Date.now(); try { localStorage.setItem('kc-profile', JSON.stringify(profile)); } catch (e) { } }
+
+// ======================= DATA =======================
+const BOTS = BOT_LEVELS.map(b => Object.assign({}, b, { rating: CALIB.ratings[b.id] }));
+const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
+
+// ======================= APP SHELL =======================
+let route = 'play';
+const appEl = () => $('#app');
+const ROUTES = { play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe };
+function go(r) { if (!ROUTES[r]) r = 'play'; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
+let cleanups = [];
+function cleanup() { cleanups.forEach(f => { try { f(); } catch (e) { } }); cleanups = []; }
+function render() {
+  cleanup();
+  const app = appEl(); app.innerHTML = '';
+  const logo = h('img', { src: PIECE_URL.wn, alt: '' });
+  app.append(h('div', { class: 'topbar' },
+    h('div', { class: 'logo' }, logo, 'Knight Club'),
+    h('button', { class: 'chip', onclick: () => go('me') }, band(profile.rating.r)[2], ' ', fmtR(profile.rating), h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)))));
+  const main = h('div', { class: 'stack' }); app.append(main);
+  ROUTES[route](main);
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === route));
+}
+function buildTabs() {
+  const items = [['play', '♞', 'Play'], ['friend', '🤝', 'Friends'], ['puzzles', '🧩', 'Puzzles'], ['learn', '🎓', 'Learn'], ['me', '⭐', 'Me']];
+  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => h('button', { 'data-r': r, onclick: () => go(r) }, h('span', { class: 'ic' }, ic), l)));
+  document.body.append(h('nav', { class: 'tabs' }, inner));
+}
+
+// ======================= GAME SCREEN (shared) =======================
+// cfg: {game, bottom:{name,rating,avatar}, top:{...}, orient, canMove(color), onUserMove(uci), buttons:[...], onBoardReady}
+function gameScreen(main, cfg) {
+  const g = cfg.game;
+  let viewPly = null; // null = live
+  const board = new BoardView({
+    orient: cfg.orient,
+    getTargets: sq => (viewPly === null && cfg.canMove(g.turn())) ? g.targetsFrom(sq) : null,
+    onMove: (from, to, dragged) => {
+      if (g.needsPromo(from, to)) {
+        modal((box, close) => {
+          const c = g.turn();
+          box.append(h('h2', null, 'Promote your pawn!'), h('p', { class: 'muted' }, 'Pick a new piece:'),
+            h('div', { class: 'promo' }, ['q', 'r', 'b', 'n'].map(t => h('button', { style: { backgroundImage: `url(${PIECE_URL[c + t]})` }, onclick: () => { close(); cfg.onUserMove(sqName(from) + sqName(to) + t, dragged); } }))));
+        }, { dismiss: true });
+        board.draw();
+        return;
+      }
+      cfg.onUserMove(sqName(from) + sqName(to), dragged);
+    }
+  });
+  const bar = (who, colorIdx) => {
+    const capEl = h('div', { class: 'caps' });
+    const turnEl = h('div', { class: 'turnmark hidden' });
+    const status = h('div', { class: 'thinking' });
+    const el = h('div', { class: 'pbar' }, h('div', { class: 'avatar' }, who.avatar || '🙂'),
+      h('div', { class: 'grow' }, h('div', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'pname' }, who.name), h('span', { class: 'prating' }, who.rating ? '(' + who.rating + ')' : ''), turnEl), capEl), status);
+    return { el, capEl, turnEl, status, colorIdx };
+  };
+  const bottomColor = cfg.orient === 'w' ? 0 : 1;
+  const topBar = bar(cfg.players[bottomColor ? 'w' : 'b'], bottomColor ^ 1), botBar = bar(cfg.players[bottomColor ? 'b' : 'w'], bottomColor);
+  const movesEl = h('div', { class: 'moves' });
+  const navEl = h('div', { class: 'nav' },
+    h('button', { class: 'btn sm', onclick: () => setView(0) }, '⏮'),
+    h('button', { class: 'btn sm', onclick: () => setView(Math.max(0, (viewPly ?? g.moves.length) - 1)) }, '◀'),
+    h('button', { class: 'btn sm', onclick: () => setView((viewPly ?? g.moves.length) + 1) }, '▶'),
+    h('button', { class: 'btn sm', onclick: () => setView(null) }, '⏭'));
+  const ctrl = h('div', { class: 'controls' });
+  main.append(h('div', null, topBar.el, board.el, botBar.el), movesEl, navEl, ctrl);
+  function setView(p) { if (p !== null && p >= g.moves.length) p = null; viewPly = p; refresh(); }
+  function refreshBars(boardArr) {
+    const c = captured(boardArr);
+    for (const b of [topBar, botBar]) {
+      b.capEl.innerHTML = '';
+      const theirs = c.lostBy[b.colorIdx ^ 1];
+      theirs.forEach(p => b.capEl.append(h('img', { src: pieceUrl(p) })));
+      const adv = b.colorIdx === 0 ? c.diff : -c.diff;
+      if (adv > 0) b.capEl.append(h('b', null, '+' + adv));
+      b.turnEl.classList.toggle('hidden', g.status().over || (g.pos.turn !== b.colorIdx));
+    }
+  }
+  function refreshMoves() {
+    movesEl.innerHTML = '';
+    g.sans.forEach((s, i) => {
+      if (i % 2 === 0) movesEl.append(h('span', { class: 'n' }, (i / 2 + 1) + '.'));
+      const cur = (viewPly === null ? g.moves.length : viewPly) === i + 1;
+      movesEl.append(h('span', { class: 'm' + (cur ? ' cur' : ''), onclick: () => setView(i + 1) }, s));
+    });
+    if (!g.sans.length) movesEl.append(h('span', { class: 'muted small' }, 'Moves will appear here'));
+    const cur = movesEl.querySelector('.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }
+  function refresh(animate) {
+    const st = viewPly === null ? g.viewState() : g.boardAt(viewPly);
+    board.set(st, viewPly === null ? animate : null);
+    refreshBars(st.board); refreshMoves();
+  }
+  function setButtons(list) {
+    ctrl.innerHTML = '';
+    ctrl.style.gridTemplateColumns = `repeat(${list.length},1fr)`;
+    for (const b of list) ctrl.append(h('button', { class: 'btn', onclick: b.on, disabled: b.disabled }, h('span', { class: 'ic' }, b.ic), b.label));
+  }
+  refresh();
+  return {
+    board, refresh, setButtons, setView,
+    setStatus(which, txt) { (which === 'top' ? topBar : botBar).status.textContent = txt || ''; },
+    flip() {
+      board.flip();
+      const parent = board.el.parentNode, first = parent.firstChild, last = parent.lastChild;
+      parent.insertBefore(last, board.el); parent.append(first);
+      refresh();
+    },
+    get viewing() { return viewPly !== null; },
+  };
+}
+function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
+
+// ======================= PLAY VS BOT =======================
+let playSel = { bot: 0, color: 'w', rated: true };
+function renderPlay(main) {
+  if (profile.current && profile.current.mode === 'bot') return renderBotGame(main);
+  const r = profile.rating;
+  // suggest the bot closest to the player's rating
+  if (playSel.bot === null || playSel.auto !== true) { let best = 0; BOTS.forEach((b, i) => { if (Math.abs(b.rating - r.r) < Math.abs(BOTS[best].rating - r.r)) best = i; }); playSel.bot = best; playSel.auto = true; }
+  const grid = h('div', { class: 'bots' });
+  const playBtn = h('button', { class: 'btn primary block', onclick: () => startBotGame() });
+  const drawGrid = () => { playBtn.textContent = '▶  Play ' + BOTS[playSel.bot].name; grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, b.avatar), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, '★ ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
+  drawGrid();
+  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); } }, l))); }; d(); return el; };
+  main.append(
+    h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, `Your rating: ${fmtR(r)} (${band(r.r)[1]}). The highlighted bot is your best match.`)),
+    grid,
+    h('div', { class: 'card stack' },
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']], 'color')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, '🏆 Rated'], [false, '🧸 Casual (undo + hints)']], 'rated')),
+      playBtn));
+}
+function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated) {
+  const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
+  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
+  saveProfile(); go('play'); render();
+}
+function renderBotGame(main) {
+  const cur = profile.current, bot = BOTS[cur.bot];
+  const g = new Game(START_FEN, cur.moves);
+  let thinking = false, alive = true;
+  cleanups.push(() => { alive = false; });
+  const you = { name: profile.name || 'You', rating: fmtR(profile.rating), avatar: '🙂' };
+  const them = { name: bot.name, rating: bot.rating, avatar: bot.avatar };
+  const scr = gameScreen(main, {
+    game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
+    canMove: turn => !thinking && !cur.result && turn === cur.color,
+    onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
+  });
+  main.append(h('div', { class: 'center small muted' }, cur.rated ? '🏆 Rated game' : '🧸 Casual game: undo and hints allowed'));
+  function buttons() {
+    const over = !!cur.result;
+    const list = [{ ic: '🔄', label: 'Flip', on: () => scr.flip() }];
+    if (!cur.rated) {
+      list.push({ ic: '↩️', label: 'Undo', disabled: over || thinking || g.moves.length < 1, on: () => { g.undo(); if (g.turn() !== cur.color) g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } });
+      list.push({ ic: '💡', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
+    }
+    if (over) {
+      list.push({ ic: '🔁', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated) });
+      list.push({ ic: '🏠', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
+    } else {
+      list.push({ ic: '🤝', label: 'Draw?', disabled: thinking, on: offerDraw });
+      list.push({ ic: '🏳️', label: 'Resign', on: () => confirmBox('Resign?', cur.rated && g.moves.length >= 2 ? 'This counts as a loss for your rating.' : 'End this game?', 'Resign', () => finish(cur.color === 'w' ? '0-1' : '1-0', 'resignation')) });
+    }
+    scr.setButtons(list);
+  }
+  async function hint() {
+    scr.setStatus('bottom', 'thinking…');
+    const r = await engineRequest({ kind: 'best', fen: START_FEN, moves: g.moves, nodes: 120000 });
+    scr.setStatus('bottom', '');
+    if (!alive || !r.uci) return;
+    cur.hints++;
+    const marks = {}; marks[sqFromName(r.uci.slice(0, 2))] = 'hint'; marks[sqFromName(r.uci.slice(2, 4))] = 'hint';
+    scr.board.set(Object.assign(g.viewState(), { marks }));
+  }
+  let lastBotScore = 0;
+  function offerDraw() {
+    // Bot accepts when it is not better, or the position is dead-even late in the game
+    const accept = lastBotScore <= -60 || (g.moves.length > 70 && Math.abs(lastBotScore) < 25);
+    if (accept) { toast(bot.name + ' accepts the draw 🤝'); finish('1/2-1/2', 'agreement'); }
+    else toast(bot.name + ' wants to keep playing!');
+  }
+  function afterMove() {
+    const st = g.status();
+    if (st.over) return finish(st.result, st.reason);
+    buttons();
+    if (g.turn() !== cur.color) botTurn();
+  }
+  async function botTurn() {
+    thinking = true; buttons(); scr.setStatus('top', 'thinking…');
+    const t0 = Date.now();
+    const r = await engineRequest({ kind: 'bot', fen: START_FEN, moves: g.moves, level: bot, seed: cur.seed + g.moves.length, salt: cur.salt, ply: g.moves.length, book: OPENINGS[cur.book] });
+    const wait = Math.max(0, 450 + Math.random() * 400 - (Date.now() - t0));
+    await new Promise(res => setTimeout(res, wait));
+    if (!alive || profile.current !== cur) return;
+    thinking = false; scr.setStatus('top', '');
+    if (r.score !== undefined) lastBotScore = r.score;
+    const res = g.play(r.uci); playSound(res);
+    cur.moves = g.moves.slice(); saveProfile();
+    if (!scr.viewing) scr.refresh(g.lastFromTo);
+    afterMove();
+  }
+  function finish(result, reason) {
+    if (cur.result) return;
+    cur.result = { result, reason };
+    const youWhite = cur.color === 'w';
+    const score = result === '1/2-1/2' ? 0.5 : ((result === '1-0') === youWhite ? 1 : 0);
+    let before = profile.rating.r, after = before, counted = false;
+    if (cur.rated && g.moves.length >= 2) {
+      const nr = glicko2(profile.rating, [{ r: bot.rating, rd: 60, s: score }]);
+      profile.rating = nr; after = nr.r; counted = true;
+      profile.rHist.push(Math.round(nr.r)); if (profile.rHist.length > 200) profile.rHist.shift();
+    }
+    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves() });
+    profile.games = profile.games.slice(0, 50);
+    saveProfile();
+    buttons(); scr.refresh();
+    if (score === 1) { beep('win'); scr.board.burst('🏆'); }
+    setTimeout(() => showResult(score, reason, counted, before, after), score === 1 ? 600 : 250);
+  }
+  function showResult(score, reason, counted, before, after) {
+    const d = Math.round(after) - Math.round(before);
+    modal((box, close) => box.append(
+      h('div', { class: 'big-emoji' }, score === 1 ? '🏆' : score === 0.5 ? '🤝' : '💪'),
+      h('h2', { class: 'center' }, score === 1 ? 'You win!' : score === 0.5 ? 'Draw!' : bot.name + ' wins'),
+      h('p', { class: 'center muted' }, 'by ' + reason),
+      counted ? h('p', { class: 'center' }, 'Rating ', h('b', null, Math.round(before)), ' → ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
+      score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
+      h('div', { class: 'row', style: { marginTop: '12px' } },
+        h('button', { class: 'btn grow', onclick: close }, 'Review'),
+        h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated); } }, 'Rematch'))));
+  }
+  buttons();
+  if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); }
+}
+
+// ======================= FRIENDS =======================
+let friendView = 'menu';
+function renderFriend(main) {
+  if (friendView === 'local') return renderLocalGame(main);
+  if (friendView === 'online') return renderOnline(main);
+  main.append(
+    h('h2', null, 'Play with a friend'),
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic' }, '📱'), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic' }, '🌐'), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
+    h('p', { class: 'small muted' }, 'Friend games are unrated, so you can play just for fun.'));
+}
+function renderLocalGame(main) {
+  const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true });
+  const g = new Game(START_FEN, st.moves);
+  const scr = gameScreen(main, {
+    game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: '⚪' }, b: { name: 'Black', avatar: '⚫' } },
+    canMove: () => !g.status().over,
+    onUserMove: (uci, dragged) => {
+      const res = g.play(uci); if (!res) return; playSound(res);
+      st.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo);
+      const s = g.status();
+      if (s.over) { beep('win'); setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, s.result === '1/2-1/2' ? '🤝' : '🏆'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); }
+      else if (st.autoFlip) setTimeout(() => { if (scr.board.orient !== g.turn()) scr.flip(); }, 450);
+      buttons();
+    },
+  });
+  function buttons() {
+    scr.setButtons([
+      { ic: '⬅️', label: 'Back', on: () => { friendView = 'menu'; render(); } },
+      { ic: '🔄', label: 'Flip', on: () => scr.flip() },
+      { ic: st.autoFlip ? '🔁' : '⏸️', label: st.autoFlip ? 'Auto-flip' : 'No flip', on: () => { st.autoFlip = !st.autoFlip; saveProfile(); buttons(); toast(st.autoFlip ? 'Board turns after each move' : 'Board stays put'); } },
+      { ic: '↩️', label: 'Undo', disabled: !g.moves.length, on: () => { g.undo(); st.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } },
+      { ic: '🆕', label: 'New', on: () => confirmBox('New game?', 'Start over from the beginning.', 'New game', () => { st.moves = []; saveProfile(); render(); }) },
+    ]);
+  }
+  buttons();
+}
+
+// ---------- online: true peer-to-peer over WebRTC ----------
+// Signaling is copy/paste (or a link): the host's "invite" holds its WebRTC offer, the guest
+// replies with an "answer" code. After that the two browsers talk directly over a data channel.
+const myId = (() => { try { let v = sessionStorage.getItem('kc-id'); if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem('kc-id', v); } return v; } catch (e) { return Math.random().toString(36).slice(2, 10); } })();
+const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
+let online = null; // {role, pc, dc, phase, code, state, ...}
+const b64u = bytes => { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+const unb64u = str => { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; const bin = atob(str); return Uint8Array.from(bin, c => c.charCodeAt(0)); };
+async function packCode(obj) {
+  const raw = new TextEncoder().encode(JSON.stringify(obj));
+  if (window.CompressionStream) {
+    const cs = new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return 'z' + b64u(new Uint8Array(await new Response(cs).arrayBuffer()));
+  }
+  return 'j' + b64u(raw);
+}
+async function unpackCode(code) {
+  code = code.trim().replace(/^.*#join=/, '').replace(/\s+/g, '');
+  let bytes = unb64u(code.slice(1));
+  if (code[0] === 'z') bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+function waitIce(pc) {
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete') return res();
+    const t = setTimeout(res, 4000);
+    pc.addEventListener('icegatheringstatechange', () => { if (pc.iceGatheringState === 'complete') { clearTimeout(t); res(); } });
+  });
+}
+function leaveOnline() { if (online) { clearInterval(online.timer); try { online.dc && online.dc.close(); online.pc && online.pc.close(); } catch (e) { } } online = null; }
+function inviteLink(code) { return location.href.split('#')[0] + '#join=' + code; }
+function newPc() { return new RTCPeerConnection({ iceServers: ICE }); }
+function wireChannel(dc) {
+  online.dc = dc;
+  dc.onopen = () => {
+    online.phase = 'live'; online.connected = true;
+    if (online.role === 'host') {
+      const me = { id: myId, name: profile.name || 'Host' };
+      if (!online.state) {
+        const hostWhite = online.wantColor === 'w' ? true : online.wantColor === 'b' ? false : rand() < .5;
+        const gu = { id: online.guestId || 'guest', name: online.guestName || 'Friend' };
+        online.state = { v: 1, white: hostWhite ? me : gu, black: hostWhite ? gu : me, moves: [], result: null, drawOffer: null, rematch: null };
+      }
+      sendState();
+    } else sendRaw({ t: 'hi', id: myId, name: profile.name || 'Friend' });
+    clearInterval(online.timer);
+    online.timer = setInterval(sendState, 5000);
+    if (route === 'friend') render();
+  };
+  dc.onclose = () => { if (!online) return; online.connected = false; online.phase = 'lost'; if (online.onState) online.onState(-1); else if (route === 'friend') render(); };
+  dc.onmessage = e => { let d; try { d = JSON.parse(e.data); } catch (_) { return; } onPeerMessage(d); };
+}
+function sendRaw(obj) { try { if (online && online.dc && online.dc.readyState === 'open') online.dc.send(JSON.stringify(obj)); } catch (e) { } }
+function sendState() { if (online && online.state) sendRaw(Object.assign({ t: 'state' }, online.state)); }
+function onPeerMessage(d) {
+  if (!online) return;
+  if (d.t === 'hi' && online.role === 'host') {
+    // guest introduces itself: fix up its id/name in the seat it was given
+    const st = online.state;
+    for (const k of ['white', 'black']) if (st[k] && st[k].id !== myId) { st[k] = { id: d.id, name: d.name || 'Friend' }; }
+    st.v++; sendState(); if (online.onState) online.onState(-2); return;
+  }
+  if (d.t !== 'state' || typeof d.v !== 'number' || !Array.isArray(d.moves)) return;
+  const test = new Game(); for (const u of d.moves) if (!test.play(u)) return; // untrusted: replay to validate
+  const cur = online.state;
+  if (!cur || d.v > cur.v || (d.v === cur.v && online.role === 'guest')) {
+    const prevLen = cur ? cur.moves.length : 0;
+    const wasStarted = !!cur;
+    online.state = { v: d.v, white: d.white, black: d.black, moves: d.moves.slice(), result: d.result, drawOffer: d.drawOffer, rematch: d.rematch };
+    if (wasStarted && online.onState) online.onState(prevLen);
+    else if (route === 'friend') render();
+  }
+}
+async function hostCreate(color) {
+  leaveOnline();
+  online = { role: 'host', phase: 'making', wantColor: color, state: profile.onlineResume || null };
+  render();
+  try {
+    const pc = newPc(); online.pc = pc;
+    wireChannel(pc.createDataChannel('chess', { ordered: true }));
+    await pc.setLocalDescription(await pc.createOffer());
+    await waitIce(pc);
+    online.code = await packCode({ k: 'o', sdp: pc.localDescription.sdp, n: profile.name || '' });
+    online.phase = 'invite';
+  } catch (e) { online.phase = 'error'; online.err = String(e.message || e); }
+  render();
+}
+async function hostAccept(answerCode) {
+  try {
+    const a = await unpackCode(answerCode);
+    if (a.k !== 'a') throw new Error('That is not a reply code. Ask your friend for the code their screen shows after joining.');
+    online.guestName = a.n; online.guestId = a.id;
+    await online.pc.setRemoteDescription({ type: 'answer', sdp: a.sdp });
+    online.phase = 'connecting'; render();
+    setTimeout(() => { if (online && online.phase === 'connecting') { online.phase = 'error'; online.err = 'Could not connect directly. Some networks (like school or work Wi-Fi) block peer-to-peer. Try again, or switch one device to mobile data.'; render(); } }, 20000);
+  } catch (e) { toast(e.message || 'Invalid code'); }
+}
+async function guestJoin(inviteCode) {
+  leaveOnline();
+  online = { role: 'guest', phase: 'making' };
+  render();
+  try {
+    const o = await unpackCode(inviteCode);
+    if (o.k !== 'o') throw new Error('That is not an invite code.');
+    online.hostName = o.n;
+    const pc = newPc(); online.pc = pc;
+    pc.ondatachannel = e => wireChannel(e.channel);
+    await pc.setRemoteDescription({ type: 'offer', sdp: o.sdp });
+    await pc.setLocalDescription(await pc.createAnswer());
+    await waitIce(pc);
+    online.code = await packCode({ k: 'a', sdp: pc.localDescription.sdp, n: profile.name || '', id: myId });
+    online.phase = 'answer';
+  } catch (e) { online.phase = 'error'; online.err = 'That invite did not work: ' + (e.message || e) + ' Ask your friend for a fresh invite.'; }
+  render();
+}
+let pendingJoin = null;
+function renderOnline(main) {
+  if (online && online.state && (online.phase === 'live' || online.phase === 'lost')) return renderOnlineGame(main);
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { leaveOnline(); friendView = 'menu'; render(); } }, '⬅ Back'), h('h2', null, 'Play Online')));
+  if (!window.RTCPeerConnection) { main.append(h('div', { class: 'card' }, 'This browser does not support peer-to-peer connections. Try Chrome, Safari or Firefox.')); return; }
+  const card = h('div', { class: 'card stack' }); main.append(card);
+  const ph = online && online.phase;
+  if (!online) {
+    let color = 'r';
+    const seg = h('div', { class: 'seg' });
+    const drawSeg = () => { seg.innerHTML = ''; [['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; drawSeg(); } }, l))); };
+    drawSeg();
+    const inp = h('textarea', { class: 'input', rows: 3, placeholder: 'Paste the invite link or code here' });
+    if (pendingJoin) { inp.value = pendingJoin; }
+    card.append(h('h3', null, '1. Host a game'), h('div', { class: 'small muted' }, 'You play as:'), seg,
+      h('button', { class: 'btn primary block', onclick: () => hostCreate(color) }, '✨ Create invite'));
+    main.append(h('div', { class: 'card stack' }, h('h3', null, '2. Or join a friend'), inp,
+      h('button', { class: 'btn block', onclick: () => { const v = inp.value.trim(); if (!v) return toast('Paste the invite first'); pendingJoin = null; guestJoin(v); } }, 'Join game')),
+      h('p', { class: 'small muted' }, 'How it works: the host sends an invite link. The friend opens it and sends back a reply code. Once the host pastes that code in, the two devices connect directly, with no server in between.'));
+    return;
+  }
+  if (ph === 'making' || ph === 'connecting') { card.append(h('div', { class: 'center' }, '⏳ ', ph === 'making' ? 'Preparing connection…' : 'Connecting to your friend…')); }
+  else if (ph === 'invite') {
+    const link = inviteLink(online.code);
+    const ans = h('textarea', { class: 'input', rows: 3, placeholder: "Paste your friend's reply code here" });
+    card.append(h('h3', null, 'Step 1: Send this invite'),
+      h('div', { class: 'small muted' }, 'Text or message this link to your friend:'),
+      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(link, 'Join my chess game!') }, '📤 Share invite'), h('button', { class: 'btn', onclick: () => copyText(link) }, '📋 Copy')),
+      h('h3', null, 'Step 2: Paste their reply'), ans,
+      h('button', { class: 'btn block', onclick: () => { const v = ans.value.trim(); if (!v) return toast('Paste the reply code first'); hostAccept(v); } }, '🔗 Connect'),
+      h('button', { class: 'btn ghost', onclick: () => { leaveOnline(); render(); } }, 'Cancel'));
+  } else if (ph === 'answer') {
+    card.append(h('h3', null, 'Almost there!'),
+      h('div', { class: 'small muted' }, `Send this reply code back to ${online.hostName || 'your friend'}. The game starts as soon as they paste it in.`),
+      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(online.code, 'My chess reply code') }, '📤 Share reply'), h('button', { class: 'btn', onclick: () => copyText(online.code) }, '📋 Copy')),
+      h('div', { class: 'center muted small' }, '⏳ Waiting for the connection…'),
+      h('button', { class: 'btn ghost', onclick: () => { leaveOnline(); render(); } }, 'Cancel'));
+  } else if (ph === 'error' || ph === 'lost') {
+    card.append(h('h3', null, '😕 ' + (ph === 'lost' ? 'Connection lost' : 'Something went wrong')), h('p', { class: 'small muted' }, online.err || 'The connection closed.'),
+      h('button', { class: 'btn primary block', onclick: () => { leaveOnline(); render(); } }, 'Start over'));
+  }
+}
+async function shareOrCopy(text, title) {
+  if (navigator.share) { try { await navigator.share({ title, text: title + ' ' + text }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
+  copyText(text);
+}
+function renderOnlineGame(main) {
+  const o = online, st = o.state;
+  const myColor = st.white.id === myId ? 'w' : st.black.id === myId ? 'b' : (o.role === 'host' ? (st.white.id !== 'guest' && st.white.name === (profile.name || 'Host') ? 'w' : 'b') : null);
+  const g = new Game(START_FEN, st.moves);
+  const oppInfo = myColor === 'w' ? st.black : st.white, meInfo = myColor === 'w' ? st.white : st.black;
+  const live = h('span', { class: 'pill' });
+  const setLive = () => { live.className = 'pill' + (o.connected ? ' live' : ''); live.textContent = o.connected ? '● connected (peer-to-peer)' : '○ disconnected'; };
+  setLive();
+  main.append(h('div', { class: 'row' }, live, h('span', { class: 'grow' })));
+  const scr = gameScreen(main, {
+    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: '🧑' }, mine = { name: 'You', avatar: '🙂' }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
+    canMove: turn => o.connected && !o.state.result && turn === myColor,
+    onUserMove: (uci, dragged) => {
+      const res = g.play(uci); if (!res) return; playSound(res);
+      o.state.moves = g.moves.slice(); o.state.drawOffer = null; o.state.v++;
+      const s = g.status(); if (s.over) o.state.result = { result: s.result, reason: s.reason };
+      if (o.role === 'host') { profile.onlineResume = o.state.result ? null : o.state; saveProfile(); }
+      sendState(); scr.refresh(dragged ? null : g.lastFromTo); buttons(); checkOver();
+    },
+  });
+  let shownOver = !!st.result;
+  function checkOver() {
+    const r = o.state.result; if (!r || shownOver) return; shownOver = true;
+    const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
+    if (win) { beep('win'); scr.board.burst('🏆'); }
+    setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, r.result === '1/2-1/2' ? '🤝' : win ? '🏆' : '💪'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
+  }
+  o.onState = (prevLen) => {
+    if (prevLen === -2) { render(); return; } // seats changed
+    setLive();
+    if (prevLen === -1) { toast('Connection lost. Your friend may have closed the page.', 3500); buttons(); return; }
+    const s2 = o.state;
+    if (s2.moves.length < g.moves.length || s2.moves.length === 0 && g.moves.length) { render(); return; } // rematch / reset
+    Object.assign(g, new Game(START_FEN, s2.moves));
+    if (s2.moves.length > prevLen) { beep(g.pos.inCheck() ? 'check' : 'move'); scr.refresh(g.lastFromTo); } else scr.refresh();
+    if (o.role === 'host') { profile.onlineResume = s2.result ? null : s2; saveProfile(); }
+    if (s2.drawOffer && s2.drawOffer !== myId && !s2.result) toast('Your friend offers a draw. Tap 🤝 to accept.', 3500);
+    if (s2.rematch && s2.rematch !== myId && s2.result) toast('Your friend wants a rematch! Tap 🔁', 3500);
+    buttons(); checkOver();
+  };
+  function buttons() {
+    const s = o.state, over = !!s.result;
+    const list = [{ ic: '⬅️', label: 'Leave', on: () => confirmBox('Leave game?', 'This closes the connection to your friend.', 'Leave', () => { leaveOnline(); friendView = 'menu'; render(); }) },
+    { ic: '🔄', label: 'Flip', on: () => scr.flip() }];
+    if (!o.connected) list.push({ ic: '🔌', label: 'Reconnect', on: () => { const keep = o.role === 'host' ? o.state : null; leaveOnline(); if (keep) { profile.onlineResume = keep; saveProfile(); } render(); toast(keep ? 'Create a new invite. The game will continue where you left off.' : 'Ask the host for a new invite link.', 4000); } });
+    else if (!over) {
+      list.push({ ic: '🤝', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
+      list.push({ ic: '🏳️', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
+    } else {
+      list.push({ ic: '🔁', label: s.rematch && s.rematch !== myId ? 'Accept' : 'Rematch', disabled: s.rematch === myId, on: () => {
+        if (s.rematch && s.rematch !== myId) { const w = s.white; s.white = s.black; s.black = w; s.moves = []; s.result = null; s.drawOffer = null; s.rematch = null; s.v++; sendState(); render(); }
+        else { s.rematch = myId; s.v++; sendState(); toast('Rematch requested'); buttons(); }
+      } });
+    }
+    scr.setButtons(list);
+  }
+  buttons();
+  cleanups.push(() => { if (online) online.onState = null; });
+}
+
+// ======================= PUZZLES =======================
+let puzCat = 'rated', puzState = null;
+function pickPuzzle() {
+  const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : p.n === +puzCat.slice(-1) && p.cat !== 'pattern');
+  const fresh = pool.filter(p => !profile.tried[p.id]);
+  const use = fresh.length ? fresh : pool;
+  const pr = profile.puzzle.r;
+  use.sort((a, b) => Math.abs(a.rating - pr) - Math.abs(b.rating - pr));
+  const top = use.slice(0, Math.min(6, use.length));
+  return puzCat === 'pattern' && fresh.length ? fresh[0] : top[Math.floor(rand() * top.length)];
+}
+function renderPuzzles(main) {
+  const cats = [['rated', '🎯 For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', '🏛️ Famous mates']];
+  const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
+  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} 🔥 · Solved ${solvedCount}/${PUZZLES.length}`))));
+  main.append(h('div', { class: 'cats' }, cats.map(([k, l]) => h('button', { class: puzCat === k ? 'on' : '', onclick: () => { puzCat = k; puzState = null; render(); } }, l))));
+  if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
+  const ps = puzState, p = ps.p;
+  const g = new Game(p.fen);
+  for (let i = 0; i < ps.step; i++) g.play(p.line[i]);
+  const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
+  const banner = h('div', { class: 'banner' });
+  const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = html; };
+  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>checkmate in ${p.n}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">★ ${p.rating}</span>`;
+  setBanner('', prompt());
+  let busy = false;
+  const board = new BoardView({
+    orient: side,
+    getTargets: sq => (!ps.done && !busy && g.turn() === side) ? g.targetsFrom(sq) : null,
+    onMove: (from, to, dragged) => {
+      const needs = g.needsPromo(from, to);
+      const uci = sqName(from) + sqName(to) + (needs ? 'q' : '');
+      attempt(uci, dragged);
+    }
+  });
+  main.append(banner, board.el);
+  const msg = h('div', { class: 'taskmsg' }); main.append(msg);
+  const btnRow = h('div', { class: 'row' }); main.append(btnRow);
+  const show = (anim) => board.set(g.viewState(), anim);
+  show();
+  function rate(success) {
+    if (!ps.rated) return null;
+    ps.rated = false;
+    const before = profile.puzzle.r;
+    profile.puzzle = glicko2(profile.puzzle, [{ r: p.rating, rd: 80, s: success ? 1 : 0 }]);
+    profile.pHist.push(Math.round(profile.puzzle.r)); if (profile.pHist.length > 300) profile.pHist.shift();
+    profile.tried[p.id] = success ? 1 : 2;
+    profile.streak = success ? profile.streak + 1 : 0; profile.best = Math.max(profile.best, profile.streak);
+    saveProfile();
+    return Math.round(profile.puzzle.r) - Math.round(before);
+  }
+  function attempt(uci, dragged) {
+    const expected = p.line[ps.step];
+    const isLast = ps.step === p.line.length - 1;
+    const test = new Game(g.startFen, g.moves); const r = test.play(uci);
+    const mates = r && test.status().reason === 'checkmate';
+    if (uci === expected || (isLast && mates)) {
+      const res = g.play(uci); playSound(res); show(dragged ? null : g.lastFromTo);
+      ps.step++;
+      if (ps.step >= p.line.length) return solved();
+      msg.className = 'taskmsg good'; msg.textContent = '✓ Good move! Keep going…';
+      busy = true;
+      setTimeout(() => { const rr = g.play(p.line[ps.step]); ps.step++; playSound(rr); show(g.lastFromTo); busy = false; msg.textContent = 'Your move'; }, 650);
+    } else {
+      // wrong: show briefly then reset
+      if (r) { const tmp = new Game(g.startFen, g.moves); tmp.play(uci); board.set(tmp.viewState(), dragged ? null : tmp.lastFromTo); }
+      beep('bad'); ps.failed = true;
+      const d = rate(false);
+      msg.className = 'taskmsg bad'; msg.textContent = '✗ Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
+      busy = true; setTimeout(() => { busy = false; show(); }, 900);
+      buttons();
+    }
+  }
+  function solved() {
+    ps.done = true; beep('win'); board.burst('⭐');
+    const d = ps.failed ? null : rate(true);
+    if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
+    setBanner('good', `<span style="font-size:22px">🎉</span><span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
+    msg.className = 'taskmsg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
+    buttons();
+  }
+  function buttons() {
+    btnRow.innerHTML = '';
+    if (!ps.done) {
+      btnRow.append(h('button', { class: 'btn grow', onclick: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'taskmsg bad'; msg.textContent = `Hint used (${d})`; } } }, '💡 Hint'));
+      btnRow.append(h('button', { class: 'btn grow', onclick: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } }, '👀 Solution'));
+    }
+    btnRow.append(h('button', { class: 'btn primary grow', onclick: () => { puzState = null; render(); } }, ps.done ? 'Next ▶' : 'Skip'));
+  }
+  async function showSolution() {
+    buttons(); busy = true;
+    for (let i = ps.step; i < p.line.length; i++) { await new Promise(r => setTimeout(r, 700)); const rr = g.play(p.line[i]); playSound(rr); show(g.lastFromTo); }
+    setBanner('', `<span>💡</span><span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
+    msg.textContent = '';
+  }
+  buttons();
+}
+
+// ======================= LEARN =======================
+let lessonOpen = null, lessonStep = 0;
+function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic' }, l.icon); }
+function renderLearn(main) {
+  if (lessonOpen) return renderLesson(main);
+  const done = LESSONS.filter(l => profile.lessons[l.id]).length;
+  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, '🦉'), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
+  let groupEl = null, lastGroup = null;
+  for (const l of LESSONS) {
+    if (l.group !== lastGroup) { lastGroup = l.group; groupEl = h('div', { class: 'lgroup' }, h('h3', null, l.group), h('div', { class: 'lessons' })); main.append(groupEl); }
+    $('.lessons', groupEl).append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, lessonIcon(l), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc)), h('span', { class: 'ck' }, profile.lessons[l.id] ? '✅' : '›')));
+  }
+}
+function fenToBoard(fen) { return new E.Position(fen.includes(' ') ? fen : fen + ' w - - 0 1').board; }
+function boardFromPieces(spec) { // spec: {'d4':'R', 'e5':'p'}
+  const b = new Int8Array(128);
+  for (const k in spec) b[sqFromName(k)] = E.PIECE_CHARS.indexOf(spec[k]);
+  return b;
+}
+// movement on a lesson board, ignoring check: used for "collect the stars"
+function lessonTargets(b, sq) {
+  const p = b[sq]; if (!p || (p & 8)) return [];
+  const t = p & 7, out = [];
+  const add = to => { if (to & 0x88) return false; const q = b[to]; if (!q) { out.push(to); return true; } if (q & 8) out.push(to); return false; };
+  if (t === 1) {
+    const one = sq + 16; if (!(one & 0x88) && !b[one]) { out.push(one); if ((sq >> 4) === 1 && !b[one + 16]) out.push(one + 16); }
+    for (const d of [15, 17]) { const to = sq + d; if (!(to & 0x88) && (b[to] & 8)) out.push(to); }
+  } else if (t === 2 || t === 6) {
+    for (const d of (t === 2 ? [33, 31, 18, 14, -33, -31, -18, -14] : [1, -1, 16, -16, 17, 15, -17, -15])) add(sq + d);
+  } else {
+    const dirs = t === 3 ? [17, 15, -17, -15] : t === 4 ? [1, -1, 16, -16] : [1, -1, 16, -16, 17, 15, -17, -15];
+    for (const d of dirs) { let to = sq + d; while (add(to)) to += d; }
+  }
+  return out;
+}
+function renderLesson(main) {
+  const L = lessonOpen, steps = L.steps, step = steps[lessonStep];
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, '⬅ Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
+  main.append(h('div', { class: 'dots' }, steps.map((_, i) => h('i', { class: i < lessonStep ? 'done' : i === lessonStep ? 'on' : '' }))));
+  const txt = h('div', { class: 'txt', html: step.text });
+  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, step.mascot || '🦉'), txt));
+  const msg = h('div', { class: 'taskmsg' });
+  let complete = step.type === 'text';
+  const nextBtn = h('button', { class: 'btn primary grow', disabled: !complete, onclick: () => {
+    if (lessonStep < steps.length - 1) { lessonStep++; render(); window.scrollTo(0, 0); }
+    else { profile.lessons[L.id] = 1; saveProfile(); beep('win'); const idx = LESSONS.indexOf(L); const nxt = LESSONS[idx + 1];
+      modal((box, close) => box.append(h('div', { class: 'big-emoji' }, '🎓'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title + ' ✓'),
+        h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); lessonOpen = null; render(); } }, 'All lessons'), nxt ? h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = nxt; lessonStep = 0; render(); window.scrollTo(0, 0); } }, 'Next lesson') : h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = null; go('play'); } }, "Let's play!")))); }
+  } }, lessonStep < steps.length - 1 ? 'Next ▶' : 'Finish ✓');
+  const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || '🎉 Great job!'; beep('win'); };
+
+  if (step.type === 'text' && step.board) {
+    const bv = new BoardView({ orient: step.orient || 'w' });
+    const marks = {}; (step.marks || []).forEach(s => marks[sqFromName(s)] = 'mark');
+    const showTargets = step.showMoves ? lessonTargets(fenToBoard(step.board), sqFromName(step.showMoves)) : [];
+    bv.set({ board: fenToBoard(step.board), marks });
+    if (showTargets.length) { bv.targets = showTargets; bv.draw(); }
+    main.append(bv.el);
+  } else if (step.type === 'stars') {
+    let b = boardFromPieces(step.pieces);
+    const stars = new Set((step.stars || []).map(sqFromName));
+    const fixed = new Set((step.fixed || []).map(sqFromName));
+    let movesUsed = 0;
+    const enemiesLeft = () => { let n = 0; for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } if (b[s] & 8) n++; } return n; };
+    const bv = new BoardView({
+      getTargets: sq => (!complete && b[sq] && !(b[sq] & 8) && !fixed.has(sq)) ? lessonTargets(b, sq) : null,
+      onMove: (from, to, dragged) => {
+        const cap = !!b[to]; b[to] = b[from]; b[from] = 0; movesUsed++;
+        if (step.promote && (b[to] & 7) === 1 && (to >> 4) === 7) b[to] = 5;
+        let got = false; if (stars.has(to)) { stars.delete(to); got = true; }
+        beep(got ? 'star' : cap ? 'capture' : 'move');
+        bv.set({ board: b, stars, last: [from, to] }, dragged ? null : [from, to]);
+        const left = stars.size + (step.captureAll ? enemiesLeft() : 0);
+        if (!left) { bv.burst('⭐'); finishTask(movesUsed <= (step.par || 99) ? `🎉 Perfect! You did it in ${movesUsed} moves!` : `🎉 You did it in ${movesUsed} moves! (Can you do it in ${step.par}?)`); }
+        else msg.textContent = (stars.size ? `⭐ ${stars.size} left` : '') + (step.captureAll && enemiesLeft() ? `  🎯 ${enemiesLeft()} to capture` : '');
+      }
+    });
+    bv.set({ board: b, stars });
+    main.append(bv.el);
+    msg.textContent = (stars.size ? `⭐ ${stars.size} to collect` : '') + (step.captureAll ? `  🎯 ${enemiesLeft()} to capture` : '');
+    main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, '↺ Restart'));
+  } else if (step.type === 'goal') {
+    let g = new Game(step.fen);
+    const side = g.turn();
+    const bv = new BoardView({
+      orient: side,
+      getTargets: sq => (!complete && g.turn() === side) ? g.targetsFrom(sq) : null,
+      onMove: (from, to, dragged) => {
+        const needs = g.needsPromo(from, to);
+        const uci = sqName(from) + sqName(to) + (needs ? 'q' : '');
+        const legal = g.legal(); const m = g.pos.moveFromUci(uci, legal);
+        const res = g.play(uci); playSound(res);
+        bv.set(g.viewState(), dragged ? null : g.lastFromTo);
+        let ok = false;
+        if (step.goal === 'check') ok = g.pos.inCheck();
+        else if (step.goal === 'mate') ok = g.status().reason === 'checkmate';
+        else if (step.goal === 'castle') ok = !!(E.mFlags(m) & E.F_CASTLE);
+        else if (step.goal === 'promote') ok = !!E.mPromo(m);
+        else if (step.goal === 'move') ok = step.moves.includes(uci.slice(0, 4));
+        if (ok) { bv.burst(step.goal === 'mate' ? '👑' : '⭐'); finishTask(step.success); }
+        else {
+          const st = g.status();
+          msg.className = 'taskmsg bad'; msg.textContent = st.reason === 'stalemate' ? '😮 Oops, that is stalemate (a draw)! Try again.' : (step.fail || 'Not quite. Try again!');
+          beep('bad');
+          setTimeout(() => { g = new Game(step.fen); bv.set(g.viewState()); }, 1100);
+        }
+      }
+    });
+    bv.set(g.viewState());
+    main.append(bv.el);
+  }
+  main.append(msg);
+  main.append(h('div', { class: 'row' }, lessonStep > 0 ? h('button', { class: 'btn', onclick: () => { lessonStep--; render(); } }, '◀ Back') : null, nextBtn));
+}
+
+// ======================= ME / PROFILE =======================
+function sparkline(arr, color) {
+  const data = arr.slice(-60); if (data.length < 2) return h('div', { class: 'small muted' }, 'Play rated games to see your graph.');
+  const min = Math.min(...data) - 20, max = Math.max(...data) + 20, W = 300, H = 70;
+  const pts = data.map((v, i) => [i / (data.length - 1) * W, H - (v - min) / (max - min) * H]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const el = h('div'); el.innerHTML = `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d} L${W} ${H} L0 ${H} Z" fill="${color}" opacity=".15"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+  return el;
+}
+function renderMe(main) {
+  const r = profile.rating, pr = profile.puzzle, b = band(r.r);
+  const nameInp = h('input', { class: 'input', placeholder: 'Your name', value: profile.name, maxlength: 20, onchange: e => { profile.name = e.target.value.trim(); saveProfile(); } });
+  const w = profile.games.filter(g => g.score === 1).length, l = profile.games.filter(g => g.score === 0).length, d = profile.games.filter(g => g.score === 0.5).length;
+  main.append(h('div', { class: 'card stack' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'YOUR NAME'), nameInp));
+  main.append(h('div', { class: 'stats' },
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '♞ Game rating'), h('div', { class: 'v' }, fmtR(r)), h('div', { class: 'l' }, b[2] + ' ' + b[1] + (r.rd > 110 ? ' · provisional' : ` · ±${Math.round(r.rd * 2)}`))),
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🧩 Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best} 🔥`))));
+  main.append(h('div', { class: 'card' }, h('div', { class: 'row small' }, h('b', { class: 'grow' }, 'Game rating history'), h('span', { class: 'muted' }, `${w}W · ${l}L · ${d}D`)), sparkline(profile.rHist, '#ffb547')));
+  main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
+  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', null, g.score === 1 ? '🏆' : g.score === 0.5 ? '🤝' : '❌'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
+  // rating scale explanation
+  main.append(h('div', { class: 'card stack' },
+    h('h3', null, 'How ratings work'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, `Your rating uses Glicko-2, a system many chess sites use. You start at 800 with a "?" mark while it's provisional. Each rated game moves your rating based on who you played: beating a stronger bot gains more points than beating a weaker one. Your rating becomes steady after about 10–15 games.`),
+    h('p', { class: 'small muted', style: { margin: 0 } }, `The bot ratings were measured, not guessed: the bots played ${CALIB.games} games against each other, and their ratings were fitted from the results. Pip is pinned at ${BOTS[0].rating} as the starting point. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
+    h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
+    h('table', { class: 'tbl' }, BANDS.map((x, i) => h('tr', null, h('td', null, x[2] + ' ' + x[1]), h('td', null, i < BANDS.length - 1 ? `${x[0]}–${BANDS[i + 1][0] - 1}` : `${x[0]}+`)))),
+    h('p', { class: 'small muted', style: { margin: 0 } }, `Puzzle ratings work the same way. Each puzzle's difficulty was measured by checking which bots can solve it.`)));
+  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, soundOn ? '🔊 On' : '🔇 Off')));
+  main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
+  main.append(h('p', { class: 'small muted center' }, '💾 Your progress is saved in this browser on this device.'));
+}
+
+// ======================= BOOT =======================
+function boot() {
+  const saved = loadLocal(); if (saved) profile = Object.assign(DEFAULT_PROFILE(), saved);
+  soundOn = profile.sound !== false;
+  buildTabs();
+  const hr = (location.hash || '').slice(1); if (ROUTES[hr]) route = hr;
+  window.addEventListener('hashchange', () => { const hs = location.hash; const jm = hs.match(/^#join=(.+)$/); if (jm) { pendingJoin = jm[1]; friendView = 'online'; leaveOnline(); go('friend'); return; } const r = hs.slice(1); if (ROUTES[r] && r !== route) go(r); });
+  initWorker();
+  const jm = (location.hash || '').match(/^#join=(.+)$/);
+  if (jm) { pendingJoin = jm[1]; route = 'friend'; friendView = 'online'; try { history.replaceState(null, '', '#friend'); } catch (e) { } }
+  render();
+}
+boot();
+</script>
+</body>
+</html>
