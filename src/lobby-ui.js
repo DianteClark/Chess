@@ -82,8 +82,9 @@ function renderLobbyGame(main, lb) {
   };
   const players = { [myColor]: { name: 'You', avatar: myAvatar(), rating: Math.round(mine.r) }, [myColor === 'w' ? 'b' : 'w']: { name: opp.name, avatar: 'friend', rating: Math.round(opp.r) } };
   let pending = false;
-  main.append(h('div', { class: 'row' }, h('span', { class: 'pill live' }, tcLabel(gm.tc.base, gm.tc.inc)), h('span', { class: 'pill' }, gm.rated ? 'Rated' : 'Casual'), h('span', { class: 'grow' }), gm.disconnected && gm.disconnected[myColor === 'w' ? 'b' : 'w'] ? h('span', { class: 'pill' }, 'opponent disconnected') : null));
   const scr = gameScreen(main, {
+    title: `vs ${opp.name}`, sub: `${tcLabel(gm.tc.base, gm.tc.inc)}, ${gm.rated ? 'Rated' : 'Casual'}` + (gm.disconnected && gm.disconnected[myColor === 'w' ? 'b' : 'w'] ? ', opponent disconnected' : ''),
+    back: () => { if (!gm.status.over) return confirmBox('Leave this game?', 'Your clock keeps running. Come back from the lobby to continue.', 'Leave', () => { lobbyView = 'home'; render(); }); lobbyView = 'home'; render(); },
     game: g, orient: myColor, players,
     canMove: turn => !gm.status.over && turn === myColor && !pending,
     getClock: () => clockView(),
@@ -94,12 +95,12 @@ function renderLobbyGame(main, lb) {
   });
   const chatEl = h('div', { class: 'chatlog' });
   const drawChat = () => { chatEl.innerHTML = ''; (lobbyChat[gm.id] || []).slice(-4).forEach(c => chatEl.append(h('div', { class: 'chatmsg ' + (c.from === myColor ? 'me' : '') }, h('b', null, c.from === myColor ? 'You' : c.name), ' ', CHAT_TEXT[c.code] || ''))); };
-  main.append(chatEl, h('div', { class: 'chatbar' }, LobbyClient.CHAT_CODES.map(code => h('button', { onclick: () => lb.chat(gm.id, code) }, CHAT_TEXT[code]))));
+  scr.addBelow(h('div', { class: 'chatwrap' }, chatEl, h('div', { class: 'chatbar' }, LobbyClient.CHAT_CODES.map(code => h('button', { onclick: () => { beep('tap'); lb.chat(gm.id, code); } }, CHAT_TEXT[code])))));
   drawChat();
   let shownOver = gm.status.over;
   function buttons() {
     const over = gm.status.over, oc = myColor === 'w' ? 'b' : 'w';
-    const list = [{ ic: 'back', label: 'Lobby', on: () => { if (!over) return confirmBox('Leave this game?', 'Your clock keeps running. Come back from the lobby to continue.', 'Leave', () => { lobbyView = 'home'; render(); }); lobbyView = 'home'; render(); } }, { ic: 'flip', label: 'Flip', on: () => scr.flip() }];
+    const list = [{ ic: 'flip', label: 'Flip', on: () => scr.flip() }];
     if (!over) {
       if (gm.moves.length < 2) list.push({ ic: 'x', label: 'Abort', on: () => lb.abort(gm.id) });
       list.push({ ic: 'half', label: gm.drawOfferBy === oc ? 'Accept' : 'Draw?', disabled: gm.drawOfferBy === myColor, on: () => gm.drawOfferBy === oc ? lb.acceptDraw(gm.id) : (lb.offerDraw(gm.id), toast('Draw offered')) });

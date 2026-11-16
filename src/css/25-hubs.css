@@ -1,0 +1,47 @@
+/* ---------- Puzzle Den ---------- */
+.puz-hero{display:flex;align-items:center;gap:12px;padding:14px 14px 14px 18px;border-radius:var(--r);text-align:left;
+  background:radial-gradient(120% 140% at 0% 0%,#3c3466,#24204a 60%,#1b1838);box-shadow:var(--press),inset 0 0 0 2px rgba(156,207,255,.18);transition:transform .1s}
+.puz-hero:active{transform:translateY(3px)}
+.puz-hero .ph-l{flex:1;display:flex;flex-direction:column}
+.puz-hero small{color:rgba(230,225,255,.7);font-size:13px}
+.puz-hero .ph-r{font-family:var(--display);font-weight:400;font-size:44px;line-height:1.05;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.3)}
+.puz-hero .ph-go{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:86px;height:86px;border-radius:50%;flex:none;
+  background:radial-gradient(circle at 35% 30%,#fff1c2,var(--brass) 55%,#c88c26);color:var(--ink);font-family:var(--display);font-size:17px;box-shadow:0 0 0 4px #5e3720,0 6px 0 4px #3a2010;animation:pulseGo 2.4s ease-in-out infinite}
+@keyframes pulseGo{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.puz-modes{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pmode{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:14px;border-radius:var(--r);text-align:left;min-height:118px;box-shadow:var(--press);transition:transform .1s;overflow:hidden}
+.pmode:active{transform:translateY(3px)}
+.pmode b{font-family:var(--display);font-weight:400;font-size:22px;margin-top:4px}
+.pmode small{color:rgba(255,255,255,.75);font-size:13px}
+.pmode.daily{background:linear-gradient(150deg,#2f6b55,#1d4b3b)}
+.pmode.rush{background:linear-gradient(150deg,#8a3b2a,#5a2218)}
+.pmode .pm-sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:auto}
+.pmode.hot::after{content:'';position:absolute;top:10px;right:10px;width:12px;height:12px;border-radius:50%;background:var(--bad);box-shadow:0 0 0 3px rgba(255,138,120,.3);animation:pulseGo 1.4s infinite}
+.week{display:flex;gap:4px;margin-top:auto;padding-top:8px}
+.week i{width:14px;height:14px;border-radius:4px;background:rgba(0,0,0,.28)}
+.week i.ok{background:var(--good)} .week i.meh{background:var(--brass)} .week i.today{box-shadow:inset 0 0 0 2px var(--brass-light)}
+.puz-themes{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (min-width:500px){.puz-themes{grid-template-columns:1fr 1fr 1fr}}
+.ptheme{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto auto;column-gap:8px;align-items:center;text-align:left;padding:10px 10px 9px;border-radius:16px;background:var(--card);box-shadow:var(--press);transition:transform .1s}
+.ptheme:active{transform:translateY(3px)}
+.ptheme .pt-ic{grid-row:span 2;width:36px;height:36px;border-radius:11px;display:grid;place-items:center;background:rgba(0,0,0,.22);color:var(--brass-light)}
+.ptheme b{font-size:14px;line-height:1.15}
+.ptheme small{color:var(--muted);font-size:12px}
+.ptheme .qbar{grid-column:1/-1;margin-top:7px}
+.streak-chip{display:flex;align-items:center;gap:4px;height:40px;padding:0 12px;border-radius:14px;background:var(--card);color:var(--muted);font-family:var(--display);font-size:18px}
+.streak-chip.hot{color:#ffb35c;background:linear-gradient(180deg,#5a2a18,#3c1c10);box-shadow:0 0 18px rgba(255,140,60,.35)}
+.streak-chip.hot svg{animation:flicker .6s ease-in-out infinite alternate}
+@keyframes flicker{from{transform:scale(1) rotate(-4deg)}to{transform:scale(1.15) rotate(4deg)}}
+/* Rush */
+.rush-hero{display:flex;gap:12px;align-items:center;padding:14px;border-radius:var(--r);background:linear-gradient(150deg,#8a3b2a,#5a2218);color:#ffe0c8;box-shadow:var(--press)}
+.rush-hero p{margin:0;font-size:15px}
+.rush-modes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.rmode{display:flex;flex-direction:column;align-items:center;gap:4px;padding:16px 6px 12px;border-radius:var(--r);background:var(--card);box-shadow:var(--press);text-align:center;transition:transform .1s}
+.rmode:active{transform:translateY(3px)}
+.rmode b{font-family:var(--display);font-weight:400;font-size:18px}
+.rmode small{color:var(--muted);font-size:12px;line-height:1.2;min-height:2.4em}
+.rush-bar{display:flex;align-items:center;justify-content:space-between;padding:0 6px}
+.rush-score{display:flex;align-items:baseline;gap:8px}
+.rush-score small{color:var(--muted);font-weight:700}
+.rush-score b{font-family:var(--display);font-weight:400;font-size:34px;line-height:1}
+.fs .banner{padding:9px 12px;font-size:15px}

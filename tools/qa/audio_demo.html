@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Knight Club - audio kit demo</title>
+<style>
+  body { font: 14px/1.4 system-ui, sans-serif; margin: 16px; background: #1d1a22; color: #eee; }
+  h1 { font-size: 20px; margin: 0 0 8px; } h2 { font-size: 16px; margin: 18px 0 6px; }
+  .grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  button { background: #3a3446; color: #fff; border: 0; border-radius: 8px; padding: 8px 10px; font: inherit; cursor: pointer; }
+  button:hover { background: #4d4560; } button.on { background: #7a5cff; }
+  .row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin: 6px 0; }
+  table { border-collapse: collapse; font: 12px ui-monospace, monospace; margin-top: 8px; }
+  td, th { padding: 2px 8px; border-bottom: 1px solid #333; text-align: right; } td:first-child, th:first-child { text-align: left; }
+  .bad { color: #ff7a7a; } .ok { color: #8fe08f; }
+</style>
+</head>
+<body>
+<h1>Knight Club audio kit</h1>
+<div class="row">
+  <label>Pack <select id="pack"><option>wood</option><option>soft</option><option>retro</option></select></label>
+  <label>Volume <input id="vol" type="range" min="0" max="1" step="0.01"></label>
+  <label><input id="mute" type="checkbox"> Muted</label>
+  <label>opts.i <input id="oi" type="number" min="0" max="2" value="0" style="width:48px"></label>
+  <label>opts.n <input id="on" type="number" min="1" max="12" value="1" style="width:48px"></label>
+  <label>opts.p <input id="op" type="number" min="0" max="1" step="0.1" value="0" style="width:56px"></label>
+</div>
+<div id="packs"></div>
+<h2>Sequences</h2>
+<div class="grid">
+  <button id="stars">3 stars</button><button id="xpbar">XP bar fill</button><button id="combo">Combo x8</button><button id="cd">Countdown 5s</button>
+</div>
+<h2>Music</h2>
+<div class="row">
+  <button id="mclub">Play club</button><button id="mfocus">Play focus</button><button id="mstop">Stop</button>
+  <label>Music volume <input id="mvol" type="range" min="0" max="1" step="0.01"></label>
+  <span id="mstate"></span>
+</div>
+<h2>Offline loudness check</h2>
+<button id="check">Run check</button>
+<div id="report"></div>
+<script src="../../src/audio.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var UI = ['tap', 'confirm', 'back', 'open', 'close', 'toggle', 'whoosh', 'xp', 'pop', 'card', 'countdown'];
+  var ALIASES = ['bad', 'puzzleRight', 'puzzleWrong'];
+  var opts = function () { return { i: +$('oi').value, n: +$('on').value, p: +$('op').value }; };
+  SFX.packs.forEach(function (pk) {
+    var h = document.createElement('h2'); h.textContent = pk; $('packs').append(h);
+    var g = document.createElement('div'); g.className = 'grid'; $('packs').append(g);
+    SFX.names.forEach(function (n) {
+      var b = document.createElement('button'); b.textContent = n;
+      b.onclick = function () { var o = opts(); o.pack = pk; sfx(n, o); };
+      g.append(b);
+    });
+  });
+  $('pack').value = SFX.pack; $('pack').onchange = function () { SFX.pack = this.value; };
+  $('vol').value = SFX.volume; $('vol').oninput = function () { SFX.setVolume(+this.value); };
+  $('mute').checked = SFX.muted; $('mute').onchange = function () { SFX.setMuted(this.checked); };
+  $('mvol').value = SFX.music.volume; $('mvol').oninput = function () { SFX.music.setVolume(+this.value); };
+  var ms = function () { $('mstate').textContent = SFX.music.playing ? 'playing ' + SFX.music.style : 'stopped'; };
+  $('mclub').onclick = function () { SFX.music.start('club'); ms(); };
+  $('mfocus').onclick = function () { SFX.music.start('focus'); ms(); };
+  $('mstop').onclick = function () { SFX.music.stop(); ms(); }; ms();
+  $('stars').onclick = function () { [0, 1, 2].forEach(function (i) { setTimeout(function () { sfx('star', { i: i }); }, i * 350); }); };
+  $('xpbar').onclick = function () { for (var k = 0; k <= 60; k++) (function (k) { setTimeout(function () { sfx('xp', { p: k / 60 }); if (k === 60) setTimeout(function () { sfx('levelup'); }, 150); }, k * 16); })(k); };
+  $('combo').onclick = function () { for (var k = 1; k <= 8; k++) (function (k) { setTimeout(function () { sfx('combo', { n: k }); }, k * 450); })(k); };
+  $('cd').onclick = function () { for (var k = 0; k < 5; k++) (function (k) { setTimeout(function () { sfx(k === 4 ? 'timeup' : 'countdown'); }, k * 1000); })(k); };
+
+  // ---- analysis ----
+  function analyze(buf) {
+    var L = buf.getChannelData(0), R = buf.numberOfChannels > 1 ? buf.getChannelData(1) : L, sr = buf.sampleRate, n = L.length;
+    var peak = 0, lastLoud = 0, firstLoud = -1, sum = 0, cnt = 0, win = Math.round(sr * 0.05), acc = 0, maxWin = 0, maxJump = 0;
+    var x = new Float32Array(n);
+    for (var i = 0; i < n; i++) { var v = (L[i] + R[i]) / 2; x[i] = v; var a = Math.abs(v); if (a > peak) peak = a; if (a > 0.001) { lastLoud = i; if (firstLoud < 0) firstLoud = i; } }
+    for (var j = 0; j < n; j++) { acc += x[j] * x[j]; if (j >= win) acc -= x[j - win] * x[j - win]; if (acc / win > maxWin) maxWin = acc / win; if (Math.abs(x[j]) > 0.003) { sum += x[j] * x[j]; cnt++; } }
+    var db = function (v) { return v > 0 ? 20 * Math.log10(v) : -120; };
+    var tail = 0; for (var k = n - Math.round(sr * 0.05); k < n; k++) tail = Math.max(tail, Math.abs(x[k]));
+    return { peak: peak, peakDb: db(peak), rmsDb: db(Math.sqrt(sum / Math.max(1, cnt))), loudDb: db(Math.sqrt(maxWin)), dur: (lastLoud - Math.max(0, firstLoud)) / sr, start: firstLoud / sr, tail: tail };
+  }
+  window.runCheck = async function () {
+    var rows = [], fail = [];
+    var opt = { star: { i: 2 }, combo: { n: 5 }, xp: { p: 0.5 } };
+    for (var pk of SFX.packs) for (var name of SFX.names) {
+      if (ALIASES.indexOf(name) >= 0) continue;
+      var r = await SFX._renderOffline(name, opt[name] || {}, pk);
+      if (!r) { fail.push(pk + '/' + name + ': render failed'); continue; }
+      var a = analyze(r.buffer); a.name = name; a.pack = pk; a.ui = UI.indexOf(name) >= 0; a.declared = r.declared;
+      var band = a.ui ? [-31, -19] : [-24, -12];
+      a.issues = [];
+      if (a.peak > 0.98) a.issues.push('clipping');
+      if (a.peak < 0.01) a.issues.push('silent');
+      if (a.loudDb < band[0] || a.loudDb > band[1]) a.issues.push('loudness out of band ' + band.join('..'));
+      if (a.tail > 0.002) a.issues.push('not finished at end of render');
+      if (a.start > 0.05) a.issues.push('late start');
+      if (a.issues.length) fail.push(pk + '/' + name + ': ' + a.issues.join(', '));
+      rows.push(a);
+    }
+    var music = [];
+    for (var st of ['club', 'focus']) {
+      var b = await SFX._renderMusicOffline(st, 24);
+      if (!b) { fail.push('music ' + st + ': render failed'); continue; }
+      var m = analyze(b); m.name = 'music:' + st; m.pack = '-'; m.issues = [];
+      if (m.peak > 0.98) m.issues.push('clipping'); if (m.peak < 0.01) m.issues.push('silent');
+      if (m.issues.length) fail.push(m.name + ': ' + m.issues.join(', '));
+      music.push(m);
+    }
+    var all = rows.concat(music);
+    var html = '<table><tr><th>pack</th><th>sound</th><th>peak dB</th><th>RMS dB</th><th>loud(50ms) dB</th><th>dur s</th><th>issues</th></tr>' +
+      all.map(function (a) { return '<tr><td>' + a.pack + '</td><td>' + a.name + '</td><td>' + a.peakDb.toFixed(1) + '</td><td>' + a.rmsDb.toFixed(1) + '</td><td>' + a.loudDb.toFixed(1) + '</td><td>' + a.dur.toFixed(2) + '</td><td class="' + (a.issues.length ? 'bad' : 'ok') + '">' + (a.issues.join('; ') || 'ok') + '</td></tr>'; }).join('') + '</table>';
+    $('report').innerHTML = '<p class="' + (fail.length ? 'bad' : 'ok') + '">' + (fail.length ? fail.length + ' problems' : 'all ' + all.length + ' renders pass') + '</p>' + html;
+    return { rows: all.map(function (a) { return { pack: a.pack, name: a.name, peakDb: +a.peakDb.toFixed(1), rmsDb: +a.rmsDb.toFixed(1), loudDb: +a.loudDb.toFixed(1), dur: +a.dur.toFixed(2), issues: a.issues }; }), fail: fail };
+  };
+  $('check').onclick = function () { runCheck(); };
+})();
+</script>
+</body>
+</html>

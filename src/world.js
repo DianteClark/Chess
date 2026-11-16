@@ -105,14 +105,14 @@ class VariantBoard {
   }
   drawPockets() {
     const st = this.state || {}; const pk = st.pockets;
-    for (const el of [this.pocketTop, this.pocketBot]) { el.innerHTML = ''; el.style.display = pk ? '' : 'none'; }
+    for (const el of [this.pocketTop, this.pocketBot]) { el.innerHTML = ''; el.classList.remove('empty'); el.style.display = pk ? '' : 'none'; }
     if (!pk) return;
     if (this.opts.hideEmptyPockets && !['w', 'b'].some(c => Object.values(pk[c] || {}).some(n => n > 0))) { this.pocketTop.style.display = this.pocketBot.style.display = 'none'; return; }
     const bottom = this.flipped ? 'b' : 'w';
     for (const side of ['w', 'b']) {
       const el = side === bottom ? this.pocketBot : this.pocketTop;
       const hand = pk[side] || {}; const keys = Object.keys(hand).filter(k => hand[k] > 0);
-      if (!keys.length) el.append(h('span', { class: 'vpocket-empty' }, `${sideName(this.v, side)}: no pieces in hand`));
+      if (!keys.length) el.append(h('span', { class: 'vpocket-empty' }, `${sideName(this.v, side)}: no pieces in hand`)); el.classList.add('empty');
       for (const k of keys) {
         const on = this.sel && this.sel.drop === k && side === st.turn;
         const b = h('button', { class: 'vhand' + (on ? ' on' : ''), onclick: () => { if (!this.interactive || side !== st.turn) return; this.sel = on ? null : { drop: k }; this.draw(); } });
@@ -259,16 +259,18 @@ function renderWorldGame(main) {
   let flipped = cur.local ? false : cur.color === 'b'; if (cur.flip) flipped = !flipped;
   const vb = new VariantBoard(cur.v, { flipped, onMove: uci => userMove(uci) });
   const bot = cur.bot ? BOTS[cur.bot - 1] : null;
-  const bar = (side) => h('div', { class: 'pbar' + (g.turn() === side && !cur.over ? ' on' : '') }, bot && side !== cur.color ? avatar(bot.avatar, 34) : avatar(side === cur.color || cur.local ? myAvatar() : 'friend', 34),
-    h('div', { class: 'grow' }, h('div', { class: 'pname' }, bot && side !== cur.color ? `${bot.name} (Level ${cur.bot})` : cur.local ? tr(sideName(cur.v, side)) : profile.name || tr('You')), h('div', { class: 'prating muted' }, cur.local ? tr('Pass & Play') : tr(sideName(cur.v, side)))));
+  const bar = (side) => h('div', { class: 'pbar wbar' + (g.turn() === side && !cur.over ? ' on' : '') }, bot && side !== cur.color ? avatar(bot.avatar, 34) : avatar(side === cur.color || cur.local ? myAvatar() : 'friend', 34),
+    h('div', { class: 'grow row', style: { gap: '8px', alignItems: 'baseline' } }, h('span', { class: 'pname' }, bot && side !== cur.color ? bot.name : cur.local ? tr(sideName(cur.v, side)) : profile.name || tr('You')), h('span', { class: 'prating' }, cur.local ? '' : tr(sideName(cur.v, side)))),
+    g.turn() === side && !cur.over ? h('span', { class: 'wturn' }, thinking && side !== cur.color ? 'thinking...' : 'to move') : null);
   const topSide = flipped ? 'w' : 'b';
   const topBar = h('div'), botBar = h('div');
-  const msg = h('div', { class: 'taskmsg' });
-  const movesEl = h('div', { class: 'moves vmoves' });
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { worldView = { g: cur.v }; render(); } }, icon('back', 18), tr(m.name)), h('div', { class: 'grow' }), h('button', { class: 'btn sm ghost', 'aria-label': tr('Turn board'), onclick: () => { cur.flip = !cur.flip; render(); } }, icon('flip', 18))));
-  main.append(topBar, vb.el, botBar, msg);
-  const ctrl = h('div', { class: 'row controls' });
-  main.append(ctrl, movesEl);
+  const F = focusScreen(main, { title: tr(m.name), sub: cur.local ? 'Pass & Play' : `vs ${bot.name}, level ${cur.bot}`, back: () => { worldView = { g: cur.v }; render(); },
+    right: [h('button', { class: 'fs-back', 'aria-label': 'Turn board', onclick: () => { cur.flip = !cur.flip; render(); } }, icon('flip', 22))] });
+  const msg = h('div', { class: 'fs-msg' });
+  const movesEl = h('div', { class: 'moves vmoves strip' });
+  vb.el.style.setProperty('--ar', vb.files / vb.ranks); if (m.pockets) vb.el.style.setProperty('--pk', '112px');
+  F.stage.classList.add('table'); F.stage.append(topBar, vb.el, botBar);
+  F.below.append(msg, h('div', { class: 'mstrip' }, movesEl));
   let thinking = false;
   const refresh = () => {
     topBar.innerHTML = ''; topBar.append(bar(topSide)); botBar.innerHTML = ''; botBar.append(bar(topSide === 'w' ? 'b' : 'w'));
@@ -276,21 +278,22 @@ function renderWorldGame(main) {
     if (st.over && !cur.over) finish(st);
     const myTurn = !cur.over && (cur.local || g.turn() === cur.color) && !thinking;
     vb.interactive = myTurn; vb.set(vState(g, cur.v), myTurn ? g.legalMoves() : []);
-    msg.className = 'taskmsg' + (cur.over ? ' good' : '');
+    msg.className = 'fs-msg' + (cur.over ? ' good' : '');
     msg.textContent = cur.over ? resultText(cur.over) : thinking ? 'Thinking...' : g.inCheck() ? `Check! ${sideName(cur.v, g.turn())} to move` : `${sideName(cur.v, g.turn())} to move`;
     movesEl.innerHTML = ''; cur.sans = cur.sans || [];
-    cur.sans.forEach((s, i) => movesEl.append(h('span', { class: 'mv' }, (i % 2 === 0 ? (i / 2 + 1) + '. ' : '') + s)));
-    ctrl.innerHTML = '';
+    cur.sans.forEach((s, i) => { if (i % 2 === 0) movesEl.append(h('span', { class: 'n' }, (i / 2 + 1) + '.')); movesEl.append(h('span', { class: 'm' + (i === cur.sans.length - 1 ? ' cur' : '') }, s)); });
+    if (!cur.sans.length) movesEl.append(h('span', { class: 'muted small' }, 'Your move list will appear here'));
     if (!cur.over) {
-      ctrl.append(h('button', { class: 'btn sm grow', disabled: !cur.moves.length || thinking, onclick: () => { const n = cur.local ? 1 : (g.turn() === cur.color ? 2 : 1); for (let i = 0; i < n && cur.moves.length; i++) { cur.moves.pop(); cur.sans.pop(); g.undo(); } cur.undos = (cur.undos || 0) + 1; refresh(); } }, icon('undo', 16), tr('Undo')));
       const pass = myTurn && g.legalMoves().find(mm => isPass(cur.v, mm));
-      if (pass) ctrl.append(h('button', { class: 'btn sm grow', onclick: () => userMove(pass) }, icon('next', 16), tr('Pass')));
-      ctrl.append(h('button', { class: 'btn sm grow', disabled: thinking || !myTurn, onclick: () => hint() }, icon('bulb', 16), tr('Hint')));
-      ctrl.append(h('button', { class: 'btn sm grow', onclick: () => { if (confirmResign()) { cur.over = { result: cur.local ? (g.turn() === 'w' ? '0-1' : '1-0') : cur.color === 'w' ? '0-1' : '1-0', reason: 'resign' }; onOver(); refresh(); } } }, icon('flag', 16), tr('Resign')));
-    } else {
-      ctrl.append(h('button', { class: 'btn sm grow primary', onclick: () => startWorldGame(cur.v, { bot: cur.bot, color: cur.color, local: cur.local }) }, icon('repeat', 16), tr('Play again')));
-      if (cur.moves.length >= 4) ctrl.append(h('button', { class: 'btn sm grow', onclick: () => worldReview(g, cur) }, icon('search', 16), tr('Review')));
-    }
+      F.setActions([
+        { ic: 'undo', label: 'Undo', disabled: !cur.moves.length || thinking, on: () => { const n = cur.local ? 1 : (g.turn() === cur.color ? 2 : 1); for (let i = 0; i < n && cur.moves.length; i++) { cur.moves.pop(); cur.sans.pop(); g.undo(); } cur.undos = (cur.undos || 0) + 1; refresh(); } },
+        pass ? { ic: 'next', label: 'Pass', on: () => userMove(pass) } : null,
+        { ic: 'bulb', label: 'Hint', disabled: thinking || !myTurn, on: () => hint() },
+        { ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', 'End this game?', 'Resign', () => { cur.over = { result: cur.local ? (g.turn() === 'w' ? '0-1' : '1-0') : cur.color === 'w' ? '0-1' : '1-0', reason: 'resign' }; onOver(); refresh(); }) }]);
+    } else F.setActions([
+      cur.moves.length >= 4 ? { ic: 'search', label: 'Review', on: () => worldReview(g, cur) } : null,
+      { ic: 'repeat', label: 'Play again', primary: true, on: () => startWorldGame(cur.v, { bot: cur.bot, color: cur.color, local: cur.local }) }]);
+    movesEl.scrollLeft = movesEl.scrollWidth;
   };
   const confirmResign = () => { try { return window.confirm(tr('Resign this game?')); } catch (e) { return true; } };
   const resultText = o => { const who = o.result === '1/2-1/2' ? null : o.result === '1-0' ? 'w' : 'b'; const why = (({ checkmate: 'checkmate', stalemate: 'stalemate', resign: 'resignation', repetition: 'repetition', 'insufficient-material': 'not enough pieces to win', 'move-rule': 'move limit', 'counting-rule': 'counting rule', 'three-checks': 'three checks', 'king-of-the-hill': 'king reached the hill', 'king-exploded': 'king exploded', 'horde-destroyed': 'the horde is gone', 'no-pieces': 'no pieces left', 'variant-end': 'game over' }[o.reason]) || o.reason || ''); return who ? (why ? `${sideName(cur.v, who)} wins (${why})` : `${sideName(cur.v, who)} wins`) : (why ? `Draw (${why})` : 'Draw'); };
@@ -376,22 +379,27 @@ function worldReview(g0, cur) {
 function renderWorldLesson(main) {
   const id = worldView.g, L = worldView.lesson, steps = L.steps, step = steps[worldView.step];
   const course = WORLD_COURSES[id];
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { worldView = { g: id }; render(); } }, icon('back', 18), tr(worldMeta(id).name)), h('div', { class: 'grow' }, h('h2', null, tr(L.title)))));
-  main.append(h('div', { class: 'dots' }, steps.map((_, i) => h('i', { class: i < worldView.step ? 'done' : i === worldView.step ? 'on' : '' }))));
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt', html: step.text })));
-  const msg = h('div', { class: 'taskmsg' });
+  if (worldView.step === 0 && !worldView.keepMistakes) worldView.mistakes = 0;
+  const F = focusScreen(main, { title: tr(L.title), sub: tr(worldMeta(id).name), back: () => { worldView = { g: id }; render(); }, progress: [worldView.step, steps.length] });
+  const bubble = hootSays(step.text, step.type === 'text' ? 'talk' : 'idle'); F.above.append(bubble);
+  const hootW = bubble.querySelector('.who').firstChild, react = m => { if (typeof hootReact === 'function') hootReact(hootW, m); };
+  const msg = h('div', { class: 'fs-msg' });
   let complete = step.type === 'text';
-  const nextBtn = h('button', { class: 'btn primary grow', disabled: !complete, onclick: () => {
-    if (worldView.step < steps.length - 1) { worldView.step++; render(); window.scrollTo(0, 0); return; }
-    const wp = worldPrefs(), key = id + '/' + L.id, first = !wp.lessons[key]; wp.lessons[key] = 1; saveProfile(); beep('win');
-    if (first) setTimeout(() => { rewardEvent('lesson'); if (course.lessons.every(x => wp.lessons[id + '/' + x.id])) rewardEvent('course'); }, 900);
+  const isLast = worldView.step >= steps.length - 1;
+  const advance = () => {
+    if (!isLast) { worldView.step++; worldView.keepMistakes = true; render(); return; }
+    const wp = worldPrefs(), key = id + '/' + L.id, first = !wp.lessons[key]; wp.lessons[key] = 1;
+    const stars = !worldView.mistakes ? 3 : worldView.mistakes <= 2 ? 2 : 1; wp.stars = wp.stars || {}; wp.stars[key] = Math.max(wp.stars[key] || 0, stars); saveProfile();
+    if (first) { rewardEvent('lesson'); if (course.lessons.every(x => wp.lessons[id + '/' + x.id])) rewardEvent('course'); }
     const nxt = course.lessons[course.lessons.indexOf(L) + 1];
-    modal((box, close) => box.append(badge('learn', 'gold'), h('h2', { class: 'center' }, tr('Lesson complete!')), h('p', { class: 'center muted' }, tr(L.title)),
-      h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); worldView = { g: id }; render(); } }, tr('All lessons')),
-        nxt ? h('button', { class: 'btn primary grow', onclick: () => { close(); worldView = { g: id, lesson: nxt, step: 0 }; render(); window.scrollTo(0, 0); } }, tr('Next lesson'))
-          : h('button', { class: 'btn primary grow', onclick: () => { close(); startWorldGame(id, { bot: 1, color: 'w' }); } }, tr("Let's play!")))));
-  } }, worldView.step < steps.length - 1 ? tr('Next') : tr('Finish'), icon(worldView.step < steps.length - 1 ? 'next' : 'check', 18));
-  const finishTask = text => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = tr(text || 'Great job!'); beep('win'); haptic([8, 30, 8]); };
+    showLessonResults({ title: 'Lesson complete!', subtitle: tr(L.title), stars, firstTime: first, next: () => { if (nxt) { worldView = { g: id, lesson: nxt, step: 0 }; render(); } else startWorldGame(id, { bot: 1, color: 'w' }); }, nextLabel: nxt ? 'Next lesson' : "Let's play!", done: () => { worldView = { g: id }; render(); } });
+  };
+  let restartAct = null;
+  const navActions = () => F.setActions([worldView.step > 0 ? { ic: 'back', label: 'Back', on: () => { worldView.step--; worldView.keepMistakes = true; render(); } } : null, restartAct,
+    { ic: isLast ? 'check' : 'next', label: isLast ? 'Finish' : 'Next', primary: true, disabled: !complete, on: advance }]);
+  const nextBtn = { set disabled(v) { navActions(); } };
+  const finishTask = text => { complete = true; nextBtn.disabled = false; msg.className = 'fs-msg good'; msg.textContent = tr(text || 'Great job!'); beep('correct'); react('cheer'); haptic([8, 30, 8]); };
+  const missTask = () => { worldView.mistakes = (worldView.mistakes || 0) + 1; react('sad'); haptic(20); };
   { // every step shows a board: its own position, or the starting position for general explanations
     const g = step.fen ? new VGame(id, step.fen) : new VGame(id);
     const side = step.side || g.turn();
@@ -403,9 +411,9 @@ function renderWorldLesson(main) {
       if (step.type === 'goal') {
         const ok = goalMet(step, g, uci);
         if (ok) { g.play(uci); show(); finishTask(step.success); }
-        else { const r = g.play(uci); show(); msg.className = 'taskmsg bad'; msg.textContent = tr(step.fail || 'Not quite. Try again!'); beep('move'); setTimeout(() => { if (r) g.undo(); show(); }, 900); }
+        else { const r = g.play(uci); show(); msg.className = 'fs-msg bad'; msg.textContent = tr(step.fail || 'Not quite. Try again!'); beep('wrong'); missTask(); setTimeout(() => { if (r) g.undo(); show(); }, 900); }
       } else if (step.type === 'line') {
-        if (uci !== step.moves[k]) { msg.className = 'taskmsg bad'; msg.textContent = tr('Not this time. Look again!'); show(); return; }
+        if (uci !== step.moves[k]) { msg.className = 'fs-msg bad'; msg.textContent = tr('Not this time. Look again!'); beep('wrong'); missTask(); show(); return; }
         g.play(uci); k++; show();
         const reply = () => { if (k < step.moves.length && g.turn() !== side) { const r = g.play(step.moves[k]); k++; beep(r && r.capture ? 'capture' : 'move'); show(); } if (k >= step.moves.length) finishTask(step.success); };
         setTimeout(reply, 450);
@@ -418,10 +426,13 @@ function renderWorldLesson(main) {
     vb.draw = () => { origDraw(); for (const sq of step.marks || []) { const p = vb.pos(sq); if (!p) continue; const cw = 100 / vb.files, ch = 100 / vb.ranks; vb.layer.prepend(h('div', { class: 'vmark lmark', style: { left: (p[0] - cw * .47) + '%', top: (p[1] - ch * .47) + '%', width: cw * .94 + '%', height: ch * .94 + '%' } })); }
       if (step.arrows && step.arrows.length) vb.layer.append(worldArrows(vb, step.arrows)); };
     vb.draw();
-    main.append(vb.el);
-    if (step.type !== 'text') msg.textContent = step.type === 'line' ? tr('Play the moves. The other side will answer.') : tr('Your move!');
+    vb.el.style.setProperty('--ar', vb.files / vb.ranks);
+    if (worldMeta(id).pockets && ['w', 'b'].some(c => Object.values((vState(g, id).pockets || {})[c] || {}).some(n => n > 0))) vb.el.style.setProperty('--pk', '112px');
+    F.stage.append(vb.el);
+    if (step.type !== 'text') { msg.textContent = step.type === 'line' ? tr('Play the moves. The other side will answer.') : tr('Your move!'); restartAct = { ic: 'undo', label: 'Restart', on: () => { worldView.keepMistakes = true; render(); } }; }
   }
-  main.append(msg, h('div', { class: 'row' }, worldView.step > 0 ? h('button', { class: 'btn', onclick: () => { worldView.step--; render(); } }, icon('back', 18)) : null, nextBtn));
+  F.below.append(msg);
+  navActions();
 }
 function goalMet(step, g, uci) {
   if (step.goal === 'move' || !step.goal) return (step.moves || []).includes(uci);

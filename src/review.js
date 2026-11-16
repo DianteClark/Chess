@@ -292,18 +292,28 @@ function finalizeReview(R) {
   R.summary = coachSummary(R);
   R.opening = R.startFen === START_FEN ? openingName(R.uciMoves) : 'Chess960';
   R.done = true;
-  // save for insights + rewards
+  // save for insights. The XP reward waits until the player reaches the end of the review (see rvFinish):
+  // nothing pops up while the game is being studied or stepped through.
   const side = R.color || 'w';
   profile.reviews = profile.reviews || [];
   const key = R.uciMoves.join('');
-  if (!profile.reviews.some(r => r.key === key)) {
+  let entry = profile.reviews.find(r => r.key === key);
+  if (!entry) {
     const cnt = {}; R.moves.filter(m => m.side === side).forEach(m => cnt[m.cls] = (cnt[m.cls] || 0) + 1);
-    profile.reviews.unshift({ key, t: Date.now(), color: side, acc: R.acc[side], phase: R.phaseAcc[side], cnt, opening: R.opening, hangs: R.moves.filter(m => m.side === side && m.leftHanging && ['mistake', 'blunder'].includes(m.cls)).length, missed: R.moves.filter(m => m.side === side && (m.cls === 'miss' || m.bestWasCapture)).length, moves: R.uciMoves.length, opp: R.oppName, result: R.src.result || null });
+    entry = { key, t: Date.now(), color: side, acc: R.acc[side], phase: R.phaseAcc[side], cnt, opening: R.opening, hangs: R.moves.filter(m => m.side === side && m.leftHanging && ['mistake', 'blunder'].includes(m.cls)).length, missed: R.moves.filter(m => m.side === side && (m.cls === 'miss' || m.bestWasCapture)).length, moves: R.uciMoves.length, opp: R.oppName, result: R.src.result || null, rw: 0 };
+    profile.reviews.unshift(entry);
     profile.reviews = profile.reviews.slice(0, 60);
     saveProfile();
-    setTimeout(() => rewardEvent('review', { acc: R.acc[side] || 0, moves: Math.ceil(R.uciMoves.length / 2), brilliants: R.moves.filter(m => m.side === side && m.cls === 'brilliant').length }), 800);
   }
+  R.entry = entry; // rw: 0 = reward still owed (older saved reviews have no rw and were rewarded already)
   if (reviewProgressHook) reviewProgressHook(true);
+}
+// the review counts as done when the player reaches the end card: only then are XP, quests and achievements granted
+function rvFinish(R) {
+  const e = R.entry; if (!e || e.rw !== 0 || R.rewarded) return;
+  R.rewarded = true; e.rw = 1; saveProfile();
+  const side = R.color || 'w';
+  setTimeout(() => rewardEvent('review', { acc: R.acc[side] || 0, moves: Math.ceil(R.uciMoves.length / 2), brilliants: R.moves.filter(m => m.side === side && m.cls === 'brilliant').length }), 800);
 }
 
 // ---------- review screen ----------
@@ -325,62 +335,240 @@ function evalGraph(R, onPick) {
   el.setCursor = k => { const line = el.querySelector('.cur'); const x = (k / Math.max(1, n - 1) * W).toFixed(1); line.setAttribute('x1', x); line.setAttribute('x2', x); };
   return el;
 }
+// Review screen: one phone screen, no scrolling. Flow: analyzing -> summary sheet -> step through the game
+// from move 1 (Hoot explains each move) -> end card (the moment the review counts as done).
+const RV_BAD = ['inaccuracy', 'mistake', 'blunder', 'miss'];
+const RV_STOP = ['mistake', 'blunder', 'miss', 'brilliant']; // autoplay pauses here so Hoot can explain
+const RV_KEY = ['mistake', 'blunder', 'miss', 'brilliant', 'great'];
+function rvMood(cls) { return { brilliant: 'wow', great: 'cheer', best: 'happy', excellent: 'happy', good: 'talk', book: 'talk', inaccuracy: 'think', mistake: 'sad', miss: 'sad', blunder: 'sad' }[cls] || 'talk'; }
+function rvSvg(kind, size = 22) {
+  const d = kind === 'pause' ? '<rect x="6" y="5" width="4.2" height="14" rx="1.4"/><rect x="13.8" y="5" width="4.2" height="14" rx="1.4"/>' : '<path d="M8 5.2v13.6a1 1 0 0 0 1.5.86l11-6.8a1 1 0 0 0 0-1.72l-11-6.8A1 1 0 0 0 8 5.2z"/>';
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('width', size); s.setAttribute('height', size); s.setAttribute('fill', 'currentColor'); s.setAttribute('class', 'icn'); s.innerHTML = d;
+  return s;
+}
+function rvMoveNo(ply) { return `${Math.floor((ply - 1) / 2) + 1}${(ply - 1) % 2 ? '...' : '.'}`; }
 function renderReview(main) {
   const R = REV;
   if (!R) { route = 'play'; return render(); }
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { REV = null; route = R.back || 'play'; render(); } }, icon('back', 18), 'Done'), h('h2', { class: 'grow' }, 'Game Review'), h('span', { class: 'pill' }, R.done ? engineName() : 'analyzing')));
+  const exit = () => { REV = null; route = R.back || 'play'; render(); };
+  const side = R.color || 'w', N = R.uciMoves.length;
+  const wName = R.src.white || 'White', bName = R.src.black || 'Black';
+  const board = new BoardView({ orient: R.orient || side });
+  const flipBtn = h('button', { class: 'fs-back', 'aria-label': 'Flip board', onclick: () => { haptic(6); board.flip(); R.orient = board.orient; } }, icon('flip', 22));
+  const F = focusScreen(main, { title: 'Game Review', sub: `${wName} vs ${bName}`, back: exit, right: [flipBtn] });
+  F.root.classList.add('rv');
+  F.stage.append(board.el);
+  // our own action buttons (same look as setActions) so they can update in place and make move sounds
+  const btn = (ic, label, on, cls = '') => { const b = h('button', { class: 'fs-btn ' + cls, 'aria-label': label, onclick: e => { haptic(cls.includes('primary') ? 10 : 6); on(e); } }, typeof ic === 'string' ? icon(ic, cls.includes('primary') ? 20 : 22) : ic, h('span', null, label)); return b; };
+  const say = (nodes, mood) => {
+    const b = hootSays('', mood); b.classList.add('rv-say');
+    const t = b.querySelector('.txt'); t.append(...[].concat(nodes).filter(x => x != null)); F.above.replaceChildren(b);
+    // long text scrolls inside the bubble: fade the bottom edge while there is more to read
+    const more = () => t.classList.toggle('more', t.scrollHeight - t.scrollTop - t.clientHeight > 2);
+    t.addEventListener('scroll', more, { passive: true }); requestAnimationFrame(more);
+    return b;
+  };
+
+  // ---------- 1. analyzing ----------
   if (!R.done) {
-    const bar = h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(R.progress * 100) + '%' } }));
-    const txt = h('div', { class: 'small muted center' }, 'Professor Hoot is studying your game…');
-    main.append(h('div', { class: 'card stack center' }, hoot(64), txt, bar));
-    reviewProgressHook = (doneNow) => { if (doneNow) { reviewProgressHook = null; render(); return; } bar.firstChild.style.width = Math.round(R.progress * 100) + '%'; txt.textContent = `Professor Hoot is studying your game… ${Math.round(R.progress * 100)}%`; };
-    cleanups.push(() => { reviewProgressHook = (d) => { if (d && route === 'review') render(); }; });
+    F.root.classList.add('rv-busy');
+    say([h('b', null, 'Studying your game...'), ' ', 'I am checking every move with the engine. Your summary appears in a moment.'], 'think');
+    const cur = h('b', null, '0'), pct = h('b', { class: 'rv-pct' }, '0%'), fill = h('div');
+    F.below.append(h('div', { class: 'rv-prog' },
+      h('div', { class: 'rv-prog-top' }, h('span', null, 'Move ', cur, ' of ' + N), pct),
+      h('div', { class: 'rv-prog-bar' }, fill), h('small', null, 'Analyzing with ' + engineName())));
+    const wait = btn('sparkle', 'Analyzing...', () => { }, 'primary wide'); wait.disabled = true;
+    F.actions.append(wait);
+    const scan = h('div', { class: 'rv-scan' }); board.el.append(scan);
+    let shown = -1;
+    const upd = () => {
+      const k = R.pos.length, p = Math.round(R.progress * 100);
+      cur.textContent = String(Math.min(N, Math.max(0, k - 1))); pct.textContent = p + '%'; fill.style.width = p + '%';
+      const ply = Math.min(N, Math.max(0, k - 1));
+      if (ply !== shown) { shown = ply; board.lastKey = undefined; board.set(new Game(R.startFen, R.uciMoves.slice(0, ply)).viewState()); }
+    };
+    upd();
+    reviewProgressHook = (doneNow) => { if (doneNow) { reviewProgressHook = null; if (route === 'review' && REV === R) render(); return; } upd(); };
+    cleanups.push(() => { reviewProgressHook = (d) => { if (d && route === 'review' && REV === R) render(); }; });
     return;
   }
-  const side = R.color || 'w';
-  // summary card
-  const accBox = (s, label) => h('div', { class: 'accbox' + (s === side ? ' mine' : '') }, h('div', { class: 'accv' }, R.acc[s] != null ? Math.round(R.acc[s]) + '%' : '-'), h('div', { class: 'small muted' }, label));
-  const counts = h('table', { class: 'tbl ctbl' }, CLASS_ORDER.map(k => { const cw = R.moves.filter(m => m.side === 'w' && m.cls === k).length, cb = R.moves.filter(m => m.side === 'b' && m.cls === k).length; return h('tr', null, h('td', null, cw), h('td', null, classBadge(k), ' ', CLASSES[k].label), h('td', null, cb)); }));
-  main.append(h('div', { class: 'card stack' },
-    h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(52)), h('div', { class: 'txt' }, h('b', null, R.summary.headline), ' ', R.opening ? `Opening: ${R.opening}.` : '')),
-    h('div', { class: 'row', style: { justifyContent: 'space-around' } }, accBox('w', R.color === 'w' ? 'Your accuracy' : `${R.src.white || 'White'} accuracy`), accBox('b', R.color === 'b' ? 'Your accuracy' : `${R.src.black || 'Black'} accuracy`)),
-    counts));
-  main.append(h('div', { class: 'card stack' }, h('b', null, "Coach's advice"), h('ul', { class: 'tips' }, R.summary.tips.map(t => h('li', null, t))),
-    R.key.length ? h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '6px' } }, h('span', { class: 'small muted' }, 'Key moments:'), R.key.map(k => h('button', { class: 'btn sm', onclick: () => go2(k + 1) }, `${Math.floor(k / 2) + 1}${k % 2 ? '...' : '.'} ${R.moves[k].san}`))) : null));
-  // board + coach
-  let ply = 0;
-  const graph = evalGraph(R, k => go2(k));
-  const board = new BoardView({ orient: side });
-  const coach = h('div', { class: 'txt' });
-  const head = h('div', { class: 'revhead' });
-  const actions = h('div', { class: 'row' });
-  const movesEl = h('div', { class: 'moves revmoves' });
-  main.append(graph, board.el, head, h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(48)), coach), actions,
-    h('div', { class: 'nav' }, h('button', { class: 'btn sm', onclick: () => go2(0) }, icon('first', 20)), h('button', { class: 'btn sm', onclick: () => go2(ply - 1) }, icon('prev', 20)), h('button', { class: 'btn sm', onclick: () => go2(ply + 1) }, icon('next', 20)), h('button', { class: 'btn sm', onclick: () => go2(R.uciMoves.length) }, icon('last', 20))),
-    movesEl);
-  R.moves.forEach((m, i) => { if (i % 2 === 0) movesEl.append(h('span', { class: 'n' }, (i / 2 + 1) + '.')); movesEl.append(h('span', { class: 'm', 'data-i': i + 1, onclick: () => go2(i + 1) }, m.san, ' ', classBadge(m.cls, 14))); });
+  if (R.view == null) { R.view = 'summary'; R.ply = 0; }
+  const moveCls = ply => ply > 0 ? R.moves[ply - 1].cls : null;
+
+  // ---------- below: thin eval graph + one-line move strip ----------
+  const n1 = Math.max(1, N);
+  const yOf = cp => (100 - winPct(Math.max(-1500, Math.min(1500, cp)))).toFixed(1);
+  let dPath = `M0 50`; R.evals.forEach((e, k) => { dPath += ` L${(k / n1 * 100).toFixed(2)} ${yOf(e)}`; });
+  const mkGraph = cls => {
+    const el = h('div', { class: 'rv-graph ' + cls, role: 'slider', 'aria-label': 'Evaluation graph, tap to jump', 'aria-valuemin': 0, 'aria-valuemax': N });
+    el.innerHTML = `<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="${dPath} L100 100 L0 100 Z" fill="#f3efe4"/><line x1="0" x2="100" y1="50" y2="50" stroke="rgba(120,110,100,.6)" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/></svg>`;
+    R.moves.forEach(m => { if (RV_KEY.includes(m.cls)) el.append(h('i', { class: 'rv-gm', style: { left: ((m.i + 1) / n1 * 100) + '%', top: yOf(R.evals[m.i + 1]) + '%', background: CLASSES[m.cls].color } })); });
+    return el;
+  };
+  const graph = mkGraph('');
+  const gcur = h('div', { class: 'rv-gcur' }); graph.append(gcur);
+  let scrub = false;
+  const pick = e => { const r = graph.getBoundingClientRect(); jump(Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * N)); };
+  graph.addEventListener('pointerdown', e => { scrub = true; try { graph.setPointerCapture(e.pointerId); } catch (_) { } pick(e); });
+  graph.addEventListener('pointermove', e => { if (scrub) pick(e); });
+  graph.addEventListener('pointerup', () => { scrub = false; });
+  graph.addEventListener('pointercancel', () => { scrub = false; });
+  const strip = h('div', { class: 'rv-strip revmoves' });
+  R.moves.forEach((m, i) => strip.append(h('button', { class: 'm', 'data-i': i + 1, onclick: () => jump(i + 1) },
+    i % 2 === 0 ? h('small', null, (i / 2 + 1) + '.') : null, h('i', { class: 'rv-dot', style: { background: CLASSES[m.cls].color } }), m.san)));
+  F.below.append(graph, strip);
+
+  // ---------- actions ----------
+  const playIc = h('span', { class: 'rv-pi' }, rvSvg('play'));
+  const bPrev = btn('prev', 'Back', () => { stopAuto(); go2(R.ply - 1); });
+  const bPlay = btn(playIc, 'Play', () => toggleAuto());
+  const bRetry = btn('repeat', 'Retry', () => { stopAuto(); retryMoment(R, R.ply - 1); }, 'rv-retry');
+  const bKey = btn('target', 'Key move', () => { stopAuto(); const k = nextKey(); if (k >= 0) go2(k); });
+  const bNext = btn('next', 'Next', () => { stopAuto(); if (R.ply >= N) showEnd(); else go2(R.ply + 1); }, 'primary');
+  const stepActs = [bPrev, bPlay, bRetry, bKey, bNext];
+  function nextKey() { for (let i = R.ply; i < N; i++) if (RV_KEY.includes(R.moves[i].cls)) return i + 1; return -1; }
+  function syncActs() {
+    bPrev.disabled = R.ply === 0;
+    bKey.disabled = nextKey() < 0;
+    bRetry.style.display = R.ply > 0 && RV_BAD.includes(moveCls(R.ply)) && R.moves[R.ply - 1].best ? '' : 'none';
+    playIc.replaceChildren(rvSvg(timer ? 'pause' : 'play')); bPlay.lastChild.textContent = timer ? 'Pause' : 'Play'; bPlay.setAttribute('aria-label', timer ? 'Pause' : 'Play');
+    bPlay.classList.toggle('on', !!timer);
+    const end = R.ply >= N;
+    bNext.replaceChildren(icon(end ? 'check' : 'next', 20), h('span', null, end ? 'Finish' : 'Next')); bNext.setAttribute('aria-label', end ? 'Finish' : 'Next');
+  }
+
+  // ---------- autoplay ----------
+  let timer = null;
+  function stopAuto() { if (timer) { clearInterval(timer); timer = null; syncActs(); } }
+  function tick() {
+    if (R.view !== 'step' || R.ply >= N) { stopAuto(); return; }
+    go2(R.ply + 1);
+    if (RV_STOP.includes(moveCls(R.ply)) || R.ply >= N) stopAuto();
+  }
+  function toggleAuto() {
+    if (timer) return stopAuto();
+    if (R.ply >= N) go2(0);
+    timer = setInterval(tick, 1600); syncActs(); tick();
+  }
+  cleanups.push(() => { if (timer) clearInterval(timer); timer = null; });
+
+  // ---------- stepping ----------
   function go2(k) {
-    ply = Math.max(0, Math.min(R.uciMoves.length, k));
+    const prev = R.ply;
+    R.ply = Math.max(0, Math.min(N, k));
+    const ply = R.ply, fwd = ply === prev + 1;
     const g = new Game(R.startFen, R.uciMoves.slice(0, ply));
-    const st = g.viewState(); const arrows = [];
+    const st = g.viewState(), arrows = [];
     const mv = ply > 0 ? R.moves[ply - 1] : null;
     if (mv && mv.best && mv.best !== mv.uci && !['best', 'book', 'great', 'brilliant'].includes(mv.cls)) arrows.push([sqFromName(mv.best.slice(0, 2)), sqFromName(mv.best.slice(2, 4)), '#7cc04a']);
     st.arrows = arrows; st.badge = mv ? { sq: sqFromName(mv.uci.slice(2, 4)), cls: mv.cls } : null;
-    board.set(st);
-    graph.setCursor(ply);
-    head.innerHTML = '';
-    if (mv) head.append(classBadge(mv.cls, 22), h('b', null, `${Math.floor((ply - 1) / 2) + 1}${(ply - 1) % 2 ? '...' : '.'} ${mv.san}`), h('span', { class: 'muted' }, ' ' + clsPhrase(mv.cls)), h('span', { class: 'grow' }), h('span', { class: 'pill' }, fmtEval(R.evals[ply])));
-    else head.append(h('b', null, 'Starting position'), h('span', { class: 'grow' }), h('span', { class: 'pill' }, fmtEval(R.evals[0])));
-    coach.textContent = mv ? coachExplain(R, ply - 1) : `Use the arrows or tap the graph to walk through the game. Green arrows show what the engine would have played.`;
-    actions.innerHTML = '';
-    if (mv && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(mv.cls)) actions.append(h('button', { class: 'btn primary sm grow', onclick: () => retryMoment(R, ply - 1) }, icon('repeat', 16), 'Retry it'));
-    actions.append(h('button', { class: 'btn sm grow', onclick: () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply }) }, icon('search', 16), 'Analyze'));
-    const nextBad = R.moves.findIndex((m, i) => i >= ply && m.side === side && ['mistake', 'blunder', 'miss'].includes(m.cls));
-    if (nextBad >= 0) actions.append(h('button', { class: 'btn sm grow', onclick: () => go2(nextBad + 1) }, 'Next mistake', icon('next', 16)));
-    movesEl.querySelectorAll('.m').forEach(e => e.classList.toggle('cur', +e.dataset.i === ply));
-    const cur = movesEl.querySelector('.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+    if (!fwd) board.lastKey = undefined; // no landing bounce or buzz when jumping around
+    const captured = fwd && st.last && R.pos[prev] && new E.Position(R.pos[prev].fen).board[st.last[1]];
+    board.set(st, fwd && st.last ? st.last : undefined);
+    if (fwd && st.last) beep(st.check >= 0 ? 'check' : captured ? 'capture' : 'move'); else if (ply !== prev && prev >= 0) beep('tap');
+    // Hoot explains the move
+    const head = mv
+      ? h('div', { class: 'rv-mh' }, classBadge(mv.cls, 22), h('b', null, `${rvMoveNo(ply)} ${mv.san}`), h('span', { class: 'rv-cl' }, CLASSES[mv.cls].label), h('span', { class: 'rv-ev' + (R.evals[ply] < 0 ? ' neg' : '') }, fmtEval(R.evals[ply])))
+      : h('div', { class: 'rv-mh' }, h('b', null, 'Starting position'), h('span', { class: 'rv-ev' }, fmtEval(R.evals[0])));
+    const body = mv ? coachExplain(R, ply - 1) : 'Tap Next or swipe the board. I will explain every move, and green arrows show the engine\'s choice.';
+    say([head, h('div', { class: 'rv-body' }, body)], mv ? rvMood(mv.cls) : 'talk');
+    // graph cursor + strip
+    gcur.style.left = (ply / n1 * 100) + '%'; graph.setAttribute('aria-valuenow', ply);
+    strip.querySelectorAll('.m.cur').forEach(e => e.classList.remove('cur'));
+    const cur = strip.querySelector(`.m[data-i="${ply}"]`);
+    if (cur) { cur.classList.add('cur'); strip.scrollTo({ left: cur.offsetLeft - strip.clientWidth / 2 + cur.offsetWidth / 2, behavior: Math.abs(ply - prev) > 6 ? 'auto' : 'smooth' }); }
+    else strip.scrollTo({ left: 0 });
+    syncActs();
   }
-  go2(R.key.length ? R.key[0] + 1 : 0);
+  function jump(k) { stopAuto(); if (R.view !== 'step') startReview(k); else go2(k); }
+
+  // swipe the board to step, arrows on a keyboard
+  let sw = null;
+  F.stage.addEventListener('pointerdown', e => { sw = R.view === 'step' ? { x: e.clientX, y: e.clientY } : null; });
+  F.stage.addEventListener('pointerup', e => {
+    if (!sw) return; const dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+    stopAuto(); if (dx < 0) { if (R.ply >= N) showEnd(); else go2(R.ply + 1); } else go2(R.ply - 1);
+  });
+  F.stage.addEventListener('pointercancel', () => { sw = null; });
+  const onKey = e => {
+    if (route !== 'review' || REV !== R || document.querySelector('.modal-bg,.celebrate') || e.target.closest && e.target.closest('input,textarea')) return;
+    if (R.view === 'step') {
+      const k = { ArrowRight: R.ply + 1, ArrowLeft: R.ply - 1, Home: 0, End: N, ArrowUp: 0, ArrowDown: N }[e.key];
+      if (k != null) { e.preventDefault(); stopAuto(); if (e.key === 'ArrowRight' && R.ply >= N) showEnd(); else go2(k); }
+      else if (e.key === ' ') { e.preventDefault(); toggleAuto(); }
+    } else if (R.view === 'summary' && (e.key === 'Enter' || e.key === 'ArrowRight')) { e.preventDefault(); startReview(0); }
+  };
+  document.addEventListener('keydown', onKey);
+  cleanups.push(() => document.removeEventListener('keydown', onKey));
+
+  // ---------- sheets over the board: summary + end card ----------
+  let sheet = null;
+  const closeSheet = () => { const s = sheet; sheet = null; if (!s) return; s.classList.add('out'); setTimeout(() => s.remove(), 320); };
+  const openSheet = el => { if (sheet) sheet.remove(); sheet = el; F.stage.append(el); };
+  function setMode(mode) { F.root.classList.remove('rv-m-summary', 'rv-m-step', 'rv-m-end'); F.root.classList.add('rv-m-' + mode); }
+  const accCard = s => {
+    const v = h('b', { class: 'accv' }, '0');
+    const acc = R.acc[s];
+    if (acc == null) v.textContent = '-';
+    else if (typeof countUp === 'function') countUp(v, 0, Math.round(acc * 10), 1100, x => (x / 10).toFixed(1));
+    else v.textContent = acc.toFixed(1);
+    return h('div', { class: 'rv-acc ' + s + (R.color === s ? ' mine' : '') },
+      h('img', { class: 'rv-pc', src: PIECE_URL[s + 'k'], alt: '' }),
+      h('div', { class: 'rv-accn' }, h('span', null, s === 'w' ? wName : bName), h('small', null, R.color === s ? 'Your accuracy' : 'Accuracy')),
+      h('div', { class: 'rv-accv' }, v, h('i', null, '%')));
+  };
+  function showSummary() {
+    R.view = 'summary'; setMode('summary'); stopAuto();
+    const acc = R.acc[side] || 0;
+    say([h('b', null, R.summary.headline)], acc >= 85 ? 'cheer' : acc >= 70 ? 'happy' : 'talk');
+    const cls = CLASS_ORDER.filter(k => R.moves.some(m => m.cls === k));
+    const counts = h('div', { class: 'rv-counts' }, cls.map(k => {
+      const cw = R.moves.filter(m => m.side === 'w' && m.cls === k).length, cb = R.moves.filter(m => m.side === 'b' && m.cls === k).length;
+      return h('div', { class: 'rv-cnt' }, h('b', { class: 'w' + (cw ? '' : ' z') }, cw), classBadge(k, 20), h('span', { class: 'rv-cn' }, CLASSES[k].label), h('b', { class: 'b' + (cb ? '' : ' z') }, cb));
+    }));
+    const keys = R.moves.map((m, i) => [m, i]).filter(([m, i]) => RV_KEY.includes(m.cls) || R.key.includes(i)).slice(0, 8);
+    openSheet(h('div', { class: 'rv-sheet rv-sum' },
+      h('div', { class: 'rv-accs' }, accCard('w'), accCard('b')),
+      h('div', { class: 'rv-open' }, icon('book', 18), h('span', null, R.opening || 'Opening'), h('small', null, `${Math.ceil(N / 2)} moves`)),
+      counts,
+      N > 1 ? h('div', { class: 'rv-keys' }, h('div', { class: 'rv-lbl' }, 'Game flow'), (() => { const g = mkGraph('rv-flow'); g.addEventListener('click', e => { const r = g.getBoundingClientRect(); startReview(Math.round(Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * N)); }); return g; })()) : null,
+      keys.length ? h('div', { class: 'rv-keys' }, h('div', { class: 'rv-lbl' }, 'Key moments'),
+        h('div', { class: 'rv-chips' }, keys.map(([m, i]) => h('button', { class: 'rv-chip', onclick: () => { haptic(6); beep('tap'); startReview(i + 1); } }, classBadge(m.cls, 18), h('b', null, `${rvMoveNo(i + 1)} ${m.san}`))))) : null));
+    const startBtn = btn('play', 'Start review', () => { beep('confirm'); startReview(0); }, 'primary wide');
+    F.actions.replaceChildren(startBtn);
+    board.lastKey = undefined; board.set(new Game(R.startFen).viewState());
+  }
+  function startReview(at) {
+    R.view = 'step'; setMode('step'); closeSheet();
+    F.actions.replaceChildren(...stepActs);
+    R.ply = -1; go2(at);
+  }
+  function showEnd() {
+    stopAuto(); R.view = 'end'; setMode('end');
+    const S = R.summary, mine = R.moves.filter(m => m.side === side);
+    const c = k => mine.filter(m => k.includes(m.cls)).length;
+    const acc = R.acc[side];
+    const av = h('b', null, '0');
+    if (acc == null) av.textContent = '-'; else if (typeof countUp === 'function') countUp(av, 0, Math.round(acc * 10), 1000, x => (x / 10).toFixed(1)); else av.textContent = acc.toFixed(1);
+    const stat = (k, n, label) => h('div', { class: 'rv-stat' }, classBadge(k, 22), h('b', null, n), h('small', null, label));
+    say([h('b', null, 'Well done!'), ' ', 'You studied every move. ' + (S.tips.length > 1 ? 'Here is what to work on next.' : 'Here is your takeaway.')], (acc || 0) >= 70 ? 'cheer' : 'happy');
+    openSheet(h('div', { class: 'rv-sheet rv-end' },
+      h('div', { class: 'rv-end-top' }, h('div', { class: 'rv-medal' }, icon('check', 30)),
+        h('div', null, h('div', { class: 'rv-end-t' }, 'Review complete'), h('div', { class: 'rv-end-acc' }, av, h('i', null, '%'), h('small', null, R.color ? 'your accuracy' : 'White accuracy')))),
+      h('div', { class: 'rv-stats' }, stat('best', c(['best', 'great', 'brilliant']), 'Best'), stat('inaccuracy', c(['inaccuracy']), 'Inaccuracies'), stat('mistake', c(['mistake', 'miss']), 'Mistakes'), stat('blunder', c(['blunder']), 'Blunders')),
+      h('div', { class: 'rv-lbl' }, 'What to practice'),
+      h('ul', { class: 'rv-tips' }, S.tips.map(t => h('li', null, icon('target', 16), h('span', null, t))))));
+    F.actions.replaceChildren(
+      btn('search', 'Analyze', () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply: N })),
+      btn('repeat', 'Replay', () => startReview(0)),
+      btn('back', 'Back to games', () => exit(), 'primary wide'));
+    rvFinish(R);
+  }
+  if (R.view === 'end') { R.ply = N; go2(N); showEnd(); }
+  else if (R.view === 'step') { const k = R.ply; startReview(k); }
+  else showSummary();
 }
 function clsPhrase(c) { return { brilliant: 'is brilliant', great: 'is a great move', best: 'is the best move', excellent: 'is excellent', good: 'is good', book: 'is a book move', inaccuracy: 'is an inaccuracy', mistake: 'is a mistake', miss: 'is a missed chance', blunder: 'is a blunder' }[c]; }
 function fmtEval(cp) { if (Math.abs(cp) >= 9000) { const n = Math.round((10000 - Math.abs(cp)) / 10); return (cp > 0 ? '' : '-') + 'M' + Math.max(1, Math.ceil(n / 2)); } return (cp > 0 ? '+' : '') + (cp / 100).toFixed(1); }
@@ -390,6 +578,7 @@ function retryMoment(R, i) {
   const good = new Set([mv.best]);
   if (P.lines[1] && P.lines[0] && winPct(P.lines[0].cp) - winPct(P.lines[1].cp) < 3) good.add(P.lines[1].pv[0]);
   modal((box, close) => {
+    box.classList.add('rv-retrybox');
     const g = new Game(P.fen);
     const msg = h('div', { class: 'taskmsg' }, 'Find a better move!');
     let solved = false;

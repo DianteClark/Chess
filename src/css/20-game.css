@@ -1,0 +1,35 @@
+/* ---------- Game screens ---------- */
+.fs .pbar{padding:2px 4px;min-height:44px}
+.fs .pbar .avatar{flex:none}
+.fs .pbar .pname{font-weight:700;max-width:48vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fs .clock{font-size:20px;padding:4px 10px;min-width:74px}
+.mstrip{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.18);border-radius:14px;padding:2px;min-height:40px}
+.mstrip .moves.strip{flex:1;min-width:0;padding:4px 2px;scroll-behavior:smooth}
+.mnav{width:38px;height:36px;border-radius:11px;display:grid;place-items:center;flex:none;color:var(--muted)}
+.mnav:active{background:rgba(255,255,255,.08)}
+.moves .backlive{margin-left:6px;flex:none}
+.moves .pill.opn{flex:none}
+/* Live Coach: one line with Hoot, grows when it has something to say */
+.coachline{display:flex;gap:8px;align-items:flex-start;background:var(--paper);color:var(--ink);border-radius:16px;padding:7px 10px 7px 6px;box-shadow:0 3px 0 #d8c7a2;min-height:54px}
+.coachline .who{flex:none;width:44px;height:44px}
+.coachline .cbody{flex:1;min-width:0}
+.coachline .chead{display:flex;align-items:center;gap:6px;font-size:14px;line-height:1.2}
+.coachline .chead .muted{color:#7a6a55}
+.coachline .ctext{font-size:14px;line-height:1.32;max-height:4.1em;overflow:auto}
+.coachline .ctext:empty{display:none}
+.coachline .cbtns{display:flex;gap:6px;margin-top:6px}
+.coachline .cbtns:empty{display:none}
+.coachline .cbtns .btn{min-height:38px;font-size:14px;padding:6px 10px}
+.coachline.hidden{display:none}
+@media (max-height:700px){.coachline .ctext{max-height:2.7em}.fs .pbar .avatar img{width:32px;height:32px}}
+.resume-card{display:flex;align-items:center;gap:12px;text-align:left;padding:10px 12px;border-radius:var(--r);background:linear-gradient(135deg,#2f6b55,#1f5141);box-shadow:var(--press),inset 0 0 0 2px rgba(239,187,79,.55);animation:bubbleIn .35s cubic-bezier(.2,1.4,.4,1)}
+.resume-card b{display:block;font-family:var(--display);font-weight:400;font-size:19px}
+.resume-card small{color:var(--muted)}
+.resume-card .go{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--brass);color:var(--ink);box-shadow:0 3px 0 var(--brass-dark);flex:none}
+.chatwrap{display:flex;flex-direction:column;gap:4px}
+.chatwrap .chatlog:empty{display:none}
+.lesson-art{display:grid;place-items:center;opacity:.95}
+.fs-stage .lesson-art img,.fs-stage .lesson-art svg{width:min(140px,40cqh);height:auto}
+.wbar{min-height:40px}
+.wturn{font-size:12px;font-weight:700;color:var(--ink);background:var(--brass);border-radius:9px;padding:2px 8px;flex:none}
+.vpocket.empty{min-height:30px !important;padding:2px 10px}

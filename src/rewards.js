@@ -119,6 +119,7 @@ function reqText(req) {
 let rewardQueue = [], rewardShowing = false;
 function grantXP(amount, why) {
   if (!amount) return;
+  if (xpMark == null && !rewardQueue.some(r => r.kind === 'xp')) xpMark = profile.xp || 0;
   const before = levelInfo(profile.xp || 0).lvl;
   profile.xp = (profile.xp || 0) + amount;
   const after = levelInfo(profile.xp).lvl;
@@ -207,7 +208,17 @@ function gameFeats(moves, color, score) {
   if (color && score === 1 && worst <= -5) inc('comebacks');
 }
 function queueReward(r) { rewardQueue.push(r); }
+// Rewards never interrupt a game, lesson, puzzle or review: while a focus screen is up they wait in
+// the queue. Results screens take them with takeRewards(); anything left shows when you are back in a hub.
+let xpMark = null; // XP before the rewards that are waiting
+function takeRewards() {
+  const q = rewardQueue; rewardQueue = [];
+  const xpGain = q.filter(r => r.kind === 'xp').reduce((a, r) => a + r.amount, 0);
+  const from = xpMark != null ? xpMark : (profile.xp || 0) - xpGain; xpMark = null;
+  return { xpFrom: from, xpTo: profile.xp || 0, xpGain, levels: q.filter(r => r.kind === 'level').map(r => r.lvl), unlocks: q.filter(r => r.kind === 'unlock' || r.kind === 'avatar'), achs: q.filter(r => r.kind === 'ach').map(r => r.a), quests: q.filter(r => r.kind === 'quest' || r.kind === 'questsAll'), why: q.filter(r => r.kind === 'xp').map(r => r.why) };
+}
 function flushRewards() {
+  if (typeof focusOn !== 'undefined' && focusOn) return;
   if (rewardShowing || !rewardQueue.length) return;
   // merge xp lines into one toast
   const xp = rewardQueue.filter(r => r.kind === 'xp'), rest = rewardQueue.filter(r => r.kind !== 'xp');
@@ -387,4 +398,19 @@ function celebrateLevel(lvl) {
   const close = () => { if (!ov.isConnected) return; ov.style.opacity = '0'; ov.style.transition = 'opacity .25s'; setTimeout(() => ov.remove(), 260); };
   ov.addEventListener('click', close); setTimeout(close, 4500);
   document.body.append(ov); beep('win'); confetti(1800); haptic(30);
+}
+// The end of anything worth celebrating: results screen with the XP bar, then a chest with whatever
+// was unlocked or earned (boards, piece sets, avatars, trophies), then the button's own action.
+function presentResults(o) {
+  const R = o.rewards || takeRewards();
+  const items = [];
+  for (const u of R.unlocks) {
+    if (u.kind === 'avatar') items.push({ label: u.item.name, sub: 'New avatar', art: avatar(u.item.id, 72) });
+    else { const t = u.item, isBoard = !!t.light; items.push({ label: t.name, sub: isBoard ? 'New board' : 'New piece set', art: isBoard ? `<svg viewBox="0 0 4 4" width="72" height="72">${[0, 1, 2, 3].map(r => [0, 1, 2, 3].map(f => `<rect x="${f}" y="${r}" width="1" height="1" fill="${(r + f) % 2 ? t.dark : t.light}"/>`).join('')).join('')}</svg>` : h('img', { src: PIECE_URL.wn, width: 72, height: 72 }) }); }
+  }
+  for (const a of R.achs) items.push({ label: a.name, sub: `${TIER_NAME[a.tier]} trophy: ${a.desc}`, art: badge(a.icon, ['', 'bronze', 'silver', 'gold'][a.tier] === 'bronze' ? 'red' : ['', 'bronze', 'silver', 'gold'][a.tier] === 'silver' ? 'blue' : 'gold') });
+  const after = fn => () => { if (items.length && typeof chestReveal === 'function') { const list = items.splice(0); chestReveal({ title: list.length > 1 ? 'Rewards!' : 'Reward!', items: list, onDone: () => { if (R.quests.length) { rewardQueue.push(...R.quests); R.quests = []; } fn && fn(); } }); } else { if (R.quests.length) { rewardQueue.push(...R.quests); R.quests = []; } fn && fn(); } };
+  if (typeof resultsScreen !== 'function') { modal((box, close) => box.append(h('h2', { class: 'center' }, o.title), h('p', { class: 'center muted' }, o.subtitle || ''), R.xpGain ? h('p', { class: 'center' }, `+${R.xpGain} XP`) : null, h('div', { class: 'row' }, (o.buttons || []).map(b => h('button', { class: 'btn grow' + (b.primary ? ' primary' : ''), onclick: () => { close(); after(b.on)(); } }, b.label))))); return; }
+  return resultsScreen({ mood: o.mood || 'happy', title: o.title, subtitle: o.subtitle, stats: o.stats || [], stars: o.stars, xp: { from: R.xpFrom, to: R.xpTo, levelInfo },
+    buttons: (o.buttons || []).map(b => ({ label: b.label, primary: b.primary, on: after(b.on) })) });
 }

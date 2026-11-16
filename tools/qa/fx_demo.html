@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Knight Club FX demo</title>
+<link rel="stylesheet" href="../../src/style.css">
+<link rel="stylesheet" href="../../src/css/30-fx.css">
+<style>
+@font-face{font-family:'Lilita One';src:url(../../fonts/lilita-one-latin-400-normal.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'Atkinson Hyperlegible';src:url(../../fonts/atkinson-hyperlegible-latin-400-normal.woff2) format('woff2');font-weight:400}
+@font-face{font-family:'Atkinson Hyperlegible';src:url(../../fonts/atkinson-hyperlegible-latin-700-normal.woff2) format('woff2');font-weight:700}
+body{padding:14px 14px 40px}
+.demo h1{font-size:28px;margin:4px 0 12px}
+.demo h3{margin:18px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.cell{background:rgba(0,0,0,.18);border-radius:14px;display:flex;flex-direction:column;align-items:center;padding:8px 2px 6px;font-size:12px;font-weight:700}
+.cell .kx-hoot{margin:4px 0 6px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btns .btn{min-height:42px;padding:8px 12px;font-size:15px}
+.big{display:flex;justify-content:center;padding:18px 0 6px}
+#log{position:fixed;left:6px;top:50%;font:11px/1.3 monospace;color:#ffe39a;background:rgba(0,0,0,.5);padding:4px 6px;border-radius:6px;z-index:999;pointer-events:none;max-width:60vw}
+.target{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:14px;background:var(--felt-3);font-weight:700}
+.sw{display:grid;grid-template-columns:1fr 1fr;width:100%;height:100%;border-radius:8px;overflow:hidden}
+</style>
+</head>
+<body>
+<div class="demo">
+  <h1>FX kit</h1>
+  <h3>Professor Hoot moods (tap to react)</h3>
+  <div class="grid" id="moods"></div>
+  <div class="big" id="bighoot"></div>
+  <div class="btns" id="moodbtns"></div>
+  <h3>Bursts and juice</h3>
+  <div class="btns" id="burst"></div>
+  <p><span class="target" id="tgt">Target</span></p>
+  <h3>Stars</h3>
+  <div class="btns" id="starbtns"></div>
+  <div class="big" id="starbox"></div>
+  <h3>Big moments</h3>
+  <div class="btns" id="bigbtns"></div>
+</div>
+<div id="log"></div>
+<script>
+// stand-ins for the app's globals (app.js / rewards.js)
+let actx = null; const logEl = () => document.getElementById('log');
+function beep(name) {
+  const L = logEl(); if (L) { L.textContent = 'beep ' + name; }
+  try {
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const t = actx.currentTime;
+    const tone = (f, d, type = 'sine', v = .08, at = 0, sl = 1) => { const o = actx.createOscillator(), g = actx.createGain(); o.type = type; o.frequency.setValueAtTime(f, t + at); if (sl !== 1) o.frequency.exponentialRampToValueAtTime(f * sl, t + at + d); g.gain.setValueAtTime(.0001, t + at); g.gain.exponentialRampToValueAtTime(v, t + at + .01); g.gain.exponentialRampToValueAtTime(.0001, t + at + d); o.connect(g); g.connect(actx.destination); o.start(t + at); o.stop(t + at + d + .05); };
+    ({ tap: () => tone(900, .05, 'triangle'), confirm: () => { tone(660, .1); tone(990, .14, 'sine', .08, .07); }, star: () => tone(1320, .14, 'sine', .1, 0, 1.2),
+      xp: () => tone(1500 + Math.random() * 300, .035, 'triangle', .04), levelup: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, .3, 'triangle', .08, i * .08)),
+      chest: () => { tone(200, .25, 'triangle', .1, 0, 2); [784, 988, 1175, 1568].forEach((f, i) => tone(f, .3, 'sine', .07, .08 + i * .06)); },
+      unlock: () => { tone(880, .12, 'sine', .08); tone(1320, .2, 'sine', .07, .06); }, win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, .45, 'triangle', .06, i * .07)),
+      error: () => tone(220, .2, 'triangle', .1, 0, .8), whoosh: () => tone(300, .25, 'sine', .04, 0, 3) }[name] || (() => { }))();
+  } catch (e) { }
+}
+function haptic(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) { } }
+const xpForLevel = l => 100 + (l - 1) * 60;
+function levelInfo(xp) { let lvl = 1, left = xp; while (left >= xpForLevel(lvl)) { left -= xpForLevel(lvl); lvl++; } return { lvl, cur: left, need: xpForLevel(lvl) }; }
+</script>
+<script src="../../src/icons.js"></script>
+<script src="../../src/fx.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const B = (parent, label, fn) => { const b = document.createElement('button'); b.className = 'btn'; b.textContent = label; b.onclick = fn; $(parent).append(b); return b; };
+const MOODS = ['idle', 'talk', 'happy', 'cheer', 'think', 'sad', 'wow', 'wave'];
+MOODS.forEach(m => { const c = document.createElement('div'); c.className = 'cell'; const hh = hootEl(m, 64); c.append(hh, m); c.onclick = () => hootReact(hh, 'cheer', 1400); $('#moods').append(c); });
+const big = hootEl('idle', 140); $('#bighoot').append(big);
+MOODS.forEach(m => B('#moodbtns', m, () => setHootMood(big, m)));
+B('#moodbtns', 'react: wow', () => hootReact(big, 'wow', 1400));
+const tgt = () => $('#tgt');
+['stars', 'confetti', 'sparks', 'coins', 'xp'].forEach(k => B('#burst', k, () => fxBurst(tgt(), k, k === 'xp' ? { to: $('#bighoot') } : {})));
+B('#burst', '+25 XP', () => fxFloat(tgt(), '+25 XP', 'xp'));
+B('#burst', 'Nice!', () => fxFloat(tgt(), 'Nice!', 'good big'));
+B('#burst', 'shake', () => fxShake(tgt()));
+B('#burst', 'pop', () => fxPop(tgt()));
+B('#burst', 'pulse', () => fxPulse(tgt()));
+[0, 1, 2, 3].forEach(n => B('#starbtns', n + ' stars', () => { $('#starbox').innerHTML = ''; $('#starbox').append(starRating(n, { size: 52 })); }));
+const sw = (a, b) => { const d = document.createElement('div'); d.className = 'sw'; d.innerHTML = `<i style="background:${a}"></i><i style="background:${b}"></i><i style="background:${b}"></i><i style="background:${a}"></i>`; return d; };
+const av = k => { const i = document.createElement('img'); i.src = AVATAR_URL[k]; return i; };
+window.demo = {
+  chest1: () => chestReveal({ title: 'New board unlocked!', items: [{ label: 'Ocean', sub: 'Board theme', art: sw('#dfeaf2', '#5f87a8') }], onDone: () => beep('confirm') }),
+  chest3: () => chestReveal({ title: 'Daily reward', items: [{ label: '+50 XP', sub: 'Bonus', art: iconSvg('star', '#efbb4f') }, { label: 'Meadow', sub: 'Board', art: sw('#eef0d8', '#7d9a5c') }, { label: 'Pip', sub: 'Avatar', art: av('pip') }] }),
+  chest4: () => chestReveal({ title: 'Level 5 rewards', items: [{ label: 'Slate', sub: 'Board', art: sw('#d6d9df', '#6b7383') }, { label: 'Bea', sub: 'Avatar', art: av('bea') }, { label: 'Milo', sub: 'Avatar', art: av('milo') }, { label: 'Gems', sub: 'x3', art: iconSvg('gem', '#9ccfff') }] }),
+  win: () => resultsScreen({ mood: 'cheer', title: 'You won!', subtitle: 'Checkmate in 34 moves against Milo', stats: [{ label: 'Accuracy', value: '87%' }, { label: 'Moves', value: 34 }, { label: 'Best streak', value: 6 }],
+    xp: { from: 60, to: 260, levelInfo }, buttons: [{ label: 'Review', on: () => beep('tap') }, { label: 'Play again', primary: true, on: () => beep('confirm') }] }),
+  lesson: () => resultsScreen({ mood: 'happy', title: 'Lesson complete', subtitle: 'The Knight Fork', stars: 2, stats: [{ label: 'Correct', value: '7/8' }, { label: 'Time', value: '1:42' }],
+    xp: { from: 30, to: 70, levelInfo }, buttons: [{ label: 'Next lesson', primary: true }] }),
+  loss: () => resultsScreen({ mood: 'sad', title: 'Good try!', subtitle: 'Bea won this time. Every game makes you stronger.', stats: [{ label: 'Accuracy', value: '64%' }, { label: 'Moves', value: 41 }],
+    xp: { from: 300, to: 320, levelInfo }, buttons: [{ label: 'Review' }, { label: 'Rematch', primary: true }] }),
+  puzzle: () => resultsScreen({ mood: 'wow', title: 'Puzzle Rush: 23!', subtitle: 'New personal best', stars: 3, stats: [{ label: 'Solved', value: 23 }, { label: 'Best', value: 23 }, { label: 'Rating', value: '1,240' }, { label: 'Streak', value: 9 }],
+    xp: { from: 90, to: 180, levelInfo }, buttons: [{ label: 'Home' }, { label: 'Again', primary: true }] }),
+  wipe: () => screenWipe('center', () => beep('confirm')),
+  wipeL: () => screenWipe('left'),
+};
+for (const k in demo) B('#bigbtns', k, demo[k]);
+</script>
+</body>
+</html>

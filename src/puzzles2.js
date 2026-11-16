@@ -79,17 +79,23 @@ function markDaily(solvedClean) {
 function renderDaily(main) {
   const p = dailyPuzzle(), d = dailyState(), key = todayKey(), status = d.history[key];
   const { side, goal } = puzzlePrompt(p);
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { puzMode = null; render(); } }, icon('back', 18), 'Puzzles'), h('h2', { class: 'grow' }, 'Daily Puzzle')));
-  const banner = h('div', { class: 'banner' }, icon('calendar', 20), h('span', null, `${side} to move: `, h('b', null, goal)), h('span', { class: 'grow' }), h('span', { class: 'pill' }, `Streak ${d.streak}`));
-  const msg = h('div', { class: 'taskmsg' });
+  const F = focusScreen(main, { title: 'Daily Puzzle', sub: new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }), back: () => { puzMode = null; render(); },
+    right: [h('div', { class: 'streak-chip' + (d.streak >= 3 ? ' hot' : '') }, icon('flame', 16), h('b', null, String(d.streak)))] });
+  const banner = h('div', { class: 'banner' }, h('span', { class: 'tomove', style: { background: side === 'White' ? '#fff' : '#222' } }), h('span', null, `${side} to move: `, h('b', null, goal)));
+  const msg = h('div', { class: 'fs-msg' });
   const pb = new PuzzleBoard(p, {
-    onSolved: clean => { beep('win'); pb.board.burst('star'); markDaily(clean); banner.className = 'banner good'; banner.innerHTML = ''; banner.append(icon('check', 20), h('span', null, h('b', null, 'Solved! '), (dailyState().streak === 1 ? `Daily streak: ${dailyState().streak} day. Come back tomorrow for a new one.` : `Daily streak: ${dailyState().streak} days. Come back tomorrow for a new one.`))); msg.textContent = ''; },
-    onWrong: () => { msg.className = 'taskmsg bad'; msg.textContent = 'Not that one. Try again!'; },
-    onProgress: () => { msg.className = 'taskmsg good'; msg.textContent = 'Good move! Keep going…'; },
+    onSolved: clean => {
+      pb.board.burst('star'); haptic([8, 30, 8]); markDaily(clean); rewardEvent('daily'); const st = dailyState();
+      msg.className = 'fs-msg good'; msg.textContent = st.streak === 1 ? 'Solved! Daily streak: 1 day.' : `Solved! Daily streak: ${st.streak} days.`;
+      setTimeout(() => presentResults({ mood: 'cheer', title: 'Daily solved!', subtitle: st.streak === 1 ? 'Daily streak: 1 day' : `Daily streak: ${st.streak} days`, stars: clean ? 3 : 2, stats: [{ label: 'Streak', value: st.streak }, { label: 'Best', value: st.best }], buttons: [{ label: 'Puzzle Den', on: () => { puzMode = null; render(); } }, { label: 'More puzzles', primary: true, on: () => { puzCat = 'rated'; puzState = null; puzMode = 'solve'; render(); } }] }), 700);
+      F.setActions([{ ic: 'next', label: 'More puzzles', primary: true, on: () => { puzCat = 'rated'; puzState = null; puzMode = 'solve'; render(); } }]);
+    },
+    onWrong: () => { msg.className = 'fs-msg bad'; msg.textContent = 'Not that one. Try again!'; beep('wrong'); haptic(25); },
+    onProgress: () => { msg.className = 'fs-msg good'; msg.textContent = 'Good move! Keep going…'; beep('correct'); },
   });
-  main.append(banner, pb.el, msg);
-  if (status) msg.textContent = status === 1 ? 'You already solved today\'s puzzle. Play it again for fun!' : 'You finished today\'s puzzle.';
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => pb.hint() }, icon('bulb', 18), 'Hint'), h('button', { class: 'btn grow', onclick: () => { markDaily(false); pb.playSolution(); } }, icon('eye', 18), 'Solution')));
+  F.above.append(banner); F.stage.append(pb.el); F.below.append(msg);
+  if (status) msg.textContent = status === 1 ? "You already solved today's puzzle. Play it again for fun!" : "You finished today's puzzle.";
+  F.setActions([{ ic: 'bulb', label: 'Hint', on: () => { beep('hint'); pb.hint(); } }, { ic: 'eye', label: 'Solution', on: () => { markDaily(false); pb.playSolution(); } }]);
 }
 
 // ---------- Puzzle Rush ----------
@@ -107,41 +113,42 @@ function rushQueue() {
   }
   return out;
 }
+function rushStart(mode) { rush = { phase: 'play', mode, queue: rushQueue(), i: 0, score: 0, strikes: 0, start: Date.now(), limit: mode === '3min' ? 180000 : mode === '5min' ? 300000 : 0, log: [] }; render(); }
 function renderRush(main) {
   if (!rush || rush.phase === 'menu') {
     main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { puzMode = null; rush = null; render(); } }, icon('back', 18), 'Puzzles'), h('h2', { class: 'grow' }, 'Puzzle Rush')));
-    main.append(h('p', { class: 'muted' }, 'Solve as many puzzles as you can. They start easy and get harder. Three wrong answers and the run is over.'));
-    for (const [mode, title, desc, ic] of [['3min', '3 minutes', 'Race the clock. Three strikes still end the run.', 'clock'], ['5min', '5 minutes', 'A little more time to think.', 'hourglass'], ['survival', 'Survival', 'No clock at all. Only three strikes.', 'shield']])
-      main.append(h('button', { class: 'card lesson', onclick: () => { rush = { phase: 'play', mode, queue: rushQueue(), i: 0, score: 0, strikes: 0, start: Date.now(), limit: mode === '3min' ? 180000 : mode === '5min' ? 300000 : 0, log: [] }; render(); } },
-        h('div', { class: 'ic dark' }, icon(ic, 24)), h('div', null, h('div', { class: 't' }, title), h('div', { class: 'd' }, desc)), h('span', { class: 'ck' }, h('span', { class: 'pill' }, 'Best ' + rushBest(mode)))));
+    main.append(h('div', { class: 'rush-hero' }, icon('bolt', 40), h('p', null, 'Solve as many puzzles as you can. They start easy and get harder. Three wrong answers and the run is over.')));
+    main.append(h('div', { class: 'rush-modes' }, [['3min', '3 minutes', 'Race the clock', 'clock'], ['5min', '5 minutes', 'A little more time', 'hourglass'], ['survival', 'Survival', 'No clock, three strikes', 'shield']].map(([mode, title, desc, ic]) =>
+      h('button', { class: 'rmode', onclick: () => { beep('start'); haptic(12); rushStart(mode); } }, icon(ic, 28), h('b', null, title), h('small', null, desc), h('span', { class: 'pill' }, 'Best ' + rushBest(mode))))));
     return;
   }
   if (rush.phase === 'over') {
     const best = rushBest(rush.mode), isBest = rush.score > best;
     if (isBest) { profile.rushBest[rush.mode] = rush.score; saveProfile(); }
-    if (!rush.rewarded) { rush.rewarded = true; setTimeout(() => rewardEvent('rush', { score: rush.score }), 500); }
-    main.append(badge(isBest ? 'trophy' : 'bolt', isBest ? 'gold' : 'blue'), h('h2', { class: 'center' }, `Score: ${rush.score}`), h('p', { class: 'center muted' }, isBest ? 'New personal best!' : `Personal best: ${best}`));
-    main.append(h('div', { class: 'card' }, h('b', null, 'Your run'), h('div', { class: 'rushlog' }, rush.log.map(x => h('span', { class: 'rl ' + (x.ok ? 'ok' : 'bad') }, String(x.rating))))));
-    main.append(h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { rush = { phase: 'menu' }; render(); } }, 'Modes'), h('button', { class: 'btn primary grow', onclick: () => { const m = rush.mode; rush = { phase: 'play', mode: m, queue: rushQueue(), i: 0, score: 0, strikes: 0, start: Date.now(), limit: m === '3min' ? 180000 : m === '5min' ? 300000 : 0, log: [] }; render(); } }, icon('repeat', 18), 'Play again')));
-    return;
+    if (!rush.rewarded) { rush.rewarded = true; rewardEvent('rush', { score: rush.score }); }
+    rush.phase = 'menu'; rush.lastMode = rush.mode;
+    presentResults({ mood: isBest ? 'cheer' : rush.score >= 8 ? 'happy' : 'talk', title: isBest ? 'New best!' : `Score ${rush.score}`, subtitle: 'Puzzle Rush', stats: [{ label: 'Score', value: rush.score }, { label: 'Best', value: Math.max(best, rush.score) }, { label: 'Top puzzle', value: Math.max(0, ...rush.log.filter(x => x.ok).map(x => x.rating)) }],
+      buttons: [{ label: 'Modes', on: () => render() }, { label: 'Play again', primary: true, on: () => rushStart(rush.lastMode) }] });
+    return renderRush(main);
   }
   const p = rush.queue[rush.i];
   if (!p) { rush.phase = 'over'; render(); return; }
   const { side, goal } = puzzlePrompt(p);
   const timer = h('div', { class: 'clock on' });
   const strikes = h('div', { class: 'strikes' }, [0, 1, 2].map(k => icon('x', 18, k < rush.strikes ? 'hit' : '')));
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Score'), h('div', { style: { fontSize: '30px', fontWeight: 900, lineHeight: 1 } }, rush.score)), strikes, rush.limit ? timer : null));
-  main.append(h('div', { class: 'banner' }, h('span', { class: 'tomove', style: { background: side === 'White' ? '#fff' : '#222' } }), h('span', null, `${side} to move: `, h('b', null, goal))));
+  const F = focusScreen(main, { title: 'Puzzle Rush', sub: { '3min': '3 minutes', '5min': '5 minutes', survival: 'Survival' }[rush.mode], back: () => confirmBox('End this run?', 'Your score so far still counts.', 'End run', () => { rush.phase = 'over'; render(); }), right: [rush.limit ? timer : null].filter(Boolean) });
+  const scoreEl = h('div', { class: 'rush-score' }, h('small', null, 'Score'), h('b', null, String(rush.score)));
+  F.above.append(h('div', { class: 'rush-bar' }, scoreEl, strikes), h('div', { class: 'banner' }, h('span', { class: 'tomove', style: { background: side === 'White' ? '#fff' : '#222' } }), h('span', null, `${side} to move: `, h('b', null, goal))));
   const next = ok => {
     rush.log.push({ rating: p.rating, ok });
-    if (ok) rush.score++; else rush.strikes++;
+    if (ok) { rush.score++; beep('combo', { n: Math.min(rush.score, 12) }); if (typeof fxPop === 'function') fxPop(scoreEl); scoreEl.querySelector('b').textContent = String(rush.score); } else { rush.strikes++; beep('wrong'); haptic(30); if (typeof fxShake === 'function') fxShake(strikes); }
     rush.i++;
     if (rush.strikes >= 3) { rush.phase = 'over'; }
     setTimeout(() => render(), ok ? 350 : 700);
   };
-  const pb = new PuzzleBoard(p, { speed: 280, wrongDelay: 600, onSolved: () => { beep('star'); inc('puzzles'); next(true); }, onWrong: () => { if (!pb.counted) { pb.counted = true; pb.done = true; next(false); } } });
-  main.append(pb.el);
-  main.append(h('button', { class: 'btn block ghost', onclick: () => { rush.phase = 'over'; render(); } }, 'End run'));
+  const pb = new PuzzleBoard(p, { speed: 280, wrongDelay: 600, onSolved: () => { inc('puzzles'); next(true); }, onWrong: () => { if (!pb.counted) { pb.counted = true; pb.done = true; next(false); } } });
+  F.stage.append(pb.el);
+  F.setActions([{ ic: 'flag', label: 'End run', on: () => { rush.phase = 'over'; render(); } }]);
   if (rush.limit) {
     const tick = () => { const left = rush.limit - (Date.now() - rush.start); timer.textContent = clk.fmt(Math.max(0, left)); timer.classList.toggle('low', left < 20000); if (left <= 0 && rush.phase === 'play') { rush.phase = 'over'; render(); } };
     tick(); const iv = setInterval(tick, 100); cleanups.push(() => clearInterval(iv));

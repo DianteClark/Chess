@@ -1,0 +1,141 @@
+/* ---------- Game Review: one screen, summary sheet, stepper, end card ---------- */
+.rv .fs-right .fs-back{width:44px}
+/* Hoot's bubble keeps one fixed height while stepping so the board never jumps; long text scrolls inside it */
+.rv.rv-m-step .rv-say{max-height:100%;min-height:0;align-items:flex-end}
+.rv.rv-m-step .rv-say .txt{max-height:100%;box-sizing:border-box;overscroll-behavior:contain}
+.rv .rv-say .txt{font-size:15.5px;line-height:1.4;padding:9px 12px}
+.rv .rv-say .who{align-self:flex-end}
+.rv .rv-say .txt.more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 26px),rgba(0,0,0,.25));mask-image:linear-gradient(180deg,#000 calc(100% - 26px),rgba(0,0,0,.25))}
+.rv-mh{display:flex;align-items:center;gap:7px;margin-bottom:4px;min-height:24px}
+.rv-mh b{font-family:var(--display);font-weight:400;font-size:18px;letter-spacing:.3px;color:var(--ink)!important;white-space:nowrap}
+.rv-cl{font-weight:700;font-size:13px;color:#7a6a55;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.rv-ev{margin-left:auto;flex:none;font:700 12.5px/1 system-ui,sans-serif;font-variant-numeric:tabular-nums;padding:5px 8px;border-radius:8px;background:#fff;color:#2b2730;box-shadow:inset 0 0 0 1.5px #d8c7a2}
+.rv-ev.neg{background:#2b2730;color:#f3efe4;box-shadow:none}
+.rv-body{color:var(--ink)}
+/* summary + end card hide the strip so the sheet gets the room; the board waits, frosted, behind the sheet */
+.rv .fs-stage>.board-wrap{transition:filter .35s,transform .35s,opacity .35s}
+.rv.rv-m-summary .fs-stage>.board-wrap,.rv.rv-m-end .fs-stage>.board-wrap{filter:blur(4px) saturate(.6) brightness(.6);transform:scale(.94);opacity:0}
+/* while stepping the board takes the full width; Hoot's bubble gets whatever height is left above it */
+.rv.rv-m-step .fs-above{flex:1 1 0;min-height:96px;justify-content:flex-end}
+.rv.rv-m-step .fs-stage{flex:0 1 auto;height:calc(min(100vw,560px) - 6px);min-height:200px}
+.rv.rv-m-summary .fs-below,.rv.rv-m-end .fs-below{display:none}
+
+/* ---------- analysis in progress ---------- */
+.rv-scan{position:absolute;inset:0;z-index:40;pointer-events:none;border-radius:4px;overflow:hidden}
+.rv-scan::after{content:'';position:absolute;left:0;right:0;height:28%;top:-30%;
+  background:linear-gradient(180deg,transparent,rgba(255,227,154,.28) 70%,rgba(255,227,154,.55) 96%,transparent);animation:rvScan 1.8s cubic-bezier(.45,0,.55,1) infinite}
+@keyframes rvScan{to{top:102%}}
+.rv-busy .board-wrap .pieces{filter:saturate(.85)}
+.rv-prog{background:rgba(0,0,0,.22);border-radius:16px;padding:10px 14px 9px;display:flex;flex-direction:column;gap:7px;box-shadow:inset 0 0 0 1px rgba(247,239,221,.06)}
+.rv-prog-top{display:flex;justify-content:space-between;align-items:baseline;font-weight:700;font-size:15px}
+.rv-prog-top b{font-variant-numeric:tabular-nums}
+.rv-pct{font-family:var(--display);font-weight:400;font-size:20px;color:var(--brass-light)}
+.rv-prog-bar{height:10px;border-radius:6px;background:rgba(0,0,0,.35);overflow:hidden}
+.rv-prog-bar>div{height:100%;width:0;border-radius:6px;transition:width .4s cubic-bezier(.2,.9,.3,1);
+  background:linear-gradient(90deg,var(--brass),var(--brass-light),var(--brass));background-size:200% 100%;animation:rvShine 1.4s linear infinite}
+@keyframes rvShine{to{background-position:-200% 0}}
+.rv-prog small{color:var(--muted);font-size:12.5px;font-weight:700}
+
+/* ---------- sheets over the board ---------- */
+.rv-sheet{position:absolute;inset:0;margin:0 0 auto;height:fit-content;max-height:100%;box-sizing:border-box;z-index:60;display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:22px;overflow:auto;overscroll-behavior:contain;
+  background:linear-gradient(180deg,rgba(36,84,65,.9),rgba(22,56,43,.94));box-shadow:inset 0 0 0 1px rgba(247,239,221,.09),0 18px 40px -12px rgba(0,0,0,.6);
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:rvSheetIn .38s cubic-bezier(.2,1.1,.3,1);scrollbar-width:none}
+.rv-sheet::-webkit-scrollbar{display:none}
+.rv-sheet.out{animation:rvSheetOut .3s ease-in forwards;pointer-events:none}
+@keyframes rvSheetIn{from{opacity:0;transform:translateY(26px) scale(.97)}}
+@keyframes rvSheetOut{to{opacity:0;transform:translateY(40px) scale(.96)}}
+.rv-lbl{font-size:11.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+
+/* accuracy cards: white player's card is ivory, black player's is dark */
+.rv-accs{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none}
+.rv-acc{position:relative;border-radius:18px;padding:10px 10px 8px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:7px;row-gap:2px;align-items:center;min-width:0}
+.rv-acc.w{background:linear-gradient(180deg,#fffaf0,#f1e6cc);color:var(--ink);box-shadow:0 3px 0 #cdb98f}
+.rv-acc.b{background:linear-gradient(180deg,#34303a,#24212a);color:var(--ivory);box-shadow:0 3px 0 #111}
+.rv-acc.mine{outline:3px solid var(--brass);outline-offset:-1px}
+.rv-acc.mine::after{content:'YOU';position:absolute;top:-7px;right:10px;font:800 10px/1 system-ui,sans-serif;letter-spacing:1px;padding:3px 6px;border-radius:6px;background:var(--brass);color:#3a2408}
+.rv-pc{width:30px;height:30px;filter:drop-shadow(0 2px 1px rgba(0,0,0,.3))}
+.rv-accn{display:flex;flex-direction:column;min-width:0;line-height:1.15}
+.rv-accn span{font-weight:800;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-accn small{font-size:11.5px;font-weight:700;opacity:.65}
+.rv-accv{grid-column:1/3;display:flex;align-items:baseline;justify-content:center;gap:1px}
+.rv-accv .accv{font-family:var(--display);font-weight:400;font-size:36px;line-height:1.05;font-variant-numeric:tabular-nums}
+.rv-accv i{font-style:normal;font-family:var(--display);font-size:18px;opacity:.6}
+
+.rv-open{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:rgba(0,0,0,.2);flex:none}
+.rv-open .icn{color:var(--brass-light);flex:none}
+.rv-open span{font-family:var(--display);font-size:17px;letter-spacing:.3px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-open small{color:var(--muted);font-weight:700;font-size:12.5px;flex:none}
+
+.rv-counts{display:grid;grid-template-columns:1fr 1fr;gap:5px;flex:none}
+.rv-cnt{display:flex;align-items:center;gap:6px;padding:5px 6px;border-radius:12px;background:rgba(0,0,0,.18);min-width:0}
+.rv-cnt .rv-cn{flex:1;min-width:0;font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv-cnt b{flex:none;min-width:22px;height:22px;border-radius:7px;display:grid;place-items:center;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums}
+.rv-cnt b.w{background:#f7efdd;color:var(--ink)}
+.rv-cnt b.b{background:#2b2730;color:var(--ivory);box-shadow:inset 0 0 0 1px rgba(247,239,221,.15)}
+.rv-cnt b.z{opacity:.32}
+.rv-keys{display:flex;flex-direction:column;gap:6px;flex:none}
+.rv-chips{display:flex;flex-wrap:wrap;gap:6px}
+.rv-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 11px 4px 5px;border-radius:999px;background:var(--card2,rgba(255,255,255,.08));box-shadow:0 3px 0 rgba(0,0,0,.28);font-size:14px;transition:transform .1s}
+.rv-chip:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.28)}
+.rv-chip b{font-weight:800}
+
+/* ---------- below the board: thin eval graph + one-line move strip ---------- */
+.rv-graph{position:relative;height:30px;border-radius:9px;background:#2b2730;overflow:hidden;cursor:pointer;touch-action:none;box-shadow:inset 0 0 0 1px rgba(0,0,0,.4);flex:none}
+.rv-graph svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.rv-graph.rv-flow{height:52px;border-radius:12px}
+.rv-gm{position:absolute;width:7px;height:7px;border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 0 1.5px #1c1a20;pointer-events:none}
+.rv-gcur{position:absolute;top:0;bottom:0;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--brass);box-shadow:0 0 8px var(--brass);transition:left .25s cubic-bezier(.2,.9,.3,1);pointer-events:none}
+.rv-strip{display:flex;gap:4px;overflow-x:auto;overflow-y:hidden;flex:none;scrollbar-width:none;padding:2px 0 3px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent);mask-image:linear-gradient(90deg,transparent,#000 18px,#000 calc(100% - 18px),transparent)}
+.rv-strip::-webkit-scrollbar{display:none}
+.rv-strip .m{flex:none;display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 10px;border-radius:10px;background:rgba(0,0,0,.2);font-weight:700;font-size:14px;color:var(--text);white-space:nowrap;transition:background .15s,color .15s}
+.rv-strip .m:first-child{margin-left:14px} .rv-strip .m:last-child{margin-right:14px}
+.rv-strip .m small{color:var(--muted);font-size:12px;font-weight:700;margin-right:-1px}
+.rv-strip .m.cur{background:var(--ivory);color:var(--ink);box-shadow:0 2px 0 #cdb98f}
+.rv-strip .m.cur small{color:#7a6a55}
+.rv-dot{width:8px;height:8px;border-radius:50%;flex:none;box-shadow:0 0 0 1.5px rgba(0,0,0,.25)}
+
+/* ---------- action buttons ---------- */
+.rv .fs-actions{gap:7px}
+.rv .fs-btn span{white-space:nowrap}
+.rv .fs-btn.primary{flex:1.7}
+.rv .fs-btn.primary.wide{flex:3}
+.rv .fs-btn.on{color:var(--brass-light);box-shadow:0 4px 0 rgba(0,0,0,.28),inset 0 0 0 2px var(--brass)}
+.rv .fs-btn.rv-retry{color:#ffb27a}
+.rv-pi{display:grid;place-items:center;height:22px}
+.rv .fs-btn.primary .icn{color:var(--ink)}
+
+/* ---------- end card ---------- */
+.rv-end-top{display:flex;align-items:center;gap:12px;flex:none}
+.rv-medal{width:58px;height:58px;border-radius:50%;flex:none;display:grid;place-items:center;color:#3a2408;
+  background:radial-gradient(circle at 35% 30%,#fff1c2,var(--brass) 55%,#c88c26);box-shadow:0 4px 0 var(--brass-dark),0 0 26px rgba(255,210,110,.35);animation:rvPop .5s cubic-bezier(.3,1.6,.5,1)}
+.rv-medal .icn{color:#3a2408}
+@keyframes rvPop{from{transform:scale(.3) rotate(-25deg);opacity:0}}
+.rv-end-t{font-family:var(--display);font-size:24px;letter-spacing:.3px;line-height:1.1}
+.rv-end-acc{display:flex;align-items:baseline;gap:2px}
+.rv-end-acc b{font-family:var(--display);font-weight:400;font-size:30px;color:var(--brass-light);font-variant-numeric:tabular-nums}
+.rv-end-acc i{font-style:normal;font-family:var(--display);font-size:16px;color:var(--brass-light);opacity:.7}
+.rv-end-acc small{margin-left:6px;color:var(--muted);font-weight:700;font-size:13px}
+.rv-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;flex:none}
+.rv-stat{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 7px;border-radius:14px;background:rgba(0,0,0,.2);min-width:0}
+.rv-stat b{font-family:var(--display);font-weight:400;font-size:22px;line-height:1}
+.rv-stat small{font-size:11px;font-weight:700;color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rv-tips{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.rv-tips li{display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border-radius:13px;background:rgba(0,0,0,.18);font-size:14px;line-height:1.38}
+.rv-tips li .icn{color:var(--brass-light);flex:none;margin-top:2px}
+
+/* retry modal: board fits small phones */
+.rv-retrybox .board-wrap{width:min(calc(100% - 20px),46vh,46dvh);margin:10px auto}
+
+@media (max-height:700px){
+  .rv .rv-say .txt{font-size:14.5px;padding:8px 11px}
+  .rv-accv .accv{font-size:30px}
+  .rv-acc{padding:8px 8px 6px}
+  .rv-sheet{gap:7px;padding:10px}
+  .rv-cnt{padding:4px 5px}
+  .rv-open{padding:6px 10px}
+  .rv-graph{height:24px} .rv-graph.rv-flow{height:40px}
+  .rv-strip .m{height:30px}
+  .rv-tips li{padding:7px 10px;font-size:13.5px}
+}
+@media (prefers-reduced-motion:reduce){.rv-scan::after,.rv-prog-bar>div{animation:none}.rv-sheet{animation:none}}
