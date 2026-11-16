@@ -16,14 +16,16 @@ function focusScreen(main, opts = {}) {
   const stage = h('div', { class: 'fs-stage' });
   const below = h('div', { class: 'fs-below' });
   const actions = h('div', { class: 'fs-actions' });
-  const root = h('div', { class: 'fs' }, head, prog, above, stage, below, actions);
+  const root = h('main', { class: 'fs' }, head, prog, above, stage, below, actions);
   main.append(root);
   const api = {
     root, head, above, stage, below, actions,
     setTitle(t, sub) { titleEl.innerHTML = ''; titleEl.append(h('b', null, t), sub ? h('small', null, sub) : null); },
     setProgress(done, total) {
-      prog.innerHTML = ''; if (!total) { prog.style.display = 'none'; return; }
+      prog.innerHTML = ''; if (!total) { prog.style.display = 'none'; prog.removeAttribute('role'); return; }
       prog.style.display = '';
+      // screen readers hear "step 3 of 8" instead of a row of dots
+      prog.setAttribute('role', 'progressbar'); prog.setAttribute('aria-valuemin', '0'); prog.setAttribute('aria-valuemax', String(total)); prog.setAttribute('aria-valuenow', String(done));
       if (total <= 14) for (let i = 0; i < total; i++) prog.append(h('i', { class: i < done ? 'done' : i === done ? 'on' : '' }));
       else prog.append(h('div', { class: 'fs-bar' }, h('div', { style: { width: Math.round(done / total * 100) + '%' } })));
     },

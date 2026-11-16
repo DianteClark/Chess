@@ -1,8 +1,9 @@
-// The Me tab: a player card (avatar, name, level, three ratings) and four sections switched in place:
-// Trophies | Style | Stats | Settings. Style lives in rewards.js, Stats in insights.js.
-// meView picks the section: 'trophies', 'style', 'insights' (Stats) or 'settings'; null means Trophies.
+// The Me tab: a player card (framed avatar, name, title, level, three ratings, banner color) and five sections
+// switched in place: Season | Trophies | Style | Stats | Settings. Season lives in daily.js, Style in rewards.js,
+// Stats in insights.js. meView picks the section: 'season', 'trophies', 'style', 'insights' (Stats) or 'settings';
+// null means Trophies.
 'use strict';
-const ME_TABS = [['trophies', 'trophy', 'Trophies'], ['style', 'palette', 'Style'], ['insights', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];
+const ME_TABS = [['season', 'flag', 'Season'], ['trophies', 'trophy', 'Trophies'], ['style', 'palette', 'Style'], ['insights', 'chart', 'Stats'], ['settings', 'gear', 'Settings']];
 const meTabOf = v => ME_TABS.some(t => t[0] === v) ? v : 'trophies';
 function renderMe(main) {
   let tab = meTabOf(meView);
@@ -22,6 +23,7 @@ function renderMe(main) {
     panel.innerHTML = '';
     panel.className = 'me-panel' + (dir ? ' in-' + dir : '');
     if (tab === 'trophies') panel.append(trophyCard());
+    else if (tab === 'season') renderSeason(panel);
     else if (tab === 'style') renderStyle(panel);
     else if (tab === 'insights') renderInsights(panel);
     else meSettings(panel);
@@ -40,29 +42,34 @@ function renderMe(main) {
   requestAnimationFrame(() => tabs.style.setProperty('--top', meTopbarH() + 'px'));
 }
 function meTopbarH() { const t = document.querySelector('.topbar'); return t ? t.offsetHeight : 0; }
+// redraw the player card in place (after a new avatar, frame, title or banner)
+function meRefreshCard() { const old = document.querySelector('.me-card'); if (old) { const n = mePlayerCard(); old.replaceWith(n); n.classList.add('pop'); } }
 
 // ---------- player card ----------
 function mePlayerCard() {
   const li = levelInfo(profile.xp || 0), L = profile.ladder, lg = leagueOf(L.r), pr = profile.puzzle;
   const A = profile.ach || {};
   const best = ACHIEVEMENTS.filter(a => A[a.id]).sort((a, b) => b.tier - a.tier || A[b.id] - A[a.id]).slice(0, 3);
-  const av = h('button', { class: 'me-av', 'aria-label': 'Change avatar', onclick: () => meAvatarSheet() }, avatar(myAvatar(), 76), h('span', { class: 'me-av-edit' }, icon('edit', 13)));
+  const av = h('button', { class: 'me-av', 'aria-label': 'Change avatar', onclick: () => meAvatarSheet() }, playerBadgeEl(84), h('span', { class: 'me-av-edit' }, icon('edit', 13)));
+  const bn = myBanner();
   const srv = profile.server;
   const tile = (cls, head, label, val, sub, hist, color, kind) => h('button', { class: 'me-rt ' + cls, onclick: () => meRatingSheet(kind) },
     h('div', { class: 'me-rt-h' }, head, h('span', null, label)),
     h('div', { class: 'me-rt-v' }, h('b', null, val), meDelta(hist)),
     h('small', null, sub), meSpark(hist, color));
-  return h('div', { class: 'me-card' },
+  const card = h('div', { class: 'me-card banner-' + bn.id },
     h('div', { class: 'me-top' }, av,
       h('div', { class: 'me-id' },
         meNameEl(),
-        h('div', { class: 'me-title-row' }, h('span', { class: 'me-title' }, li.title),
+        h('div', { class: 'me-title-row' }, h('button', { class: 'me-title', 'aria-label': 'Change title', onclick: () => { meView = 'style'; const b = document.querySelector('.me-tabs [data-t="style"]'); if (b) { b.click(); setTimeout(() => { const s = document.querySelector('.sty-sec[data-k="title"]'); if (s) s.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 120); } } }, playerTitle()),
           best.length ? h('button', { class: 'me-show', 'aria-label': 'Trophies', onclick: () => { const b = document.querySelector('.me-tabs [data-t="trophies"]'); if (b) b.click(); } }, best.map(a => h('span', { class: 'me-mini t' + a.tier }, icon(a.icon, 12)))) : null),
         levelCard())),
     h('div', { class: 'me-rts' },
       tile('rb', leagueIcon(L.r, 16), 'Bot League', String(L.r), lg.name, profile.rHist || [], '#ffc56b', 'bot'),
       tile('ro', icon('globe', 15), 'Online', srv ? Math.round(srv.r) + (srv.provisional ? '?' : '') : '800?', srv && srv.games ? `${srv.games} games` : 'Not played yet', profile.hHist || [], '#93dc98', 'online'),
       tile('rp', icon('puzzle', 15), 'Puzzles', fmtR(pr), `Best streak ${profile.best}`, profile.pHist || [], '#9ccfff', 'puzzle')));
+  card.style.setProperty('--bn1', bn.c[0]); card.style.setProperty('--bn2', bn.c[1]); card.style.setProperty('--bn3', bn.c[2]);
+  return card;
 }
 // tap the name to edit it in place
 function meNameEl() {
@@ -111,7 +118,7 @@ function meAvatarSheet() {
         if (!ok) { beep('error'); if (typeof fxShake === 'function') fxShake(b); return; }
         st.avatar = it.id; saveProfile(); beep('pop'); haptic(10);
         grid.querySelectorAll('.me-avc').forEach(x => x.classList.remove('on')); b.classList.add('on');
-        document.querySelectorAll('.me-av img.av-img').forEach(im => { im.src = avatar(it.id, 8).src; });
+        meRefreshCard();
         const big = document.querySelector('.me-av'); if (big) { big.classList.remove('pop'); void big.offsetWidth; big.classList.add('pop'); }
         setTimeout(close, 260);
       } }, avatar(it.id, 58), h('b', null, it.name), ok ? null : h('small', null, reqShort(it.req)), ok ? null : h('span', { class: 'lock' }, icon('key', 12)));

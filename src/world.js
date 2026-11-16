@@ -7,7 +7,8 @@ const WORLD_TWISTS = ['crazyhouse', '3check', 'kingofthehill', 'atomic', 'horde'
 // the token shown on each game's card
 const WORLD_FACE = { xiangqi: 'K', shogi: 'K', janggi: 'K', makruk: 'K', sittuyin: 'K', shatranj: 'K' };
 let worldView = null; // null = hall; {g} = game page; {g, play} = playing; {g, lesson, step} = lesson
-let worldCur = null;  // the game in progress
+let worldCur = null;  // the game in progress (kept in the profile so it survives a reload)
+function worldSave() { try { worldPrefs().cur = worldCur && !worldCur.over ? worldCur : null; saveProfile(); } catch (e) { } }
 function worldPrefs() { profile.world = profile.world || { style: 'eng', games: {}, lessons: {}, played: {} }; return profile.world; }
 function worldMeta(id) { return (typeof VARIANTS !== 'undefined' && VARIANTS[id]) || { id, name: id }; }
 function worldStyle() { return worldPrefs().style || 'eng'; }
@@ -199,6 +200,7 @@ function renderWorldGames(main) {
       h('b', null, tr(m.name)), h('small', null, small ? '' : tr(m.english && m.english !== m.name ? m.english : m.origin || '')),
       lessons.length ? h('div', { class: 'wt-prog' }, h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / lessons.length * 100) + '%' } })), rec.wins ? h('span', null, icon('trophy', 12), ` ${rec.wins}`) : null) : null);
   };
+  const wc = wp.cur; if (wc && !wc.over && (wc.moves || []).length) { const b = wc.bot ? BOTS[wc.bot - 1] : null; main.append(h('button', { class: 'resume-card', onclick: () => { worldCur = wc; worldView = { g: wc.v, play: true }; beep('confirm'); render(); } }, b ? avatar(b.avatar, 46) : avatar(myAvatar(), 46), h('div', { class: 'grow' }, h('b', null, `${tr(worldMeta(wc.v).name)}: ${b ? `vs ${b.name}` : 'Pass & Play'}`), h('small', null, `${wc.moves.length} moves played. Tap to continue.`)), h('span', { class: 'go' }, icon('play', 20)))); }
   main.append(h('h3', { class: 'sect' }, tr('Games from around the world')), h('div', { class: 'wtiles' }, WORLD_REGIONAL.map(id => tile(id))));
   main.append(h('h3', { class: 'sect' }, tr('Chess with a twist')), h('div', { class: 'wtiles small' }, WORLD_TWISTS.map(id => tile(id, true))));
 }
@@ -258,11 +260,13 @@ function pieceGuide(id) {
   return h('div', { class: 'card' }, h('h3', null, tr('Piece guide')), h('div', { class: 'muted small' }, tr('Traditional and English side by side.')), h('div', { class: 'wguide' }, rows));
 }
 function startWorldGame(id, opts) {
-  worldCur = { v: id, bot: opts.bot || 0, color: opts.local ? 'w' : opts.color || 'w', local: !!opts.local, moves: [], over: null, started: Date.now() };
+  worldCur = { v: id, bot: opts.bot || 0, color: opts.local ? 'w' : opts.color || 'w', local: !!opts.local, moves: [], sans: [], over: null, started: Date.now() }; worldSave();
   worldView = { g: id, play: true }; render(); window.scrollTo(0, 0);
 }
 function renderWorldGame(main) {
+  if (!worldCur && worldPrefs().cur && worldPrefs().cur.v === worldView.g) worldCur = worldPrefs().cur;
   const cur = worldCur; if (!cur) { worldView = { g: worldView.g }; return render(); }
+  cleanups.push(worldSave);
   const g = new VGame(cur.v); cur.moves.forEach(m => g.play(m));
   const m = worldMeta(cur.v);
   let flipped = cur.local ? false : cur.color === 'b'; if (cur.flip) flipped = !flipped;
@@ -282,6 +286,7 @@ function renderWorldGame(main) {
   F.below.append(msg, h('div', { class: 'mstrip' }, movesEl));
   let thinking = false;
   const refresh = () => {
+    worldSave();
     topBar.innerHTML = ''; topBar.append(bar(topSide)); botBar.innerHTML = ''; botBar.append(bar(topSide === 'w' ? 'b' : 'w'));
     const st = g.status();
     if (st.over && !cur.over) finish(st);
@@ -313,6 +318,7 @@ function renderWorldGame(main) {
     const score = cur.over.result === '1/2-1/2' ? .5 : (cur.over.result === '1-0') === (cur.color === 'w') ? 1 : 0;
     if (!cur.local && score === 1) { rec.wins++; rec.beat = rec.beat || {}; rec.beat[cur.bot] = 1; rec.best = Math.max(rec.best || 0, cur.bot); }
     saveProfile(); beep(score === 1 || cur.local ? 'win' : 'move'); if (score === 1 && !cur.local) { confetti(); haptic([10, 40, 10]); }
+    if (cur.moves.length >= 2) { profile.games.unshift({ t: Date.now(), mode: 'world', variant: cur.v, opp: cur.local ? 'Pass & Play' : BOTS[cur.bot - 1].name, oppAvatar: cur.local ? 'friend' : BOTS[cur.bot - 1].avatar, color: cur.color, score: cur.local ? null : score, reason: cur.over.reason, rated: false, worldMoves: cur.moves.slice() }); profile.games = profile.games.slice(0, 200); }
     rewardEvent('worldGame', { variant: cur.v, score: cur.local ? null : score, level: cur.bot, local: cur.local, moves: cur.moves.length });
     const token = cur;
     setTimeout(() => { if (worldCur !== token || !worldView || !worldView.play) return; showWorldResult(cur, score, resultText(cur.over), () => worldReview(g, cur)); }, 1300);

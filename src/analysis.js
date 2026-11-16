@@ -56,18 +56,17 @@ function renderAnalysis(main) {
   if (A.lastEval != null && A.engine) { evalBar.querySelector('.fill').style.height = (100 - winPct(A.lastEval)) + '%'; }
   const bv = new BoardView({
     orient,
-    getTargets: sq => g.targetsFrom(sq),
-    onMove: (from, to) => {
-      const play = uci => { const res = g.play(uci); if (!res) return; playSound(res); A.moves = A.moves.slice(0, A.ply).concat([uci]); A.ply++; A.fwd = false; render(); };
-      if (g.needsPromo(from, to)) return modal((box, close) => { const c = g.turn(); box.append(h('h2', null, 'Promote to'), h('div', { class: 'promo' }, ['q', 'r', 'b', 'n'].map(t => h('button', { style: { backgroundImage: `url(${PIECE_URL[c + t]})` }, onclick: () => { close(); play(sqName(from) + sqName(to) + t); } })))); });
-      play(sqName(from) + sqName(to));
+    getTargets: sq => g.targetsFrom(sq), drawable: true,
+    needsPromo: (f, t) => g.needsPromo(f, t),
+    onMove: (from, to, dragged, promo) => {
+      const res = g.play(sqName(from) + sqName(to) + (promo || (g.needsPromo(from, to) ? 'q' : ''))); if (!res) return; playSound(res); A.moves = A.moves.slice(0, A.ply).concat([sqName(from) + sqName(to) + (promo || '')]); A.ply++; A.fwd = false; render();
     },
   });
   F.stage.classList.add('ana-stage');
   F.stage.append(h('div', { class: 'ana-wrap' }, evalBar, bv.el));
   // swipe the board to step through the line (not when the swipe starts on a piece you could move)
   { let sx = null, sy = 0; bv.el.addEventListener('touchstart', e => { if (e.touches.length !== 1) { sx = null; return; } const t = e.touches[0]; const sq = bv.sqAt(t); const tg = sq >= 0 ? g.targetsFrom(sq) : null; sx = tg && tg.length ? null : t.clientX; sy = t.clientY; }, { passive: true });
-    bv.el.addEventListener('touchend', e => { if (sx == null) return; const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) { haptic(5); beep('tap'); step(A.ply + (dx < 0 ? 1 : -1)); } }, { passive: true }); }
+    bv.el.addEventListener('touchend', e => { if (sx == null || bv.dragging) return; const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null; if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.4) { haptic(5); beep('tap'); step(A.ply + (dx < 0 ? 1 : -1)); } }, { passive: true }); }
   // keyboard: arrows step, Home / End jump
   const onKey = e => { if (e.target && /input|textarea/i.test(e.target.tagName)) return; if (document.querySelector('.modal-bg')) return; const k = { ArrowLeft: A.ply - 1, ArrowRight: A.ply + 1, Home: 0, End: A.moves.length }[e.key]; if (k != null) { e.preventDefault(); step(k); } };
   document.addEventListener('keydown', onKey); cleanups.push(() => document.removeEventListener('keydown', onKey));

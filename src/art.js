@@ -110,6 +110,21 @@ const ROOM_ART = {
     <g transform="translate(176 24)"><path d="M3 0l4 9M13 0l-4 9" stroke="#4f86c6" stroke-width="4"/><circle cx="8" cy="17" r="9" fill="#d5dde8" stroke="#7d8798" stroke-width="1.3"/></g>
     <g fill="#ffe39a">${[[132,10,1],[170,8,.8],[192,14,.7],[108,14,.6]].map(([x,y,k],i)=>`<path class="kc-tw" style="animation-delay:${i*-.8}s;transform-origin:${x}px ${y}px" transform="translate(${x} ${y}) scale(${k})" d="M0-6l1.5 4.5L6 0l-4.5 1.5L0 6l-1.5-4.5L-6 0l4.5-1.5z"/>`).join('')}</g></g>
   </svg>`,
+  // Season banner: dawn over the board ("The Opening"), bunting across the top, the first pawn on e4
+  season: () => `<svg viewBox="0 0 400 150" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <defs><linearGradient id="ssk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a1f5a"/><stop offset=".55" stop-color="#8a3f6a"/><stop offset="1" stop-color="#f29a4a"/></linearGradient>
+    <radialGradient id="ssu" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#ffd36b"/><stop offset="1" stop-color="#ffb347" stop-opacity="0"/></radialGradient></defs>
+    <rect width="400" height="150" fill="url(#ssk)"/>
+    ${[[40,22,1.3],[90,40,1],[330,30,1.2],[370,52,.9],[150,18,1],[260,14,1.1]].map(([x,y,r],i)=>`<circle class="kc-tw" cx="${x}" cy="${y}" r="${r}" fill="#fff" style="animation-delay:${i*-.6}s"/>`).join('')}
+    <circle class="ss-sun" cx="200" cy="104" r="70" fill="url(#ssu)" opacity=".9"/><circle cx="200" cy="104" r="30" fill="#ffe7a0"/>
+    ${Array.from({ length: 12 }, (_, i) => { const a = Math.PI + (i + .5) / 12 * Math.PI; return `<path d="M${(200 + Math.cos(a) * 38).toFixed(1)} ${(104 + Math.sin(a) * 38).toFixed(1)}L${(200 + Math.cos(a) * 58).toFixed(1)} ${(104 + Math.sin(a) * 58).toFixed(1)}" stroke="#ffe7a0" stroke-width="3" stroke-linecap="round" opacity=".55"/>`; }).join('')}
+    ${floorSvg(400, 100, 150, 4, 12, '#efd9ae', '#7a4a2b', 120)}
+    <rect y="98" width="400" height="3" fill="#ffe7a0" opacity=".6"/>
+    <ellipse cx="200" cy="130" rx="20" ry="4" fill="#000" opacity=".3"/>
+    <g transform="translate(182 94) scale(.85)" fill="#fff8ea" stroke="#3b2a1a" stroke-width="1.8" stroke-linejoin="round"><path d="${PAWN_PATH}"/></g>
+    <g class="kc-sway2" style="transform-origin:200px 0px"><path d="M-10 8 Q200 50 410 8" stroke="#3a1a10" stroke-width="1.4" fill="none"/>
+    ${Array.from({ length: 15 }, (_, i) => { const t = (i + .5) / 15, x = -10 + 420 * t, y = 8 + 42 * 4 * t * (1 - t) * .5; return `<path d="M${(x - 7).toFixed(1)} ${(y - 1).toFixed(1)}L${(x + 7).toFixed(1)} ${(y - 1).toFixed(1)}L${x.toFixed(1)} ${(y + 14).toFixed(1)}z" fill="${['#efbb4f', '#c4485a', '#93dc98', '#9ccfff', '#f2e3c4'][i % 5]}"/>`; }).join('')}</g>
+  </svg>`,
 };
 // small treasure chest for the daily reward (lit = reward waiting)
 function miniChestSvg(lit) {

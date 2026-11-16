@@ -89,12 +89,24 @@ function toast(msg, ms = 2200) {
 }
 function modal(build, { dismiss = true } = {}) {
   const bg = h('div', { class: 'modal-bg' });
-  const box = h('div', { class: 'modal' });
+  const box = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', tabindex: '-1' });
   box.append = (...a) => Element.prototype.append.apply(box, a.filter(x => x != null && x !== false));
   bg.append(box); document.body.append(bg);
-  const close = () => bg.remove();
-  if (dismiss) bg.addEventListener('click', e => { if (e.target === bg) close(); });
+  const prevFocus = document.activeElement;
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; document.removeEventListener('keydown', onKey, true); bg.classList.add('closing'); beep('close'); setTimeout(() => bg.remove(), 180); try { prevFocus && prevFocus.focus && prevFocus.focus({ preventScroll: true }); } catch (e) { } };
+  const onKey = e => { if (e.key === 'Escape' && dismiss) { e.preventDefault(); close(); } else if (e.key === 'Tab') { const f = [...box.querySelectorAll('button,[href],input,textarea,select,[tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled); if (!f.length) return; const i = f.indexOf(document.activeElement); if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); } else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); } } };
+  document.addEventListener('keydown', onKey, true);
+  if (dismiss) {
+    bg.addEventListener('click', e => { if (e.target === bg) close(); });
+    // swipe the sheet down to dismiss it
+    let y0 = null; box.addEventListener('touchstart', e => { y0 = box.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+    box.addEventListener('touchmove', e => { if (y0 == null) return; const dy = e.touches[0].clientY - y0; if (dy > 0) box.style.transform = `translateY(${dy}px)`; }, { passive: true });
+    box.addEventListener('touchend', e => { if (y0 == null) return; const dy = e.changedTouches[0].clientY - y0; y0 = null; box.style.transition = 'transform .2s'; if (dy > 90) close(); else box.style.transform = ''; setTimeout(() => { box.style.transition = ''; }, 220); }, { passive: true });
+  }
   build(box, close);
+  const t = box.querySelector('h2,h3'); if (t) { t.id = t.id || 'dlg' + Math.random().toString(36).slice(2, 8); box.setAttribute('aria-labelledby', t.id); }
+  beep('open'); requestAnimationFrame(() => { try { box.focus({ preventScroll: true }); } catch (e) { } });
   return close;
 }
 function confirmBox(title, text, okLabel, onOk) {
@@ -251,7 +263,8 @@ let route = 'home';
 const appEl = () => $('#app');
 const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m), world: m => renderWorldGames(m) };
 let navDir = '';
-function go(r) { if (!ROUTES[r]) r = 'home'; navDir = ''; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
+const TAB_ORDER = ['home', 'puzzles', 'play', 'learn', 'me'];
+function go(r) { if (!ROUTES[r]) r = 'home'; { const a = TAB_ORDER.indexOf(route), b = TAB_ORDER.indexOf(r); navDir = a >= 0 && b >= 0 && b < a ? 'back' : ''; } route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];
 function cleanup() { cleanups.forEach(f => { try { f(); } catch (e) { } }); cleanups = []; }
 let lastRoute = null;
@@ -261,6 +274,7 @@ function render() {
   const logo = h('img', { src: 'icon.svg', alt: '', onerror: e => { e.target.src = PIECE_URL.wn; } });
   app.append(h('div', { class: 'topbar' },
     h('button', { class: 'logo', onclick: () => go('home'), 'aria-label': 'Clubhouse' }, logo, 'Knight Club'),
+    typeof inboxButton === 'function' ? inboxButton() : null,
     h('button', { class: 'chip', id: 'rchip', onclick: () => go('me') })));
   refreshChip();
   // a fresh view animates in when you move between screens (not on in-place refreshes)

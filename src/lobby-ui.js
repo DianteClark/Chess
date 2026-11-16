@@ -187,6 +187,7 @@ function renderLobbyGame(main, lb) {
     const win = (st.result === '1-0' && myColor === 'w') || (st.result === '0-1' && myColor === 'b');
     const score = st.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = gm.ratingChange ? gm.ratingChange[myColor] : null;
+    profile.games.unshift({ t: Date.now(), mode: 'online', opp: opp.name, oppR: Math.round(opp.r), oppAvatar: 'friend', color: myColor, score, reason: st.reason, rated: !!gm.rated, ratingDelta: rc != null ? Math.round(rc) : undefined, moves: gm.moves.slice(), tc: `${gm.tc.base}+${gm.tc.inc}` }); profile.games = profile.games.slice(0, 200); saveProfile();
     if (gm.moves.length >= 4) rewardEvent('onlineGame', { score, moves: gm.moves.slice(), color: myColor, reason: st.reason });
     if (win) { beep('win'); scr.board.burst('trophy'); } else beep(score === .5 ? 'draw' : 'lose');
     setTimeout(() => presentResults({ mood: win ? 'cheer' : score === .5 ? 'happy' : 'sad', title: score === .5 ? 'Draw!' : win ? 'You win!' : `${opp.name} wins`, subtitle: `by ${st.reason}`,

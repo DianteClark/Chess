@@ -1,0 +1,36 @@
+/* ---------- Global polish (Quality Marshal): loads last ---------- */
+/* "new version ready" toast, sits above the dock and clear of the home indicator */
+.uptoast{position:fixed;left:12px;right:12px;margin:0 auto;bottom:calc(var(--safe-b) + 96px);z-index:420;display:flex;align-items:center;gap:10px;
+  max-width:420px;padding:8px 8px 8px 14px;border-radius:20px;background:var(--paper);color:var(--ink);font-weight:700;font-size:var(--fs-sm);
+  box-shadow:0 3px 0 #d8c7a2,0 14px 30px rgba(0,0,0,.4);animation:toastIn .4s cubic-bezier(.2,1.4,.4,1)}
+.uptoast>.icn{color:var(--brass-dark)}
+.uptoast .btn.sm{flex:none}
+.uptoast .up-x{width:var(--tap);height:var(--tap);display:grid;place-items:center;border-radius:14px;color:rgba(42,34,25,.6);flex:none}
+body.focus .uptoast{bottom:calc(var(--safe-b) + 84px)}
+/* very narrow phones (iPhone SE 1st gen, Galaxy Fold): the top bar keeps both the logo and the rating chip */
+@media (max-width:360px){
+  .logo{font-size:21px;gap:7px}.logo img{width:30px;height:30px}
+  .chip{padding:5px 9px 5px 6px;font-size:14px}
+  .fs-title b{font-size:20px}
+}
+@media (max-width:330px){.logo{font-size:0;gap:0}.logo img{width:34px;height:34px}}
+/* landscape phones: hub pages keep the dock low and slim so content is not squeezed */
+@media (orientation:landscape) and (max-height:540px){
+  body:not(.focus){padding-bottom:calc(92px + var(--safe-b))}
+  .tabs .inner{height:58px}
+  .tabs button.medal .disc{width:60px;height:60px;margin-top:-24px}
+  .tabs button.medal .disc img{width:32px;height:32px}
+  .modal{max-height:calc(var(--app-h) - 24px)}
+  .modal-bg{align-items:center}
+}
+/* tablets and desktop: hub pages sit on a softly lit table instead of a bare strip */
+@media (min-width:900px){
+  body::after{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(70% 90% at 50% 40%,transparent 50%,rgba(0,0,0,.28) 100%)}
+}
+/* keyboard users: every pressable card and tile gets the same visible ring */
+.room:focus-visible,.lesson:focus-visible,.mode-card:focus-visible,.bot:focus-visible,.wgame:focus-visible,.tabs button:focus-visible{outline:3px solid var(--brass-light);outline-offset:3px}
+.tabs button.medal:focus-visible{outline:none}.tabs button.medal:focus-visible .disc{box-shadow:0 0 0 4px #5e3720,0 0 0 7px var(--brass-light),0 6px 0 4px #3a2010}
+/* text never runs into the screen edge, long words break instead of widening the page */
+#app{overflow-wrap:break-word}
+/* forced colors (Windows high contrast): keep buttons visible */
+@media (forced-colors:active){.btn,.fs-btn,.seg button,.tabs button{border:1px solid ButtonText}}

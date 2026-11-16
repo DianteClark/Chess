@@ -189,11 +189,22 @@ function renderLesson(main) {
         else {
           const st = g.status();
           msg.className = 'fs-msg bad'; msg.textContent = st.reason === 'stalemate' ? 'Oops, that is stalemate (a draw)! Try again.' : (step.fail || 'Not quite. Try again!');
-          beep('wrong'); missTask();
-          setTimeout(() => { g = new Game(step.fen); bv.set(g.viewState()); }, 1100);
+          beep('wrong'); missTask(); stepMisses++;
+          setTimeout(() => { g = new Game(step.fen); bv.set(g.viewState()); if (stepMisses >= 2 && !hintShown) { hintShown = true; restartAct = { ic: 'bulb', label: 'Show me', on: showAnswer }; navActions(restartAct); } }, 1100);
         }
       }
     });
+    // after two misses Hoot offers to show the answer with an arrow
+    let stepMisses = 0, hintShown = false;
+    const goalOk = (gg, m, uci) => step.goal === 'check' ? gg.pos.inCheck() : step.goal === 'mate' ? gg.status().reason === 'checkmate' : step.goal === 'castle' ? !!(E.mFlags(m) & E.F_CASTLE) : step.goal === 'promote' ? !!E.mPromo(m) : step.goal === 'move' ? step.moves.includes(uci.slice(0, 4)) : false;
+    const showAnswer = () => {
+      let ans = step.goal === 'move' ? step.moves[0] : null;
+      if (!ans) { const t = new Game(step.fen); for (const m of t.legal()) { const u = t.pos.uci(m); const t2 = new Game(step.fen); t2.play(u); if (goalOk(t2, m, u)) { ans = u; break; } } }
+      if (!ans) return;
+      beep('hint'); react('think');
+      bv.set(Object.assign(g.viewState(), { arrows: [[sqFromName(ans.slice(0, 2)), sqFromName(ans.slice(2, 4)), '#7cc04a']] }));
+      msg.className = 'fs-msg'; msg.textContent = 'Follow the green arrow!';
+    };
     bv.set(g.viewState());
     F.stage.append(bv.el);
   }

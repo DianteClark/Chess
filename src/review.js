@@ -304,6 +304,7 @@ function finalizeReview(R) {
     profile.reviews.unshift(entry);
     profile.reviews = profile.reviews.slice(0, 60);
     saveProfile();
+    if (typeof linkReviewToGame === 'function') linkReviewToGame(key, R.acc[side]);
   }
   R.entry = entry; // rw: 0 = reward still owed (older saved reviews have no rw and were rewarded already)
   if (reviewProgressHook) reviewProgressHook(true);
@@ -354,7 +355,7 @@ function renderReview(main) {
   const exit = () => { REV = null; route = R.back || 'play'; render(); };
   const side = R.color || 'w', N = R.uciMoves.length;
   const wName = R.src.white || 'White', bName = R.src.black || 'Black';
-  const board = new BoardView({ orient: R.orient || side });
+  const board = new BoardView({ orient: R.orient || side, drawable: true });
   const flipBtn = h('button', { class: 'fs-back', 'aria-label': 'Flip board', onclick: () => { haptic(6); board.flip(); R.orient = board.orient; } }, icon('flip', 22));
   const F = focusScreen(main, { title: 'Game Review', sub: `${wName} vs ${bName}`, back: exit, right: [flipBtn] });
   F.root.classList.add('rv');

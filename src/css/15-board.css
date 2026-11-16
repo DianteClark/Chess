@@ -1,0 +1,102 @@
+/* ---------- board (BoardView, src/board.js) ---------- */
+.board-wrap{position:relative;width:calc(100% - 20px);margin:10px;aspect-ratio:1;border-radius:6px;overflow:visible;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;outline:none;touch-action:manipulation;
+  
+  box-shadow:0 0 0 3px #2e180b,0 0 0 9px var(--wood),0 0 0 10px #c99a5e,0 0 0 12px #3a2010,0 14px 30px rgba(0,0,0,.45)}
+/* boards you play on never pan or zoom the page, so a drag is never stolen by the browser */
+.board-wrap.bd-live{touch-action:none}
+.board-wrap::before{content:'';position:absolute;inset:-9px;border-radius:8px;background:var(--grain);pointer-events:none;z-index:-1}
+.board-wrap.kbd{box-shadow:0 0 0 3px #2e180b,0 0 0 9px var(--wood),0 0 0 10px #c99a5e,0 0 0 12px #3a2010,0 0 0 15px var(--brass),0 14px 30px rgba(0,0,0,.45)}
+.board{position:absolute;inset:0;border-radius:4px;overflow:hidden}
+.sq{position:absolute;width:12.5%;height:12.5%}
+.sq.l{background:var(--light)} .sq.d{background:var(--dark)}
+.sq.d{background-image:linear-gradient(135deg,rgba(255,255,255,.05),rgba(0,0,0,.06))}
+.sq .co{position:absolute;font-size:10px;font-weight:700;opacity:.8;pointer-events:none;z-index:2;line-height:1.2}
+.sq .co.f{right:3px;bottom:1px} .sq .co.r{left:3px;top:1px}
+.sq.l .co{color:var(--dark)} .sq.d .co{color:var(--light)}
+.no-coords .sq .co{display:none}
+
+/* square highlights: last move, selection, hints, premove, keyboard focus */
+.sq.last::after,.sq.sel::after,.sq.hint::after,.sq.mark::after,.sq.pre::after{content:'';position:absolute;inset:0}
+.sq.last::after{background:rgba(255,206,72,.42)}
+.sq.sel::after{background:rgba(140,220,120,.55)}
+.pm .sq.sel::after{background:rgba(120,150,255,.5)}
+.sq.hint::after{background:rgba(140,200,255,.6);animation:bd-pulse 1s infinite alternate}
+.sq.mark::after{background:rgba(140,200,255,.45)}
+.sq.pre::after{background:rgba(96,120,240,.5);box-shadow:inset 0 0 0 2px rgba(60,80,200,.45)}
+.sq.kf{box-shadow:inset 0 0 0 3px var(--brass),inset 0 0 0 5px rgba(42,34,25,.55);z-index:1}
+.sq.check::before{content:'';position:absolute;inset:0;background:radial-gradient(circle,rgba(255,60,40,.95) 0%,rgba(255,60,40,.55) 40%,rgba(255,60,40,0) 72%);animation:bd-check .9s ease-in-out infinite alternate}
+@keyframes bd-check{from{opacity:.65;transform:scale(.92)}to{opacity:1;transform:scale(1.04)}}
+@keyframes bd-pulse{from{opacity:.5}to{opacity:1}}
+
+/* legal move dots and capture rings */
+.sq .dot{position:absolute;left:50%;top:50%;width:30%;height:30%;margin:-15% 0 0 -15%;border-radius:50%;background:rgba(30,24,16,.3);z-index:3;pointer-events:none;animation:bd-in-dot .16s ease-out}
+.sq .ring{position:absolute;inset:0;border:0;border-radius:50%;background:radial-gradient(transparent 0 61%,rgba(30,24,16,.3) 62%);z-index:3;pointer-events:none;animation:bd-in-dot .16s ease-out}
+.pm .sq .dot{background:rgba(50,70,190,.42)} .pm .sq .ring{background:radial-gradient(transparent 0 61%,rgba(50,70,190,.42) 62%)}
+@keyframes bd-in-dot{from{transform:scale(0)}to{transform:scale(1)}}
+.sq .star{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:4;pointer-events:none;animation:bd-bob 1.2s ease-in-out infinite alternate}
+.sq .star .icn{color:#ffc93c;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.sq .star .icn svg{width:min(8vw,40px);height:min(8vw,40px)}
+@keyframes bd-bob{from{transform:translateY(-2px) scale(.95)}to{transform:translateY(2px) scale(1.05)}}
+
+/* pieces: absolutely placed at 0,0 and moved with translate only (no layout work) */
+.pieces{position:absolute;inset:0;pointer-events:none;border-radius:4px}
+.piece{position:absolute;left:0;top:0;width:12.5%;height:12.5%;background-size:100%;background-repeat:no-repeat;z-index:5;transition:scale .14s ease-out,filter .14s;will-change:translate;filter:drop-shadow(0 3px 1.5px rgba(0,0,0,.32));transform-origin:50% 60%}
+.piece.moving{z-index:8}
+.piece.bd-in{animation:bd-fadein .2s ease-out}
+.piece.land{animation:bd-land .26s cubic-bezier(.3,1.6,.5,1)}
+.piece.bd-prom{animation:bd-prom .42s cubic-bezier(.3,1.6,.5,1)}
+.piece.drag{transition:scale .12s cubic-bezier(.3,1.5,.5,1),filter .12s;z-index:50;transform:none;scale:1.1;filter:drop-shadow(0 10px 8px rgba(0,0,0,.4));animation:none}
+.bd-touch .piece.drag{scale:1.6;transform-origin:50% 75%}
+.piece.bd-hide{opacity:0}
+.piece.bd-out{animation:bd-out .24s ease-in .06s forwards;z-index:4}
+.piece.noanim{transition:none}
+@keyframes bd-land{0%{transform:scale(1.12) translateY(-4%)}60%{transform:scale(.96)}100%{transform:none}}
+@keyframes bd-fadein{from{opacity:0;transform:scale(.7)}to{opacity:1;transform:none}}
+@keyframes bd-out{to{opacity:0;transform:scale(.55)}}
+@keyframes bd-prom{0%{transform:scale(.6);filter:drop-shadow(0 0 0 rgba(255,214,90,0))}45%{transform:scale(1.25);filter:drop-shadow(0 0 10px rgba(255,214,90,1))}100%{transform:none}}
+/* while dragging: the piece's home square keeps a faint copy; the square under the finger lights up */
+.bd-ghost{position:absolute;left:0;top:0;width:12.5%;height:12.5%;background-size:100%;background-repeat:no-repeat;opacity:.3;z-index:4}
+.bd-hov{position:absolute;left:0;top:0;width:12.5%;height:12.5%;z-index:3;box-shadow:inset 0 0 0 3px rgba(255,255,255,.55)}
+.bd-hov.ok{box-shadow:inset 0 0 0 4px rgba(255,255,255,.85);background:rgba(255,255,255,.12)}
+.bd-touch .bd-hov{border-radius:50%;scale:2;background:rgba(20,20,20,.16);box-shadow:none}
+.bd-touch .bd-hov.ok{background:rgba(120,220,110,.32)}
+.bd-dragging{cursor:grabbing}
+.bd-live .piece{cursor:pointer}
+
+/* premove: a see-through copy of the piece on its target square */
+.bd-pmghost{position:absolute;left:0;top:0;width:12.5%;height:12.5%;background-size:100%;background-repeat:no-repeat;opacity:.55;z-index:6;filter:drop-shadow(0 0 4px rgba(70,90,230,.8))}
+
+/* capture puff, celebration burst */
+.puff{position:absolute;width:12.5%;height:12.5%;z-index:40;pointer-events:none}
+.puff i{position:absolute;left:50%;top:50%;width:18%;height:18%;border-radius:50%;background:rgba(247,239,221,.85);animation:bd-puff .5s ease-out forwards}
+@keyframes bd-puff{from{transform:translate(-50%,-50%) scale(.6);opacity:.9}to{transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) scale(1.4);opacity:0}}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:60;display:flex;align-items:center;justify-content:center}
+.fx .burst{animation:bd-burst .75s ease-out forwards}
+@keyframes bd-burst{0%{transform:scale(.2) rotate(-12deg);opacity:0}40%{transform:scale(1.2) rotate(4deg);opacity:1}100%{transform:scale(1) rotate(0);opacity:0}}
+.burst-ic{filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+.burst-ic.star,.burst-ic.trophy,.burst-ic.crown{color:#ffc93c}
+
+/* arrows: the app's (engine, hints) and the player's own (right-drag / long-press) */
+.arrows,.bd-shapes{position:absolute;inset:0;width:100%;height:100%;z-index:20;pointer-events:none}
+.bd-shapes{z-index:21}
+.sqbadge{position:absolute;z-index:30;box-shadow:0 2px 4px rgba(0,0,0,.4);animation:bd-in-dot .2s cubic-bezier(.3,1.6,.5,1)}
+
+/* promotion picker over the promotion file */
+.bd-promo{position:absolute;inset:0;z-index:70;background:rgba(14,26,20,.5);border-radius:4px;animation:bd-shade .15s ease-out}
+.bd-promo-col{position:absolute;width:12.5%;height:50%;display:flex;flex-direction:column;border-radius:999px;background:var(--paper);box-shadow:0 0 0 3px var(--brass),0 10px 24px rgba(0,0,0,.5);overflow:visible}
+.bd-promo-col.up{flex-direction:column-reverse}
+.bd-pp{flex:1;min-height:0;background-size:84%;background-position:center;background-repeat:no-repeat;border-radius:50%;transition:background-color .12s,scale .12s;animation:bd-pp-in .22s cubic-bezier(.3,1.5,.5,1) backwards}
+.bd-pp:hover,.bd-pp:focus-visible{background-color:rgba(239,187,79,.45);outline:none}
+.bd-pp:active{scale:.9}
+.bd-pp-x{position:absolute;left:50%;width:28px;height:28px;margin-left:-14px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:var(--paper);box-shadow:0 2px 0 rgba(0,0,0,.4)}
+.bd-promo-col.down .bd-pp-x{bottom:-36px} .bd-promo-col.up .bd-pp-x{top:-36px}
+.bd-pp-x::before{content:'';position:absolute;inset:-8px}
+@keyframes bd-pp-in{from{opacity:0;scale:.4}to{opacity:1;scale:1}}
+@keyframes bd-shade{from{opacity:0}}
+
+/* screen reader announcements */
+.bd-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+html[dir=rtl] .board-wrap{direction:ltr}
+.no-anim .piece{transition:none!important;animation:none!important}
+@media (prefers-reduced-motion:reduce){.piece,.bd-pp,.bd-promo,.sq .dot,.sq .ring{animation:none!important;transition:none!important}.sq.check::before{animation:none}}

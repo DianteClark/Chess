@@ -1,9 +1,24 @@
-/* ---------- Lock the app to the screen like a native game ---------- */
-html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none;height:100%}
-body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-height:var(--app-h,100vh)}
-input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;font-size:16px !important} /* 16px stops iOS zooming into fields */
+/* ---------- Lock the app to the screen like a native game ----------
+   iOS Safari ignores user-scalable=no, so zoom is stopped at three levels:
+   1. touch-action pan-x pan-y on the root: the browser may scroll but never pinch- or double-tap-zoom
+      (touch-action is intersected down the tree, so no child can turn zoom back on),
+   2. gesture events cancelled in boot.js (older iOS), 3. inputs at 16px so focusing a field never zooms.
+   Sideways drift is stopped by clipping horizontal overflow on the root and the app column. */
+:root{--safe-t:env(safe-area-inset-top,0px);--safe-b:env(safe-area-inset-bottom,0px);--safe-l:env(safe-area-inset-left,0px);--safe-r:env(safe-area-inset-right,0px);
+  --app-h:100vh;--gut:16px}
+@supports (height:100dvh){:root{--app-h:100dvh}}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:pan-x pan-y;overscroll-behavior:none;height:100%;overflow-x:hidden}
+@supports (overflow:clip){html{overflow-x:clip}}
+body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-height:var(--app-h);width:100%;overflow-x:hidden;position:relative}
+@supports (overflow:clip){body{overflow-x:clip}}
+.app{overflow-x:clip;padding-left:max(var(--gut),var(--safe-l));padding-right:max(var(--gut),var(--safe-r))}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;font-size:max(16px,1em) !important} /* 16px stops iOS zooming into fields */
 button,a,.card,.board-wrap,.vboard-wrap{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 img,svg{-webkit-user-drag:none;user-drag:none}
-body.focus{position:fixed;inset:0;overflow:hidden;touch-action:none}
-body.focus .fs{height:var(--app-h,100dvh)}
-body.focus .fs-bubble .txt,body.focus .coachline .ctext,body.focus .moves,body.focus .kx-ov{touch-action:pan-x pan-y}
+/* focus screens: the body is pinned, so the page itself can never scroll, bounce or drift */
+body.focus{position:fixed;inset:0;width:100%;height:var(--app-h);overflow:hidden;touch-action:none}
+body.focus .fs{height:var(--app-h)}
+body.focus .fs-bubble .txt,body.focus .coachline .ctext,body.focus .moves,body.focus .kx-ov,body.focus .fs-side,body.focus .modal{touch-action:pan-x pan-y}
+/* fixed overlays never widen the page */
+.celebrate,.splash,.modal-bg,.kx-ov{overflow:hidden}
+.modal-bg .modal{overscroll-behavior:contain}
