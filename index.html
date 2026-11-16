@@ -3182,7 +3182,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = LobbyClien
 // "Play the World": the online lobby (Cloudflare server). Matchmaking, server-checked games,
 // verified ratings, leaderboard and preset-only chat (safe for kids).
 'use strict';
-const LOBBY_URL = 'https://knightclub-lobby.chesscomplex.workers.dev';
+const LOBBY_URL = (() => { try { return localStorage.getItem('kc.lobbyUrl'); } catch (e) { return null; } })() || 'https://knightclub-lobby.chesscomplex.workers.dev'; // override only for local testing
 const CHAT_TEXT = { hi: 'Hello!', gl: 'Good luck!', gg: 'Good game!', wp: 'Well played!', ty: 'Thank you!', oops: 'Oops!', thinking: 'Let me think...', 'rematch?': 'Rematch?' };
 let lobby = null, lobbyView = 'home', lobbyChat = {}, lobbyLb = null, lobbyStats = null, lobbySel = { tc: '300+0', color: 'r', rated: true };
 function getLobby() {
@@ -3238,7 +3238,7 @@ function renderWorld(main) {
       h('button', { class: 'btn primary block', onclick: () => { const [b, i] = parseTc(sel.tc === '0+0' ? '300+0' : sel.tc); lb.seek({ base: b, inc: i }, sel.color, sel.rated); } }, icon('plus', 18), 'Post game'))));
   }
   main.append(h('h3', { class: 'sect' }, 'Open games'));
-  lb.subscribeSeeks();
+  if (!lb._subs.seeks) lb.subscribeSeeks();
   const list = (lb.seeks || []).filter(s => !me || s.pid !== me.id);
   if (!list.length) main.append(h('div', { class: 'card muted small center' }, 'No open games right now. Use Quick play or post your own!'));
   else main.append(h('div', { class: 'card' }, h('table', { class: 'tbl' }, list.map(s => h('tr', null, h('td', null, h('b', null, s.name), h('div', { class: 'small muted' }, `${Math.round(s.r)}${s.provisional ? '?' : ''}`)), h('td', null, tcLabel(s.tc.base, s.tc.inc), h('div', { class: 'small muted' }, s.rated ? 'Rated' : 'Casual')), h('td', null, h('button', { class: 'btn sm primary', onclick: () => lb.accept(s.id) }, 'Play')))))));
