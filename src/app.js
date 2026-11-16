@@ -569,7 +569,7 @@ function renderPlay(main) {
   const r = { r: profile.ladder.r };
   // suggest the bot closest to the player's rating
   if (playSel.bot === null || playSel.auto !== true) { let best = 0; BOTS.forEach((b, i) => { if (Math.abs(b.rating - r.r) < Math.abs(BOTS[best].rating - r.r)) best = i; }); playSel.bot = best; playSel.auto = true; }
-  const grid = h('div', { class: 'bots' });
+  const grid = h('div', { class: 'bots scroller' });
   const playBtn = h('button', { class: 'btn primary block', onclick: () => startBotGame() });
   const stakes = h('div', { class: 'small muted center' });
   const drawStakes = () => {
@@ -578,13 +578,14 @@ function renderPlay(main) {
   };
   const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), 'Play ' + BOTS[playSel.bot].name); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
+  setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollTo({ left: on.offsetLeft - grid.clientWidth / 2 + on.clientWidth / 2, behavior: 'auto' }); }, 0);
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
-    h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { route = 'learn'; lessonOpen = null; render(); } }, icon('learn', 22), h('b', null, 'Learn & courses'))),
+    h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { puzMode = 'daily'; go('puzzles'); } }, icon('calendar', 22), h('b', null, 'Daily Puzzle'))),
     questCard(),
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
-    h('div', { class: 'card stack' },
+    h('div', { class: 'card stack setup' },
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'TIME'), tcPicker(playSel)),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'VARIANT'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant')),

@@ -282,3 +282,11 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .qbar{height:6px;border-radius:4px;background:var(--bg2);overflow:hidden;margin-top:4px} .qbar div{height:100%;background:var(--accent);border-radius:4px}
 .quest .qx{font-size:12px;font-weight:900;color:var(--accent)}
 .confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:400}
+/* swipeable bot row */
+.bots.scroller{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:10px;padding:2px 2px 8px;margin:0 -2px;scrollbar-width:none}
+.bots.scroller::-webkit-scrollbar{display:none}
+.bots.scroller .bot{flex:0 0 42%;scroll-snap-align:center}
+.setup .tcs{display:flex;overflow-x:auto;scrollbar-width:none;gap:6px}
+.setup .tcs::-webkit-scrollbar{display:none}
+.setup .tcs button{flex:0 0 auto;min-width:72px}
+.setup{gap:10px}
