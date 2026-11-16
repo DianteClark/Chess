@@ -588,6 +588,9 @@ function gameScreen(main, cfg) {
     get viewing() { return viewPly !== null; },
   };
 }
+function stageBanner(key, title, sub, extra) {
+  return h('div', { class: 'stage short' }, roomArt(key), extra || null, h('div', { class: 'stage-lab' }, h('h2', null, title), sub ? h('small', null, sub) : null));
+}
 function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
@@ -790,7 +793,7 @@ function renderFriend(main) {
   if (friendView === 'online') return renderOnline(main);
   if (friendView === 'world') return renderWorld(main);
   main.append(
-    h('h2', null, 'Play with a friend'),
+    stageBanner('courtyard', 'Courtyard', 'Play people near and far'),
     h('button', { class: 'card lesson hero', onclick: () => { friendView = 'world'; lobbyView = 'home'; render(); } }, h('div', { class: 'ic gold' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play the World'), h('div', { class: 'd' }, 'Quick match with players near your rating. Rated and checked by the server.')), h('span', { class: 'ck' }, icon('next', 20))),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('link', 24)), h('div', null, h('div', { class: 't' }, 'Invite a Friend'), h('div', { class: 'd' }, 'Send a link. Your devices connect directly (peer-to-peer).')), h('span', { class: 'ck' }, icon('next', 20))),
@@ -1113,10 +1116,9 @@ function renderPuzzles(main) {
   const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
     .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
   const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'row', style: { gap: '6px', marginTop: '6px', flexWrap: 'wrap' } }, h('span', { class: 'pill' }, 'Rating ' + fmtR(profile.puzzle)), h('span', { class: 'pill' }, `Streak ${profile.streak}`), h('span', { class: 'pill' }, `${solvedCount} of ${PUZZLES.length} solved`)))));
-  main.append(h('div', { class: 'modes' },
-    h('button', { class: 'mode-card', onclick: () => { puzMode = 'daily'; render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done today' : `Streak ${dState.streak}`)),
-    h('button', { class: 'mode-card', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, 'Best ' + Math.max(rushBest('3min'), rushBest('5min'), rushBest('survival'))))));
+  main.append(stageBanner('den', 'Puzzle Den', `Rating ${fmtR(profile.puzzle)}, ${solvedCount} of ${PUZZLES.length} solved`, h('div', { class: 'stage-actions' },
+    h('button', { class: 'stage-act' + (dDone ? '' : ' hot'), onclick: () => { puzMode = 'daily'; render(); } }, icon('calendar', 20), h('span', null, 'Daily')),
+    h('button', { class: 'stage-act', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; render(); } }, icon('bolt', 20), h('span', null, 'Rush')))));
   main.append(h('div', { class: 'cats' }, cats.map(([k, l]) => h('button', { class: puzCat === k ? 'on' : '', onclick: () => { puzCat = k; puzState = null; render(); } }, l))));
   if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
   const ps = puzState, p = ps.p;
@@ -1219,6 +1221,7 @@ function renderLearn(main) {
   if (lessonOpen) return renderLesson(main);
   if (courseOpen) return renderCourse(main);
   const done = LESSONS.filter(l => profile.lessons[l.id]).length;
+  main.append(stageBanner('library', 'The Library', 'Lessons and courses for every level'));
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   if (typeof COURSES !== 'undefined' && COURSES.length) {
     main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
@@ -1370,6 +1373,7 @@ function sparkline(arr, color, emptyMsg) {
 function renderMe(main) {
   if (meView === 'style') return renderStyle(main);
   if (meView === 'insights') return renderInsights(main);
+  main.append(stageBanner('trophy', 'Trophy Hall', profile.name ? `${profile.name}'s room` : 'Your ratings, trophies and style'));
   main.append(levelCard());
   main.append(h('div', { class: 'modes' },
     h('button', { class: 'mode-card', onclick: () => { meView = 'insights'; render(); } }, icon('chart', 26), h('b', null, 'Insights'), h('small', null, `${(profile.reviews || []).length} reviewed games`)),

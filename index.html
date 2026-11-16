@@ -433,6 +433,25 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .stage-lab h2{color:#fff;font-size:28px}
 .stage-lab small{color:rgba(255,255,255,.88);font-weight:700}
 .stage-btn{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.35);box-shadow:none;border-color:rgba(255,255,255,.18)}
+.stage.short{height:118px}
+.stage.short .stage-lab h2{font-size:26px}
+.stage-pills{position:absolute;top:10px;left:12px;display:flex;gap:6px;flex-wrap:wrap}
+.stage-pills .pill{background:rgba(0,0,0,.45);color:#fff}
+.btn.primary.sm{font-size:16px;box-shadow:0 3px 0 var(--brass-dark),0 2px 0 rgba(255,255,255,.5) inset}
+/* opening splash */
+.splash{position:fixed;inset:0;z-index:500;pointer-events:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:var(--felt-tex),radial-gradient(120% 70% at 50% 30%,#25594a,var(--felt-2));transition:opacity .45s}
+.splash.out{opacity:0;pointer-events:none}
+.sp-disc{width:132px;height:132px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 35% 30%,#fff1c2,var(--brass) 45%,#c88c26 80%);box-shadow:0 0 0 6px #5e3720,0 0 0 9px #c99a5e,0 10px 0 6px #3a2010,0 0 50px rgba(255,210,110,.45);animation:spDrop .7s cubic-bezier(.2,1.5,.4,1) both}
+.sp-disc img{width:76px;height:76px;animation:spLand .5s .45s cubic-bezier(.3,1.7,.5,1) both}
+.sp-name{font-family:var(--display);font-size:36px;color:var(--ivory);text-shadow:0 3px 0 rgba(0,0,0,.3);animation:viewIn .5s .55s both}
+@keyframes spDrop{from{transform:translateY(-60px) scale(.6);opacity:0}}
+@keyframes spLand{from{transform:translateY(-30px) scale(1.3);opacity:0}}
+.stage-actions{position:absolute;top:10px;right:10px;display:flex;gap:8px;z-index:2}
+.stage-act{display:flex;flex-direction:column;align-items:center;gap:1px;width:62px;padding:7px 0 6px;border-radius:16px;background:var(--paper);color:var(--ink);font-weight:700;font-size:12.5px;box-shadow:0 3px 0 #d8c7a2;transition:transform .1s}
+.stage-act .icn{color:var(--brass-dark)}
+.stage-act:active{transform:translateY(2px);box-shadow:0 1px 0 #d8c7a2}
+.stage-act.hot{background:radial-gradient(circle at 35% 30%,#fff1c2,var(--brass) 70%);box-shadow:0 3px 0 var(--brass-dark);animation:bob 1.4s ease-in-out infinite alternate}
+.stage-act.hot .icn{color:#3a2408}
 </style>
 </head>
 <body>
@@ -1671,7 +1690,9 @@ const AVATAR_SVG = {
 // Professor Hoot: the owl teacher with a mortarboard
 const HOOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="32" cy="40" rx="20" ry="21" fill="#8a5a36"/><ellipse cx="32" cy="46" rx="12.5" ry="13" fill="#ecd6b4"/><path d="M37 55q2 1.6 3 0M27 52q2 1.6 3 0M32 57q2 1.6 3 0" stroke="#b9936b" stroke-width="1.4" fill="none"/><circle cx="23.5" cy="33" r="8.5" fill="#fff"/><circle cx="40.5" cy="33" r="8.5" fill="#fff"/><circle cx="23.5" cy="33" r="8.5" fill="none" stroke="#3b2a1d" stroke-width="1.6"/><circle cx="40.5" cy="33" r="8.5" fill="none" stroke="#3b2a1d" stroke-width="1.6"/><path d="M32 33h0" stroke="#3b2a1d" stroke-width="1.6"/><circle cx="24" cy="33.5" r="3.8" fill="#2b2320"/><circle cx="40" cy="33.5" r="3.8" fill="#2b2320"/><circle cx="25.2" cy="32.3" r="1.2" fill="#fff"/><circle cx="41.2" cy="32.3" r="1.2" fill="#fff"/><path d="M29.5 39h5L32 43.5z" fill="#f2a530"/><path d="M12 15l20-8 20 8-20 8z" fill="#2b2730"/><path d="M20 18v6c6 4 18 4 24 0v-6" fill="#3a3540"/><path d="M50 15.5v9" stroke="#ffcf3f" stroke-width="1.8"/><circle cx="50" cy="25.5" r="2" fill="#ffcf3f"/></svg>`;
 const AVATAR_URL = {};
-for (const k in AVATAR_SVG) AVATAR_URL[k] = 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${AVATAR_SVG[k]}</svg>`);
+// every portrait gets the same studio lighting: a soft key light from the top left and a vignette
+const AVATAR_LIGHT = '<defs><radialGradient id="kl" cx=".3" cy=".22" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/></radialGradient><radialGradient id="vg" cx=".5" cy=".45" r=".6"><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".35"/></radialGradient><clipPath id="cc"><circle cx="32" cy="32" r="32"/></clipPath></defs>';
+for (const k in AVATAR_SVG) AVATAR_URL[k] = 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${AVATAR_LIGHT}<g clip-path="url(#cc)">${AVATAR_SVG[k]}<circle cx="32" cy="32" r="32" fill="url(#vg)"/><circle cx="32" cy="32" r="32" fill="url(#kl)"/></g></svg>`);
 const HOOT_URL = 'data:image/svg+xml;base64,' + btoa(HOOT_SVG);
 function avatar(key, size = 38) {
   const img = document.createElement('img');
@@ -2369,6 +2390,9 @@ function gameScreen(main, cfg) {
     get viewing() { return viewPly !== null; },
   };
 }
+function stageBanner(key, title, sub, extra) {
+  return h('div', { class: 'stage short' }, roomArt(key), extra || null, h('div', { class: 'stage-lab' }, h('h2', null, title), sub ? h('small', null, sub) : null));
+}
 function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
@@ -2571,7 +2595,7 @@ function renderFriend(main) {
   if (friendView === 'online') return renderOnline(main);
   if (friendView === 'world') return renderWorld(main);
   main.append(
-    h('h2', null, 'Play with a friend'),
+    stageBanner('courtyard', 'Courtyard', 'Play people near and far'),
     h('button', { class: 'card lesson hero', onclick: () => { friendView = 'world'; lobbyView = 'home'; render(); } }, h('div', { class: 'ic gold' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play the World'), h('div', { class: 'd' }, 'Quick match with players near your rating. Rated and checked by the server.')), h('span', { class: 'ck' }, icon('next', 20))),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('link', 24)), h('div', null, h('div', { class: 't' }, 'Invite a Friend'), h('div', { class: 'd' }, 'Send a link. Your devices connect directly (peer-to-peer).')), h('span', { class: 'ck' }, icon('next', 20))),
@@ -2894,10 +2918,9 @@ function renderPuzzles(main) {
   const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
     .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
   const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'row', style: { gap: '6px', marginTop: '6px', flexWrap: 'wrap' } }, h('span', { class: 'pill' }, 'Rating ' + fmtR(profile.puzzle)), h('span', { class: 'pill' }, `Streak ${profile.streak}`), h('span', { class: 'pill' }, `${solvedCount} of ${PUZZLES.length} solved`)))));
-  main.append(h('div', { class: 'modes' },
-    h('button', { class: 'mode-card', onclick: () => { puzMode = 'daily'; render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done today' : `Streak ${dState.streak}`)),
-    h('button', { class: 'mode-card', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, 'Best ' + Math.max(rushBest('3min'), rushBest('5min'), rushBest('survival'))))));
+  main.append(stageBanner('den', 'Puzzle Den', `Rating ${fmtR(profile.puzzle)}, ${solvedCount} of ${PUZZLES.length} solved`, h('div', { class: 'stage-actions' },
+    h('button', { class: 'stage-act' + (dDone ? '' : ' hot'), onclick: () => { puzMode = 'daily'; render(); } }, icon('calendar', 20), h('span', null, 'Daily')),
+    h('button', { class: 'stage-act', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; render(); } }, icon('bolt', 20), h('span', null, 'Rush')))));
   main.append(h('div', { class: 'cats' }, cats.map(([k, l]) => h('button', { class: puzCat === k ? 'on' : '', onclick: () => { puzCat = k; puzState = null; render(); } }, l))));
   if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
   const ps = puzState, p = ps.p;
@@ -3000,6 +3023,7 @@ function renderLearn(main) {
   if (lessonOpen) return renderLesson(main);
   if (courseOpen) return renderCourse(main);
   const done = LESSONS.filter(l => profile.lessons[l.id]).length;
+  main.append(stageBanner('library', 'The Library', 'Lessons and courses for every level'));
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   if (typeof COURSES !== 'undefined' && COURSES.length) {
     main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
@@ -3151,6 +3175,7 @@ function sparkline(arr, color, emptyMsg) {
 function renderMe(main) {
   if (meView === 'style') return renderStyle(main);
   if (meView === 'insights') return renderInsights(main);
+  main.append(stageBanner('trophy', 'Trophy Hall', profile.name ? `${profile.name}'s room` : 'Your ratings, trophies and style'));
   main.append(levelCard());
   main.append(h('div', { class: 'modes' },
     h('button', { class: 'mode-card', onclick: () => { meView = 'insights'; render(); } }, icon('chart', 26), h('b', null, 'Insights'), h('small', null, `${(profile.reviews || []).length} reviewed games`)),
@@ -3653,7 +3678,7 @@ function levelCard() {
   const li = levelInfo(profile.xp || 0);
   return h('div', { class: 'card levelcard' },
     h('div', { class: 'row' }, h('div', { class: 'lvlnum' }, li.lvl), h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Level'), h('div', { style: { fontSize: '19px', fontWeight: 900 } }, li.title), h('div', { class: 'small muted' }, `${li.into} / ${li.need} XP to level ${li.lvl + 1}`)),
-      h('button', { class: 'btn sm', onclick: () => { meView = 'style'; render(); } }, icon('palette', 18), 'Style')),
+      null),
     h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(li.into / li.need * 100) + '%' } })));
 }
 function trophyCard() {
@@ -4759,10 +4784,10 @@ function renderReview(main) {
     else head.append(h('b', null, 'Starting position'), h('span', { class: 'grow' }), h('span', { class: 'pill' }, fmtEval(R.evals[0])));
     coach.textContent = mv ? coachExplain(R, ply - 1) : `Use the arrows or tap the graph to walk through the game. Green arrows show what the engine would have played.`;
     actions.innerHTML = '';
-    if (mv && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(mv.cls)) actions.append(h('button', { class: 'btn primary grow', onclick: () => retryMoment(R, ply - 1) }, icon('repeat', 18), 'Retry this moment'));
-    actions.append(h('button', { class: 'btn grow', onclick: () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply }) }, icon('search', 18), 'Analyze'));
+    if (mv && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(mv.cls)) actions.append(h('button', { class: 'btn primary sm grow', onclick: () => retryMoment(R, ply - 1) }, icon('repeat', 16), 'Retry it'));
+    actions.append(h('button', { class: 'btn sm grow', onclick: () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply }) }, icon('search', 16), 'Analyze'));
     const nextBad = R.moves.findIndex((m, i) => i >= ply && m.side === side && ['mistake', 'blunder', 'miss'].includes(m.cls));
-    if (nextBad >= 0) actions.append(h('button', { class: 'btn grow', onclick: () => go2(nextBad + 1) }, 'Next mistake', icon('next', 18)));
+    if (nextBad >= 0) actions.append(h('button', { class: 'btn sm grow', onclick: () => go2(nextBad + 1) }, 'Next mistake', icon('next', 16)));
     movesEl.querySelectorAll('.m').forEach(e => e.classList.toggle('cur', +e.dataset.i === ply));
     const cur = movesEl.querySelector('.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }
@@ -5014,6 +5039,16 @@ function renderHome(main) {
 ;
 // Start the app after every module has loaded.
 boot();
+// opening moment: the brass medallion drops in, the knight lands, then the clubhouse appears
+(function splash() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  try { if (sessionStorage.getItem('kc-splash')) return; sessionStorage.setItem('kc-splash', '1'); } catch (e) { }
+  const el = document.createElement('div'); el.className = 'splash';
+  el.innerHTML = `<div class="sp-disc"><img src="${PIECE_URL.bn}" alt=""></div><div class="sp-name">Knight Club</div>`;
+  document.body.append(el);
+  setTimeout(() => el.classList.add('out'), 1150);
+  setTimeout(() => el.remove(), 1600);
+})();
 // Installable app + offline play (only when served over http/https, not from a local file)
 let installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });

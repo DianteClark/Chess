@@ -256,7 +256,7 @@ function levelCard() {
   const li = levelInfo(profile.xp || 0);
   return h('div', { class: 'card levelcard' },
     h('div', { class: 'row' }, h('div', { class: 'lvlnum' }, li.lvl), h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Level'), h('div', { style: { fontSize: '19px', fontWeight: 900 } }, li.title), h('div', { class: 'small muted' }, `${li.into} / ${li.need} XP to level ${li.lvl + 1}`)),
-      h('button', { class: 'btn sm', onclick: () => { meView = 'style'; render(); } }, icon('palette', 18), 'Style')),
+      null),
     h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(li.into / li.need * 100) + '%' } })));
 }
 function trophyCard() {

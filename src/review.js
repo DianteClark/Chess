@@ -373,10 +373,10 @@ function renderReview(main) {
     else head.append(h('b', null, 'Starting position'), h('span', { class: 'grow' }), h('span', { class: 'pill' }, fmtEval(R.evals[0])));
     coach.textContent = mv ? coachExplain(R, ply - 1) : `Use the arrows or tap the graph to walk through the game. Green arrows show what the engine would have played.`;
     actions.innerHTML = '';
-    if (mv && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(mv.cls)) actions.append(h('button', { class: 'btn primary grow', onclick: () => retryMoment(R, ply - 1) }, icon('repeat', 18), 'Retry this moment'));
-    actions.append(h('button', { class: 'btn grow', onclick: () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply }) }, icon('search', 18), 'Analyze'));
+    if (mv && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(mv.cls)) actions.append(h('button', { class: 'btn primary sm grow', onclick: () => retryMoment(R, ply - 1) }, icon('repeat', 16), 'Retry it'));
+    actions.append(h('button', { class: 'btn sm grow', onclick: () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply }) }, icon('search', 16), 'Analyze'));
     const nextBad = R.moves.findIndex((m, i) => i >= ply && m.side === side && ['mistake', 'blunder', 'miss'].includes(m.cls));
-    if (nextBad >= 0) actions.append(h('button', { class: 'btn grow', onclick: () => go2(nextBad + 1) }, 'Next mistake', icon('next', 18)));
+    if (nextBad >= 0) actions.append(h('button', { class: 'btn sm grow', onclick: () => go2(nextBad + 1) }, 'Next mistake', icon('next', 16)));
     movesEl.querySelectorAll('.m').forEach(e => e.classList.toggle('cur', +e.dataset.i === ply));
     const cur = movesEl.querySelector('.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
   }
