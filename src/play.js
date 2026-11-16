@@ -302,11 +302,11 @@ function renderPlay(main) {
     drawStakes();
     const on = strip.querySelector('.bs.on'); if (on) setTimeout(() => strip.scrollTo({ left: on.offsetLeft - strip.clientWidth / 2 + on.clientWidth / 2, behavior: 'smooth' }), 0);
   };
-  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; beep('toggle'); d(); drawStakes(); } }, l))); }; d(); return el; };
+  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l, al]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', 'aria-label': al || null, onclick: () => { playSel[key] = v; beep('toggle'); d(); drawStakes(); } }, l))); }; d(); return el; };
   drawAll();
   main.append(spot, strip);
   main.append(h('div', { class: 'card setup2' },
-    h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Play as'), seg([['w', [pieceImg('wk')]], ['r', [icon('dice', 18)]], ['b', [pieceImg('bk')]]], 'color')),
+    h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Play as'), seg([['w', [pieceImg('wk')], 'White'], ['r', [icon('dice', 18)], 'Random'], ['b', [pieceImg('bk')], 'Black']], 'color')),
     h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Game'), seg([[true, [icon('trophy', 16), ' Rated']], [false, [icon('learn', 16), ' Coach']]], 'rated')),
     h('div', { class: 'srow col' }, h('span', { class: 'lbl' }, 'Clock'), tcPicker(playSel)),
     h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Start'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant'))));

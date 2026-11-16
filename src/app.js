@@ -275,7 +275,7 @@ function render() {
   app.append(h('div', { class: 'topbar' },
     h('button', { class: 'logo', onclick: () => go('home'), 'aria-label': 'Clubhouse' }, logo, 'Knight Club'),
     typeof inboxButton === 'function' ? inboxButton() : null,
-    h('button', { class: 'chip', id: 'rchip', onclick: () => go('me') })));
+    h('button', { class: 'chip', id: 'rchip', 'aria-label': 'Your ratings', onclick: () => go('me') })));
   refreshChip();
   // a fresh view animates in when you move between screens (not on in-place refreshes)
   const changed = lastRoute !== route + '|' + subView();
@@ -369,21 +369,21 @@ function migrate(p) {
   return p;
 }
 
-const APP_VERSION = '12.0';
+const APP_VERSION = '13.0';
 function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
   const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
   profile.seenVersion = APP_VERSION; saveProfile();
   if (firstEver && !force) return; // brand-new players go straight in
   const items = [
-    ['play', 'Full-screen play', 'Games, lessons, puzzles and reviews fill your screen: no scrolling, no dock, big buttons at the bottom.'],
-    ['trophy', 'Real rewards', 'Results screens with stars and an XP bar, reward chests, and a daily login chest that grows all week.'],
-    ['search', 'A better Game Review', 'Starts at move 1, plays itself, stops at the big moments, and Hoot explains every move.'],
-    ['route', 'The lesson path', 'Lessons are now a trail with chapters and up to 3 stars each.'],
-    ['sparkle', 'A whole new feel', 'New Arena, Puzzle Den, Me tab, trophy cabinet, an animated Hoot and a brand new sound kit.'],
+    ['board', 'A brand new board', 'Pieces lift under your finger, slide smoothly, promote right on the board. Premoves, and draw your own arrows.'],
+    ['play', 'Games with character', 'A versus intro, bots that talk back, a game menu, a full move list and clocks with real tension.'],
+    ['puzzle', 'Puzzle Battle and Streak', 'Race a bot through puzzles, go for your longest streak, and replay the puzzles you missed.'],
+    ['trophy', 'Season 1: The Opening', 'A 30-tier reward track, avatar frames, titles, 100 trophies and your full game history.'],
+    ['phone', 'Locked to your screen', 'No more zooming or shifting, a landscape layout, and bigger boards on tablets.'],
   ];
 
-  modal((box, close) => box.append(h('div', { class: 'center' }, typeof hootEl === 'function' ? hootEl('cheer', 84) : hoot(72)), h('h2', { class: 'center' }, `The big update is here!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
+  modal((box, close) => box.append(h('div', { class: 'center' }, typeof hootEl === 'function' ? hootEl('cheer', 84) : hoot(72)), h('h2', { class: 'center' }, `Knight Club 13 is here!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
     h('div', { class: 'stack' }, items.map(([ic, t, d]) => h('div', { class: 'quest' }, h('div', { class: 'qi' }, icon(ic, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, t), h('div', { class: 'small muted' }, d))))),
     h('div', { style: { height: '12px' } }), h('button', { class: 'btn primary block', onclick: () => { close(); confetti(); } }, "Let's play!")));
 }

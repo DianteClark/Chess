@@ -115,3 +115,5 @@
   .lw-radar i{animation-duration:4s}
 }
 @media (max-height:700px){.lw-quick{width:136px}.lw-quick .lab b{font-size:23px}.lw-hero{gap:10px;padding-top:14px}.lw-radar{width:150px;height:150px}.lw-radar .core img{width:54px;height:54px}}
+
+.lw-head small,.lw-sub{white-space:normal}

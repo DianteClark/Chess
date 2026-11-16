@@ -1,5 +1,30 @@
 # Changelog
 
+## 13.0 — Grand Opening
+
+Rebuilt by five specialists and a coordinator, with more than 45 improvements.
+
+**Screen and devices**
+- The app is locked to the screen: no pinch or double-tap zoom, no bounce, fields never zoom on iOS, a stable height when the browser toolbar or keyboard moves, safe-area spacing on all sides.
+- Landscape layout for games and lessons (board left, panels right); bigger boards and a framed side panel on tablets and desktop.
+- Focus rings, screen-reader labels, real dialogs (focus trap, Escape, swipe down to close), 44px tap targets, better contrast.
+- Update toast with Reload instead of surprise reloads; offline start after a slow network; home-screen shortcuts for Play, Puzzles and Daily.
+
+**Board**
+- Lifted drag with a finger offset, tap-to-move, smooth slides for every move (castling and promotion too), on-board promotion picker, premoves, your own arrows and circles, keyboard play.
+
+**Games**
+- Versus intro, bot personalities with lines for big moments, player bars with frames and material, clocks with low-time pulse, ticks and a flag, game menu sheet, move list sheet, arrow hints, rated-game leave guard, Pass & Play setup with names, full game records.
+
+**Puzzles**
+- Puzzle Battle against any bot, Streak mode, Rush combos with +5s bonuses and a run summary, three-step Hoot hints, rating graph and theme medals, Daily calendar, puzzle history, and missed puzzles that come back for review.
+
+**Progress**
+- Season 1 "The Opening" with a 30-tier cosmetic track; avatar frames, titles and banners; game archive with filters; 100 trophies; stats with draggable rating graphs; a 3-step welcome; rank titles; an in-app inbox.
+
+**Also**
+- World Games in progress survive a reload, lesson hints after two misses, directional tab transitions, review accuracy shown in the archive, translations at 100% in eight languages.
+
 ## 12.0 — The Revamp
 
 Knight Club now feels like a game from top to bottom.

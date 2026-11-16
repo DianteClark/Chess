@@ -30,5 +30,57 @@
       "sizes": "any",
       "type": "image/svg+xml"
     }
+  ],
+  "id": "./",
+  "lang": "en",
+  "categories": [
+    "games",
+    "education",
+    "entertainment"
+  ],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "shortcuts": [
+    {
+      "name": "Play a game",
+      "short_name": "Play",
+      "description": "Play against a bot",
+      "url": "./#play",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Puzzles",
+      "short_name": "Puzzles",
+      "description": "Solve chess puzzles",
+      "url": "./#puzzles",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Daily Puzzle",
+      "short_name": "Daily",
+      "description": "Today's puzzle",
+      "url": "./#daily",
+      "icons": [
+        {
+          "src": "icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }

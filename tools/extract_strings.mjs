@@ -20,7 +20,7 @@ const SKIP_KEYS = new Set(['class', 'style', 'id', 'type', 'href', 'src', 'data-
   'marks', 'stars', 'pieces', 'fixed', 'mode', 'id_', 'key', 'path', 'uci', 'best', 'line', 'cat', 'themes', 'variant', 'grid', 'tc', 'reason_', 'background', 'width', 'height', 'left', 'top',
   'maxlength', 'autocapitalize', 'autocomplete', 'rel', 'as', 'crossorigin', 'viewBox', 'fill', 'stroke', 'light', 'dark', 'w', 'b', 'req', 'ach', 'level', 'sound', 'board', 'ev', 'show', 'showMoves', 'arrows', 'ffish']);
 const looksLikeSan = s => /^([KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](=[QRBN])?|O-O(-O)?)[+#]?[!?]*$/.test(s);
-const looksLikeCode = s => looksLikeSan(s) || /^-?[\d.]+(px|em|rem|%|deg|ms|s)\b/.test(s) || /^[#.\[]|^[a-z0-9_-]+$|^[A-Z_0-9]+$|=>|[{}]|;$|https?:|^data:|^M[\d.-]|\b(px|rgba?|var\()\b|^\s*$|^[\d\s.,:+\-/%]+$|^[a-h][1-8]/.test(s) || !/[A-Za-z]{2}/.test(s);
+const looksLikeCode = s => looksLikeSan(s) || /^[a-z]+[A-Z][A-Za-z]*$|^[\w.-]+\.[\w.-]+$|^\/\w|\w\(.*\)$|^(SHA|AES|HMAC)-/.test(s) || /^-?[\d.]+(px|em|rem|%|deg|ms|s)\b/.test(s) || /^[#.\[]|^[a-z0-9_-]+$|^[A-Z_0-9]+$|=>|[{}]|;$|https?:|^data:|^M[\d.-]|\b(px|rgba?|var\()\b|^\s*$|^[\d\s.,:+\-/%]+$|^[a-h][1-8]/.test(s) || !/[A-Za-z]{2}/.test(s);
 const out = new Map();
 const addForce = (s, where) => { s = s.replace(/\s+/g, ' ').trim(); if (s && !out.has(s)) out.set(s, where); };
 const add = (s, where) => { s = s.replace(/\s+/g, ' ').trim(); const bare = s.replace(/\{\d\}/g, ' ').trim(); if (s.length < 2 || !bare || (looksLikeCode(bare) && !(/\{\d\}/.test(s) && /^[a-z][a-z ]+$/.test(bare) && bare.length > 3)) || /<(?!\/?(b|br|i|em)\b)[a-zA-Z\/]|class=/.test(s)) return; if (!out.has(s)) out.set(s, where); };

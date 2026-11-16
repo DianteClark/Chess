@@ -5,7 +5,7 @@
 //   (vendor/fairy) is cached the first time a World Game is opened, not at install.
 // - Translations are network-first and cached for offline.
 // - A new version waits until the page says so (the "New version ready, Reload" toast in boot.js).
-const VERSION = 'v15';
+const VERSION = 'v16';
 const CACHE = 'knightclub-' + VERSION;
 const CORE = ['./', './index.html', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './manifest.webmanifest',
   './fonts/lilita-one-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-700-normal.woff2',
