@@ -553,6 +553,7 @@ function renderPlay(main) {
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
     h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { route = 'learn'; lessonOpen = null; render(); } }, icon('learn', 22), h('b', null, 'Learn & courses'))),
+    questCard(),
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
@@ -698,7 +699,8 @@ function renderBotGame(main) {
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
-    setTimeout(() => rewardEvent('botGame', { score, reason, botIndex: cur.bot, rated: counted, tc: cur.tc, moves: g.moves.slice(), color: cur.color }), 1800);
+    setTimeout(() => rewardEvent('botGame', { score, reason, botIndex: cur.bot, rated: counted, tc: cur.tc, moves: g.moves.slice(), color: cur.color, botRating: bot.rating, myRating: before }), 1800);
+    if (score === 1) setTimeout(() => confetti(), 400);
     if (score === 1) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }

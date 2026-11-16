@@ -119,7 +119,8 @@ function renderLobbyGame(main, lb) {
     setTimeout(() => modal((box, close) => box.append(badge(score === .5 ? 'half' : win ? 'trophy' : 'shield', score === .5 ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, score === .5 ? 'Draw!' : win ? 'You win!' : `${opp.name} wins`), h('p', { class: 'center muted' }, 'by ' + st.reason),
       rc != null ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('span', { class: 'delta ' + (rc >= 0 ? 'up' : 'down') }, (rc >= 0 ? '+' : '') + Math.round(rc))) : null,
       h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); openReview({ moves: gm.moves.slice(), color: myColor, white: gm.white.name, black: gm.black.name }); } }, icon('search', 18), 'Review'), h('button', { class: 'btn primary grow', onclick: () => { close(); lb.rematch(gm.id); } }, icon('repeat', 18), 'Rematch')))), 500);
-    if (gm.moves.length >= 4) setTimeout(() => rewardEvent('onlineGame', { score, moves: gm.moves.slice(), color: myColor }), 1800);
+    if (gm.moves.length >= 4) setTimeout(() => rewardEvent('onlineGame', { score, moves: gm.moves.slice(), color: myColor, reason: st.reason }), 1800);
+    if (win) setTimeout(() => confetti(), 400);
   }
   lobbyGameHook = (kind, data) => {
     if (kind === 'chat') { if (data.gameId === gm.id) { drawChat(); if (data.from !== myColor) beep('move'); } return; }

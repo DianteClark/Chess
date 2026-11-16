@@ -273,3 +273,12 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .qgrid .q{background:var(--bg2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .qgrid .q b{font-size:18px} .qgrid .q small{font-size:11px;color:var(--muted);font-weight:700}
 .lesson-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--accent);flex:none}
+/* quests + confetti */
+.questcard{gap:10px}
+.quest{display:flex;align-items:center;gap:10px}
+.quest .qi{width:32px;height:32px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--accent);flex:none}
+.quest.done .qi{background:var(--good);color:#06301a}
+.quest .qt{font-size:14px;font-weight:800} .quest.done .qt{color:var(--muted);text-decoration:line-through}
+.qbar{height:6px;border-radius:4px;background:var(--bg2);overflow:hidden;margin-top:4px} .qbar div{height:100%;background:var(--accent);border-radius:4px}
+.quest .qx{font-size:12px;font-weight:900;color:var(--accent)}
+.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:400}

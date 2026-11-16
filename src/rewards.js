@@ -160,9 +160,23 @@ function rewardEvent(type, d = {}) {
   else if (type === 'review') { inc('reviews'); grantXP(15, 'Game review'); if (d.brilliants) inc('brilliants', d.brilliants); if (d.acc >= 90 && d.moves >= 20) inc('acc90'); }
   else if (type === 'game960') { inc('games960'); }
   if (['botGame', 'onlineGame', 'localGame'].includes(type) && hr < 5) inc('nightGames');
+  // daily quests
+  if (['botGame', 'onlineGame', 'localGame'].includes(type)) { questEvent('gamePlayed'); if (castledIn(d.moves, d.color)) questEvent('castled'); }
+  if (type === 'botGame' && d.score === 1) { questEvent('botWin'); if (d.reason === 'checkmate') questEvent('mateWin'); if (BOT_LEVELS[d.botIndex] && d.botRating > d.myRating) questEvent('upsetWin'); }
+  if (type === 'onlineGame') { questEvent('onlineGame'); if (d.score === 1 && d.reason === 'checkmate') questEvent('mateWin'); }
+  if (type === 'puzzle' && d.solved) questEvent('puzzleSolved');
+  if (type === 'rush') { questEvent('puzzleSolved', d.score); if (d.score >= 8) questEvent('rush8'); }
+  if (type === 'daily') { questEvent('daily'); questEvent('puzzleSolved'); }
+  if (type === 'review') questEvent('review');
+  if (type === 'lesson') questEvent('lesson');
   checkAchievements();
   saveProfile();
   flushRewards();
+}
+function castledIn(moves, color) {
+  if (!moves) return false; const pos = new E.Position();
+  for (const u of moves) { const m = pos.moveFromUci(u); if (!m) return false; const mover = pos.turn === 0 ? 'w' : 'b'; if ((E.mFlags(m) & E.F_CASTLE) && (!color || mover === color)) return true; pos.make(m); }
+  return false;
 }
 // scan a finished game for special moves made by `color` (or by anyone when color is null)
 function gameFeats(moves, color, score) {
@@ -189,10 +203,12 @@ function flushRewards() {
   const showNext = () => {
     const r = rewardQueue.shift(); if (!r) { rewardShowing = false; return; }
     rewardShowing = true;
-    if (r.kind === 'level') rewardToast(icon('arrowUp', 18), `Level ${r.lvl}!`, levelInfo(profile.xp).title, 'gold');
+    if (r.kind === 'level') { rewardToast(icon('arrowUp', 18), `Level ${r.lvl}!`, levelInfo(profile.xp).title, 'gold'); confetti(1300); }
     else if (r.kind === 'ach') rewardToast(icon(r.a.icon, 18), `${TIER_NAME[r.a.tier]} achievement: ${r.a.name}`, r.a.desc, ['', 'bronze', 'silver', 'gold'][r.a.tier]);
     else if (r.kind === 'unlock') rewardToast(icon('sparkle', 18), `Unlocked: ${r.item.name}`, 'Try it in Me > Style', 'gold');
     else if (r.kind === 'avatar') rewardToast(avatar(r.item.id, 22), `New avatar: ${r.item.name}`, 'Pick it in Me > Style', 'gold');
+    else if (r.kind === 'quest') rewardToast(icon('check', 18), 'Quest complete!', r.def.text, 'silver');
+    else if (r.kind === 'questsAll') { rewardToast(icon('trophy', 18), 'All quests done!', `Quest streak: ${r.streak} day${r.streak > 1 ? 's' : ''}`, 'gold'); confetti(); }
     setTimeout(showNext, 1500);
   };
   setTimeout(showNext, xp.length ? 900 : 0);
@@ -269,4 +285,72 @@ function renderStyle(main) {
   main.append(h('h3', { class: 'sect' }, 'Board options'));
   const toggle = (label, key) => h('div', { class: 'card row' }, h('b', { class: 'grow' }, label), h('button', { class: 'btn sm', onclick: () => { st[key] = st[key] === false; saveProfile(); applyStyle(); render(); } }, st[key] === false ? 'Off' : 'On'));
   main.append(toggle('Show coordinates', 'coords'), toggle('Animate moves', 'anim'), toggle('Show legal move dots', 'dots'));
+}
+
+// ---------- daily quests ----------
+const QUEST_POOL = [
+  { id: 'win1', text: 'Win a game against any bot', icon: 'trophy', goal: 1, ev: 'botWin', xp: 40 },
+  { id: 'play2', text: 'Play 2 games', icon: 'play', goal: 2, ev: 'gamePlayed', xp: 30 },
+  { id: 'puz3', text: 'Solve 3 puzzles', icon: 'puzzle', goal: 3, ev: 'puzzleSolved', xp: 30 },
+  { id: 'puz5', text: 'Solve 5 puzzles', icon: 'puzzle', goal: 5, ev: 'puzzleSolved', xp: 45 },
+  { id: 'rush8', text: 'Score 8 or more in Puzzle Rush', icon: 'bolt', goal: 1, ev: 'rush8', xp: 40 },
+  { id: 'daily', text: 'Solve the Daily Puzzle', icon: 'calendar', goal: 1, ev: 'daily', xp: 25 },
+  { id: 'review', text: 'Review a game with the coach', icon: 'search', goal: 1, ev: 'review', xp: 30 },
+  { id: 'lesson', text: 'Finish a lesson', icon: 'learn', goal: 1, ev: 'lesson', xp: 30 },
+  { id: 'mate', text: 'Win a game by checkmate', icon: 'crown', goal: 1, ev: 'mateWin', xp: 45 },
+  { id: 'castle', text: 'Castle in a game', icon: 'castle', goal: 1, ev: 'castled', xp: 20 },
+  { id: 'stronger', text: 'Beat a bot rated above you', icon: 'arrowUp', goal: 1, ev: 'upsetWin', xp: 60 },
+  { id: 'online', text: 'Play a game in Play the World', icon: 'globe', goal: 1, ev: 'onlineGame', xp: 40 },
+];
+function questsToday() {
+  const key = todayKey();
+  profile.quests = profile.quests || {};
+  if (profile.quests.day !== key) {
+    // pick 3 different quests for today, the same for everyone (seeded by the date)
+    let hsh = 0; for (const c of key) hsh = (hsh * 31 + c.charCodeAt(0)) >>> 0;
+    const pool = QUEST_POOL.slice(), picked = [];
+    const evs = new Set();
+    while (picked.length < 3 && pool.length) { hsh = (hsh * 1103515245 + 12345) >>> 0; const q = pool.splice(hsh % pool.length, 1)[0]; if (evs.has(q.ev)) continue; evs.add(q.ev); picked.push({ id: q.id, n: 0, done: false }); }
+    const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+    const streak = profile.quests.allDoneDay === yesterday ? (profile.quests.streak || 0) : 0;
+    profile.quests = { day: key, list: picked, streak, allDoneDay: profile.quests.allDoneDay, bonus: false };
+    saveProfile();
+  }
+  return profile.quests;
+}
+function questEvent(ev, n = 1) {
+  const Q = questsToday(); let changed = false;
+  for (const q of Q.list) {
+    const def = QUEST_POOL.find(x => x.id === q.id); if (!def || q.done || def.ev !== ev) continue;
+    q.n = Math.min(def.goal, q.n + n); changed = true;
+    if (q.n >= def.goal) { q.done = true; queueReward({ kind: 'quest', def }); grantXP(def.xp, 'Quest'); }
+  }
+  if (changed && Q.list.every(q => q.done) && !Q.bonus) {
+    Q.bonus = true; Q.streak = (Q.streak || 0) + 1; Q.allDoneDay = Q.day;
+    queueReward({ kind: 'questsAll', streak: Q.streak }); grantXP(50 + Math.min(10, Q.streak) * 10, 'All quests done');
+    inc('questDays');
+  }
+  if (changed) saveProfile();
+}
+function questCard() {
+  const Q = questsToday();
+  return h('div', { class: 'card stack questcard' },
+    h('div', { class: 'row' }, h('b', { class: 'grow' }, "Today's quests"), Q.streak ? h('span', { class: 'pill live' }, `${Q.streak} day streak`) : null),
+    Q.list.map(q => { const def = QUEST_POOL.find(x => x.id === q.id); return h('div', { class: 'quest' + (q.done ? ' done' : '') }, h('div', { class: 'qi' }, icon(q.done ? 'check' : def.icon, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, def.text), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(q.n / def.goal * 100) + '%' } }))), h('div', { class: 'qx' }, `+${def.xp}`)); }),
+    Q.bonus ? h('div', { class: 'small muted center' }, 'All done! Come back tomorrow for new quests.') : h('div', { class: 'small muted center' }, 'Finish all three for a bonus.'));
+}
+// ---------- confetti ----------
+function confetti(ms = 1600) {
+  if (profile.style && profile.style.anim === false) return;
+  const c = document.createElement('canvas'); c.className = 'confetti'; document.body.append(c);
+  const ctx = c.getContext('2d'), W = c.width = innerWidth * devicePixelRatio, H = c.height = innerHeight * devicePixelRatio;
+  const cols = ['#ffb547', '#4fd18b', '#6fb3ff', '#ff6b6b', '#c99bff', '#fff3c4'];
+  const parts = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 18 * devicePixelRatio, vy: (-Math.random() * 16 - 6) * devicePixelRatio, s: (4 + Math.random() * 6) * devicePixelRatio, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: cols[Math.floor(Math.random() * cols.length)] }));
+  const t0 = performance.now();
+  const step = t => {
+    const k = (t - t0) / ms; ctx.clearRect(0, 0, W, H);
+    for (const p of parts) { p.vy += .5 * devicePixelRatio; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.r += p.vr; ctx.save(); ctx.globalAlpha = Math.max(0, 1 - k); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * .66); ctx.restore(); }
+    if (k < 1) requestAnimationFrame(step); else c.remove();
+  };
+  requestAnimationFrame(step);
 }

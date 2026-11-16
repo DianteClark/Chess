@@ -291,6 +291,15 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .qgrid .q{background:var(--bg2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .qgrid .q b{font-size:18px} .qgrid .q small{font-size:11px;color:var(--muted);font-weight:700}
 .lesson-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--accent);flex:none}
+/* quests + confetti */
+.questcard{gap:10px}
+.quest{display:flex;align-items:center;gap:10px}
+.quest .qi{width:32px;height:32px;border-radius:10px;background:var(--bg2);display:flex;align-items:center;justify-content:center;color:var(--accent);flex:none}
+.quest.done .qi{background:var(--good);color:#06301a}
+.quest .qt{font-size:14px;font-weight:800} .quest.done .qt{color:var(--muted);text-decoration:line-through}
+.qbar{height:6px;border-radius:4px;background:var(--bg2);overflow:hidden;margin-top:4px} .qbar div{height:100%;background:var(--accent);border-radius:4px}
+.quest .qx{font-size:12px;font-weight:900;color:var(--accent)}
+.confetti{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:400}
 </style>
 </head>
 <body>
@@ -1838,6 +1847,7 @@ function renderPlay(main) {
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
     h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { route = 'learn'; lessonOpen = null; render(); } }, icon('learn', 22), h('b', null, 'Learn & courses'))),
+    questCard(),
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
@@ -1983,7 +1993,8 @@ function renderBotGame(main) {
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
-    setTimeout(() => rewardEvent('botGame', { score, reason, botIndex: cur.bot, rated: counted, tc: cur.tc, moves: g.moves.slice(), color: cur.color }), 1800);
+    setTimeout(() => rewardEvent('botGame', { score, reason, botIndex: cur.bot, rated: counted, tc: cur.tc, moves: g.moves.slice(), color: cur.color, botRating: bot.rating, myRating: before }), 1800);
+    if (score === 1) setTimeout(() => confetti(), 400);
     if (score === 1) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }
@@ -2930,9 +2941,23 @@ function rewardEvent(type, d = {}) {
   else if (type === 'review') { inc('reviews'); grantXP(15, 'Game review'); if (d.brilliants) inc('brilliants', d.brilliants); if (d.acc >= 90 && d.moves >= 20) inc('acc90'); }
   else if (type === 'game960') { inc('games960'); }
   if (['botGame', 'onlineGame', 'localGame'].includes(type) && hr < 5) inc('nightGames');
+  // daily quests
+  if (['botGame', 'onlineGame', 'localGame'].includes(type)) { questEvent('gamePlayed'); if (castledIn(d.moves, d.color)) questEvent('castled'); }
+  if (type === 'botGame' && d.score === 1) { questEvent('botWin'); if (d.reason === 'checkmate') questEvent('mateWin'); if (BOT_LEVELS[d.botIndex] && d.botRating > d.myRating) questEvent('upsetWin'); }
+  if (type === 'onlineGame') { questEvent('onlineGame'); if (d.score === 1 && d.reason === 'checkmate') questEvent('mateWin'); }
+  if (type === 'puzzle' && d.solved) questEvent('puzzleSolved');
+  if (type === 'rush') { questEvent('puzzleSolved', d.score); if (d.score >= 8) questEvent('rush8'); }
+  if (type === 'daily') { questEvent('daily'); questEvent('puzzleSolved'); }
+  if (type === 'review') questEvent('review');
+  if (type === 'lesson') questEvent('lesson');
   checkAchievements();
   saveProfile();
   flushRewards();
+}
+function castledIn(moves, color) {
+  if (!moves) return false; const pos = new E.Position();
+  for (const u of moves) { const m = pos.moveFromUci(u); if (!m) return false; const mover = pos.turn === 0 ? 'w' : 'b'; if ((E.mFlags(m) & E.F_CASTLE) && (!color || mover === color)) return true; pos.make(m); }
+  return false;
 }
 // scan a finished game for special moves made by `color` (or by anyone when color is null)
 function gameFeats(moves, color, score) {
@@ -2959,10 +2984,12 @@ function flushRewards() {
   const showNext = () => {
     const r = rewardQueue.shift(); if (!r) { rewardShowing = false; return; }
     rewardShowing = true;
-    if (r.kind === 'level') rewardToast(icon('arrowUp', 18), `Level ${r.lvl}!`, levelInfo(profile.xp).title, 'gold');
+    if (r.kind === 'level') { rewardToast(icon('arrowUp', 18), `Level ${r.lvl}!`, levelInfo(profile.xp).title, 'gold'); confetti(1300); }
     else if (r.kind === 'ach') rewardToast(icon(r.a.icon, 18), `${TIER_NAME[r.a.tier]} achievement: ${r.a.name}`, r.a.desc, ['', 'bronze', 'silver', 'gold'][r.a.tier]);
     else if (r.kind === 'unlock') rewardToast(icon('sparkle', 18), `Unlocked: ${r.item.name}`, 'Try it in Me > Style', 'gold');
     else if (r.kind === 'avatar') rewardToast(avatar(r.item.id, 22), `New avatar: ${r.item.name}`, 'Pick it in Me > Style', 'gold');
+    else if (r.kind === 'quest') rewardToast(icon('check', 18), 'Quest complete!', r.def.text, 'silver');
+    else if (r.kind === 'questsAll') { rewardToast(icon('trophy', 18), 'All quests done!', `Quest streak: ${r.streak} day${r.streak > 1 ? 's' : ''}`, 'gold'); confetti(); }
     setTimeout(showNext, 1500);
   };
   setTimeout(showNext, xp.length ? 900 : 0);
@@ -3039,6 +3066,74 @@ function renderStyle(main) {
   main.append(h('h3', { class: 'sect' }, 'Board options'));
   const toggle = (label, key) => h('div', { class: 'card row' }, h('b', { class: 'grow' }, label), h('button', { class: 'btn sm', onclick: () => { st[key] = st[key] === false; saveProfile(); applyStyle(); render(); } }, st[key] === false ? 'Off' : 'On'));
   main.append(toggle('Show coordinates', 'coords'), toggle('Animate moves', 'anim'), toggle('Show legal move dots', 'dots'));
+}
+
+// ---------- daily quests ----------
+const QUEST_POOL = [
+  { id: 'win1', text: 'Win a game against any bot', icon: 'trophy', goal: 1, ev: 'botWin', xp: 40 },
+  { id: 'play2', text: 'Play 2 games', icon: 'play', goal: 2, ev: 'gamePlayed', xp: 30 },
+  { id: 'puz3', text: 'Solve 3 puzzles', icon: 'puzzle', goal: 3, ev: 'puzzleSolved', xp: 30 },
+  { id: 'puz5', text: 'Solve 5 puzzles', icon: 'puzzle', goal: 5, ev: 'puzzleSolved', xp: 45 },
+  { id: 'rush8', text: 'Score 8 or more in Puzzle Rush', icon: 'bolt', goal: 1, ev: 'rush8', xp: 40 },
+  { id: 'daily', text: 'Solve the Daily Puzzle', icon: 'calendar', goal: 1, ev: 'daily', xp: 25 },
+  { id: 'review', text: 'Review a game with the coach', icon: 'search', goal: 1, ev: 'review', xp: 30 },
+  { id: 'lesson', text: 'Finish a lesson', icon: 'learn', goal: 1, ev: 'lesson', xp: 30 },
+  { id: 'mate', text: 'Win a game by checkmate', icon: 'crown', goal: 1, ev: 'mateWin', xp: 45 },
+  { id: 'castle', text: 'Castle in a game', icon: 'castle', goal: 1, ev: 'castled', xp: 20 },
+  { id: 'stronger', text: 'Beat a bot rated above you', icon: 'arrowUp', goal: 1, ev: 'upsetWin', xp: 60 },
+  { id: 'online', text: 'Play a game in Play the World', icon: 'globe', goal: 1, ev: 'onlineGame', xp: 40 },
+];
+function questsToday() {
+  const key = todayKey();
+  profile.quests = profile.quests || {};
+  if (profile.quests.day !== key) {
+    // pick 3 different quests for today, the same for everyone (seeded by the date)
+    let hsh = 0; for (const c of key) hsh = (hsh * 31 + c.charCodeAt(0)) >>> 0;
+    const pool = QUEST_POOL.slice(), picked = [];
+    const evs = new Set();
+    while (picked.length < 3 && pool.length) { hsh = (hsh * 1103515245 + 12345) >>> 0; const q = pool.splice(hsh % pool.length, 1)[0]; if (evs.has(q.ev)) continue; evs.add(q.ev); picked.push({ id: q.id, n: 0, done: false }); }
+    const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); })();
+    const streak = profile.quests.allDoneDay === yesterday ? (profile.quests.streak || 0) : 0;
+    profile.quests = { day: key, list: picked, streak, allDoneDay: profile.quests.allDoneDay, bonus: false };
+    saveProfile();
+  }
+  return profile.quests;
+}
+function questEvent(ev, n = 1) {
+  const Q = questsToday(); let changed = false;
+  for (const q of Q.list) {
+    const def = QUEST_POOL.find(x => x.id === q.id); if (!def || q.done || def.ev !== ev) continue;
+    q.n = Math.min(def.goal, q.n + n); changed = true;
+    if (q.n >= def.goal) { q.done = true; queueReward({ kind: 'quest', def }); grantXP(def.xp, 'Quest'); }
+  }
+  if (changed && Q.list.every(q => q.done) && !Q.bonus) {
+    Q.bonus = true; Q.streak = (Q.streak || 0) + 1; Q.allDoneDay = Q.day;
+    queueReward({ kind: 'questsAll', streak: Q.streak }); grantXP(50 + Math.min(10, Q.streak) * 10, 'All quests done');
+    inc('questDays');
+  }
+  if (changed) saveProfile();
+}
+function questCard() {
+  const Q = questsToday();
+  return h('div', { class: 'card stack questcard' },
+    h('div', { class: 'row' }, h('b', { class: 'grow' }, "Today's quests"), Q.streak ? h('span', { class: 'pill live' }, `${Q.streak} day streak`) : null),
+    Q.list.map(q => { const def = QUEST_POOL.find(x => x.id === q.id); return h('div', { class: 'quest' + (q.done ? ' done' : '') }, h('div', { class: 'qi' }, icon(q.done ? 'check' : def.icon, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, def.text), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(q.n / def.goal * 100) + '%' } }))), h('div', { class: 'qx' }, `+${def.xp}`)); }),
+    Q.bonus ? h('div', { class: 'small muted center' }, 'All done! Come back tomorrow for new quests.') : h('div', { class: 'small muted center' }, 'Finish all three for a bonus.'));
+}
+// ---------- confetti ----------
+function confetti(ms = 1600) {
+  if (profile.style && profile.style.anim === false) return;
+  const c = document.createElement('canvas'); c.className = 'confetti'; document.body.append(c);
+  const ctx = c.getContext('2d'), W = c.width = innerWidth * devicePixelRatio, H = c.height = innerHeight * devicePixelRatio;
+  const cols = ['#ffb547', '#4fd18b', '#6fb3ff', '#ff6b6b', '#c99bff', '#fff3c4'];
+  const parts = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 18 * devicePixelRatio, vy: (-Math.random() * 16 - 6) * devicePixelRatio, s: (4 + Math.random() * 6) * devicePixelRatio, r: Math.random() * 6, vr: (Math.random() - .5) * .4, c: cols[Math.floor(Math.random() * cols.length)] }));
+  const t0 = performance.now();
+  const step = t => {
+    const k = (t - t0) / ms; ctx.clearRect(0, 0, W, H);
+    for (const p of parts) { p.vy += .5 * devicePixelRatio; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.r += p.vr; ctx.save(); ctx.globalAlpha = Math.max(0, 1 - k); ctx.translate(p.x, p.y); ctx.rotate(p.r); ctx.fillStyle = p.c; ctx.fillRect(-p.s / 2, -p.s / 3, p.s, p.s * .66); ctx.restore(); }
+    if (k < 1) requestAnimationFrame(step); else c.remove();
+  };
+  requestAnimationFrame(step);
 }
 
 ;
@@ -3418,7 +3513,8 @@ function renderLobbyGame(main, lb) {
     setTimeout(() => modal((box, close) => box.append(badge(score === .5 ? 'half' : win ? 'trophy' : 'shield', score === .5 ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, score === .5 ? 'Draw!' : win ? 'You win!' : `${opp.name} wins`), h('p', { class: 'center muted' }, 'by ' + st.reason),
       rc != null ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('span', { class: 'delta ' + (rc >= 0 ? 'up' : 'down') }, (rc >= 0 ? '+' : '') + Math.round(rc))) : null,
       h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); openReview({ moves: gm.moves.slice(), color: myColor, white: gm.white.name, black: gm.black.name }); } }, icon('search', 18), 'Review'), h('button', { class: 'btn primary grow', onclick: () => { close(); lb.rematch(gm.id); } }, icon('repeat', 18), 'Rematch')))), 500);
-    if (gm.moves.length >= 4) setTimeout(() => rewardEvent('onlineGame', { score, moves: gm.moves.slice(), color: myColor }), 1800);
+    if (gm.moves.length >= 4) setTimeout(() => rewardEvent('onlineGame', { score, moves: gm.moves.slice(), color: myColor, reason: st.reason }), 1800);
+    if (win) setTimeout(() => confetti(), 400);
   }
   lobbyGameHook = (kind, data) => {
     if (kind === 'chat') { if (data.gameId === gm.id) { drawChat(); if (data.from !== myColor) beep('move'); } return; }
