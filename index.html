@@ -185,6 +185,14 @@ a{color:var(--blue)}
 .banner .icn{color:var(--accent)} .banner.good .icn{color:var(--good)}
 .tbl td.res{font-weight:800;font-size:13px} .tbl td.res.w{color:var(--good)} .tbl td.res.l{color:var(--bad)} .tbl td.res.d{color:var(--blue)}
 .stat .l .icn{vertical-align:-2px}
+/* clocks */
+.clock{font-variant-numeric:tabular-nums;font-weight:900;font-size:20px;padding:6px 10px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);color:var(--muted);min-width:78px;text-align:center}
+.clock.on{background:#f3efe4;color:#1b1f2e;border-color:#f3efe4}
+.clock.low.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+.tcs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tcs button{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.tcs button b{font-size:15px} .tcs button small{font-size:11px;color:var(--muted);font-weight:700}
+.tcs button.on{border-color:var(--accent);background:#2e3150} .tcs button.on b{color:var(--accent)}
 </style>
 </head>
 <body>
@@ -1539,6 +1547,52 @@ function buildTabs() {
   document.body.append(h('nav', { class: 'tabs' }, inner));
 }
 
+// ======================= CLOCKS =======================
+// A clock is a plain object so it can be saved and sent: {base, inc, w, b, running:'w'|'b'|null, since}
+// Times are in ms. Clocks start once both sides have made their first move (like most chess sites).
+const TIME_CONTROLS = [[0, 0, 'Untimed'], [60, 0, 'Bullet'], [180, 0, 'Blitz'], [180, 2, 'Blitz'], [300, 0, 'Blitz'], [600, 0, 'Rapid'], [600, 5, 'Rapid'], [900, 10, 'Rapid'], [1800, 0, 'Classical']];
+const tcLabel = (base, inc) => base ? `${base / 60}+${inc}` : 'Untimed';
+const tcKey = (base, inc) => base + '+' + inc;
+function newClock(base, inc) { return base ? { base: base * 1000, inc: inc * 1000, w: base * 1000, b: base * 1000, running: null, since: 0 } : null; }
+const clk = {
+  rem(c, color) { let t = c[color]; if (c.running === color) t -= Date.now() - c.since; return Math.max(0, t); },
+  // call right after `mover` has moved; plies = number of moves played so far
+  press(c, mover, plies) {
+    if (!c) return;
+    if (c.running === mover) c[mover] = clk.rem(c, mover) + c.inc;
+    c.running = null;
+    if (plies >= 2) { c.running = mover === 'w' ? 'b' : 'w'; c.since = Date.now(); }
+  },
+  stop(c) { if (c && c.running) { c[c.running] = clk.rem(c, c.running); c.running = null; } },
+  flagged(c) { return c && c.running && clk.rem(c, c.running) <= 0 ? c.running : null; },
+  fmt(ms) {
+    if (ms >= 3600000) { const hh = Math.floor(ms / 3600000); return hh + ':' + String(Math.floor(ms / 60000) % 60).padStart(2, '0') + ':' + String(Math.floor(ms / 1000) % 60).padStart(2, '0'); }
+    const sec = Math.floor(ms / 1000);
+    if (ms < 10000) return '0:0' + sec + '.' + Math.floor(ms / 100) % 10;
+    return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+  },
+  // for sending over the network: freeze elapsed time into the message
+  wire(c) { if (!c) return null; const o = Object.assign({}, c); if (c.running) o.elapsed = Date.now() - c.since; delete o.since; return o; },
+  unwire(o) { if (!o) return null; const c = Object.assign({}, o); c.since = Date.now() - (o.elapsed || 0); delete c.elapsed; return c; },
+};
+// can `color` still deliver checkmate with its remaining material? (FIDE: flag vs lone king/minor = draw)
+function canStillMate(pos, color) {
+  let minors = 0; const side = color === 'w' ? 0 : 8;
+  for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } const p = pos.board[s]; if (!p || (p & 8) !== side) continue; const t = p & 7; if (t === 1 || t === 4 || t === 5) return true; if (t === 2 || t === 3) minors++; }
+  return minors >= 2;
+}
+function timeoutResult(pos, flagged) {
+  const winner = flagged === 'w' ? 'b' : 'w';
+  if (!canStillMate(pos, winner)) return { result: '1/2-1/2', reason: 'timeout vs. insufficient material' };
+  return { result: winner === 'w' ? '1-0' : '0-1', reason: 'time' };
+}
+function tcPicker(sel, onChange) {
+  const el = h('div', { class: 'tcs' });
+  const draw = () => { el.innerHTML = ''; TIME_CONTROLS.forEach(([b, i, kind]) => { const k = tcKey(b, i); el.append(h('button', { class: sel.tc === k ? 'on' : '', onclick: () => { sel.tc = k; draw(); onChange && onChange(); } }, h('b', null, tcLabel(b, i)), b ? h('small', null, kind) : null)); }); };
+  draw(); return el;
+}
+const parseTc = k => { const [b, i] = (k || '0+0').split('+').map(Number); return [b, i]; };
+
 // ======================= GAME SCREEN (shared) =======================
 // cfg: {game, bottom:{name,rating,avatar}, top:{...}, orient, canMove(color), onUserMove(uci), buttons:[...], onBoardReady}
 function gameScreen(main, cfg) {
@@ -1564,9 +1618,10 @@ function gameScreen(main, cfg) {
     const capEl = h('div', { class: 'caps' });
     const turnEl = h('div', { class: 'turnmark hidden' });
     const status = h('div', { class: 'thinking' });
+    const clockEl = cfg.getClock ? h('div', { class: 'clock' }) : null;
     const el = h('div', { class: 'pbar' }, h('div', { class: 'avatar' }, avatar(who.avatar || 'you', 38)),
-      h('div', { class: 'grow' }, h('div', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'pname' }, who.name), h('span', { class: 'prating' }, who.rating ? '(' + who.rating + ')' : ''), turnEl), capEl), status);
-    return { el, capEl, turnEl, status, colorIdx };
+      h('div', { class: 'grow' }, h('div', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'pname' }, who.name), h('span', { class: 'prating' }, who.rating ? '(' + who.rating + ')' : ''), turnEl), capEl), status, clockEl);
+    return { el, capEl, turnEl, status, colorIdx, clockEl };
   };
   const bottomColor = cfg.orient === 'w' ? 0 : 1;
   const topBar = bar(cfg.players[bottomColor ? 'w' : 'b'], bottomColor ^ 1), botBar = bar(cfg.players[bottomColor ? 'b' : 'w'], bottomColor);
@@ -1610,9 +1665,24 @@ function gameScreen(main, cfg) {
     ctrl.style.gridTemplateColumns = `repeat(${list.length},1fr)`;
     for (const b of list) ctrl.append(h('button', { class: 'btn', onclick: b.on, disabled: b.disabled }, icon(b.ic, 22), b.label));
   }
+  function tickClocks() {
+    const c = cfg.getClock && cfg.getClock();
+    for (const b of [topBar, botBar]) {
+      if (!b.clockEl) continue;
+      if (!c) { b.clockEl.classList.add('hidden'); continue; }
+      const color = b.colorIdx ? 'b' : 'w', ms = clk.rem(c, color);
+      b.clockEl.classList.remove('hidden');
+      b.clockEl.textContent = clk.fmt(ms);
+      b.clockEl.classList.toggle('on', c.running === color);
+      b.clockEl.classList.toggle('low', ms < Math.min(20000, c.base * 0.1 + 5000));
+    }
+    if (cfg.onTick) cfg.onTick();
+  }
+  if (cfg.getClock) { const iv = setInterval(tickClocks, 100); cleanups.push(() => clearInterval(iv)); }
   refresh();
+  tickClocks();
   return {
-    board, refresh, setButtons, setView,
+    board, refresh, setButtons, setView, tickClocks,
     setStatus(which, txt) { (which === 'top' ? topBar : botBar).status.textContent = txt || ''; },
     flip() {
       board.flip();
@@ -1626,7 +1696,7 @@ function gameScreen(main, cfg) {
 function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
 // ======================= PLAY VS BOT =======================
-let playSel = { bot: 0, color: 'w', rated: true };
+let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0' };
 function renderPlay(main) {
   if (profile.current && profile.current.mode === 'bot') return renderBotGame(main);
   const r = { r: profile.ladder.r };
@@ -1647,12 +1717,14 @@ function renderPlay(main) {
     grid,
     h('div', { class: 'card stack' },
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'TIME'), tcPicker(playSel)),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual (undo + hints)']], 'rated')),
       playBtn, stakes));
 }
-function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated) {
+function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated, tc = playSel.tc) {
   const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
-  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
+  const [tb, ti] = parseTc(tc);
+  profile.current = { mode: 'bot', bot: botIdx, color: c, rated, tc, clock: newClock(tb, ti), moves: [], salt: Math.floor(rand() * 1e9), seed: Math.floor(rand() * 1e9), book: Math.floor(rand() * OPENINGS.length), result: null, hints: 0 };
   saveProfile(); go('play'); render();
 }
 function renderBotGame(main) {
@@ -1665,7 +1737,9 @@ function renderBotGame(main) {
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
     canMove: turn => !thinking && !cur.result && turn === cur.color,
-    onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
+    onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); clk.press(cur.clock, cur.color, g.moves.length); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
+    getClock: cur.clock ? () => cur.clock : null,
+    onTick: () => { if (cur.result) return; const f = clk.flagged(cur.clock); if (f) { const r = timeoutResult(g.pos, f); finish(r.result, r.reason); } },
   });
   main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : 'Casual game: undo and hints allowed'));
   function buttons() {
@@ -1676,7 +1750,7 @@ function renderBotGame(main) {
       list.push({ ic: 'bulb', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
     }
     if (over) {
-      list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated) });
+      list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc) });
       list.push({ ic: 'plus', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
     } else {
       list.push({ ic: 'half', label: 'Draw?', disabled: thinking, on: offerDraw });
@@ -1709,13 +1783,17 @@ function renderBotGame(main) {
   async function botTurn() {
     thinking = true; buttons(); scr.setStatus('top', 'thinking…');
     const t0 = Date.now();
-    const r = await engineRequest({ kind: 'bot', fen: START_FEN, moves: g.moves, level: bot, seed: cur.seed + g.moves.length, salt: cur.salt, ply: g.moves.length, book: OPENINGS[cur.book] });
-    const wait = Math.max(0, 450 + Math.random() * 400 - (Date.now() - t0));
+    let level = bot;
+    if (cur.clock) { const left = clk.rem(cur.clock, cur.color === 'w' ? 'b' : 'w'); const cap = left < 10000 ? 6000 : left < 30000 ? 25000 : left < 60000 ? 80000 : Infinity; if (cap < bot.nodes) level = Object.assign({}, bot, { nodes: cap }); }
+    const r = await engineRequest({ kind: 'bot', fen: START_FEN, moves: g.moves, level, seed: cur.seed + g.moves.length, salt: cur.salt, ply: g.moves.length, book: OPENINGS[cur.book] });
+    const wait = cur.clock && clk.rem(cur.clock, cur.color === 'w' ? 'b' : 'w') < 30000 ? 0 : Math.max(0, 450 + Math.random() * 400 - (Date.now() - t0));
     await new Promise(res => setTimeout(res, wait));
     if (!alive || profile.current !== cur) return;
     thinking = false; scr.setStatus('top', '');
     if (r.score !== undefined) lastBotScore = r.score;
+    if (cur.result) return; // e.g. the bot ran out of time while thinking
     const res = g.play(r.uci); playSound(res);
+    clk.press(cur.clock, cur.color === 'w' ? 'b' : 'w', g.moves.length);
     cur.moves = g.moves.slice(); saveProfile();
     if (!scr.viewing) scr.refresh(g.lastFromTo);
     afterMove();
@@ -1723,6 +1801,7 @@ function renderBotGame(main) {
   function finish(result, reason) {
     if (cur.result) return;
     cur.result = { result, reason };
+    clk.stop(cur.clock);
     const youWhite = cur.color === 'w';
     const score = result === '1/2-1/2' ? 0.5 : ((result === '1-0') === youWhite ? 1 : 0);
     const L = profile.ladder;
@@ -1755,7 +1834,7 @@ function renderBotGame(main) {
       score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
       h('div', { class: 'row', style: { marginTop: '12px' } },
         h('button', { class: 'btn grow', onclick: close }, 'Review'),
-        h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated); } }, 'Rematch'))));
+        h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc); } }, 'Rematch'))));
   }
   buttons();
   if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); }
@@ -1772,28 +1851,41 @@ function renderFriend(main) {
     h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
     h('p', { class: 'small muted' }, `Online games count toward your Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
 }
+function newLocalGame() {
+  const st = profile.localGame || {}; const sel = { tc: st.tc || '0+0' };
+  modal((box, close) => box.append(h('h2', null, 'New game'), h('p', { class: 'muted small' }, 'Pick a time control. Each player gets this much time.'), tcPicker(sel),
+    h('div', { class: 'row', style: { marginTop: '14px' } }, h('button', { class: 'btn grow', onclick: close }, 'Cancel'),
+      h('button', { class: 'btn primary grow', onclick: () => { close(); const [b, i] = parseTc(sel.tc); profile.localGame = { moves: [], autoFlip: st.autoFlip !== false, tc: sel.tc, clock: newClock(b, i), result: null }; saveProfile(); render(); } }, 'Start'))));
+}
 function renderLocalGame(main) {
-  const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true });
+  const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true, tc: '0+0', clock: null });
   const g = new Game(START_FEN, st.moves);
   const scr = gameScreen(main, {
     game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: 'white' }, b: { name: 'Black', avatar: 'black' } },
-    canMove: () => !g.status().over,
+    canMove: () => !g.status().over && !st.result,
+    getClock: () => st.clock,
+    onTick: () => { if (st.result || g.status().over) return; const f = clk.flagged(st.clock); if (f) { clk.stop(st.clock); const r = timeoutResult(g.pos, f); st.result = r; saveProfile(); showLocalEnd(r); buttons(); } },
     onUserMove: (uci, dragged) => {
+      const mover = g.turn();
       const res = g.play(uci); if (!res) return; playSound(res);
+      clk.press(st.clock, mover, g.moves.length);
       st.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo);
       const s = g.status();
-      if (s.over) { beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); }
+      if (s.over) { clk.stop(st.clock); showLocalEnd(s); }
       else if (st.autoFlip) setTimeout(() => { if (scr.board.orient !== g.turn()) scr.flip(); }, 450);
       buttons();
     },
   });
+  function showLocalEnd(s) {
+      beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); 
+  }
   function buttons() {
     scr.setButtons([
       { ic: 'back', label: 'Back', on: () => { friendView = 'menu'; render(); } },
       { ic: 'flip', label: 'Flip', on: () => scr.flip() },
       { ic: st.autoFlip ? 'repeat' : 'x', label: st.autoFlip ? 'Auto-flip' : 'No flip', on: () => { st.autoFlip = !st.autoFlip; saveProfile(); buttons(); toast(st.autoFlip ? 'Board turns after each move' : 'Board stays put'); } },
       { ic: 'undo', label: 'Undo', disabled: !g.moves.length, on: () => { g.undo(); st.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } },
-      { ic: 'plus', label: 'New', on: () => confirmBox('New game?', 'Start over from the beginning.', 'New game', () => { st.moves = []; saveProfile(); render(); }) },
+      { ic: 'plus', label: 'New', on: () => newLocalGame() },
     ]);
   }
   buttons();
@@ -1840,7 +1932,8 @@ function wireChannel(dc) {
       if (!online.state) {
         const hostWhite = online.wantColor === 'w' ? true : online.wantColor === 'b' ? false : rand() < .5;
         const gu = { id: online.guestId || 'guest', name: online.guestName || 'Friend' };
-        online.state = { v: 1, white: hostWhite ? me : gu, black: hostWhite ? gu : me, moves: [], result: null, drawOffer: null, rematch: null };
+        const [tb, ti] = parseTc(online.tc);
+        online.state = { v: 1, white: hostWhite ? me : gu, black: hostWhite ? gu : me, moves: [], result: null, drawOffer: null, rematch: null, tc: online.tc || '0+0', clock: newClock(tb, ti) };
       }
       sendState();
     } else sendRaw({ t: 'hi', id: myId, name: profile.name || 'Friend', r: Math.round(profile.human.r), rd: Math.round(profile.human.rd) });
@@ -1852,7 +1945,7 @@ function wireChannel(dc) {
   dc.onmessage = e => { let d; try { d = JSON.parse(e.data); } catch (_) { return; } onPeerMessage(d); };
 }
 function sendRaw(obj) { try { if (online && online.dc && online.dc.readyState === 'open') online.dc.send(JSON.stringify(obj)); } catch (e) { } }
-function sendState() { if (online && online.state) sendRaw(Object.assign({ t: 'state' }, online.state)); }
+function sendState() { if (online && online.state) sendRaw(Object.assign({ t: 'state' }, online.state, { clock: clk.wire(online.state.clock) })); }
 function onPeerMessage(d) {
   if (!online) return;
   if (d.t === 'hi' && online.role === 'host') {
@@ -1867,14 +1960,14 @@ function onPeerMessage(d) {
   if (!cur || d.v > cur.v || (d.v === cur.v && online.role === 'guest')) {
     const prevLen = cur ? cur.moves.length : 0;
     const wasStarted = !!cur;
-    online.state = { v: d.v, white: d.white, black: d.black, moves: d.moves.slice(), result: d.result, drawOffer: d.drawOffer, rematch: d.rematch };
+    online.state = { v: d.v, white: d.white, black: d.black, moves: d.moves.slice(), result: d.result, drawOffer: d.drawOffer, rematch: d.rematch, tc: d.tc, clock: clk.unwire(d.clock) };
     if (wasStarted && online.onState) online.onState(prevLen);
     else if (route === 'friend') render();
   }
 }
-async function hostCreate(color) {
+async function hostCreate(color, tc) {
   leaveOnline();
-  online = { role: 'host', phase: 'making', wantColor: color, state: profile.onlineResume || null };
+  online = { role: 'host', phase: 'making', wantColor: color, tc: tc || '0+0', state: profile.onlineResume || null };
   render();
   try {
     const pc = newPc(); online.pc = pc;
@@ -1928,8 +2021,9 @@ function renderOnline(main) {
     drawSeg();
     const inp = h('textarea', { class: 'input', rows: 3, placeholder: 'Paste the invite link or code here' });
     if (pendingJoin) { inp.value = pendingJoin; }
-    card.append(h('h3', null, '1. Host a game'), h('div', { class: 'small muted' }, 'You play as:'), seg,
-      h('button', { class: 'btn primary block', onclick: () => hostCreate(color) }, icon('sparkle', 18), 'Create invite'));
+    const tcSel = { tc: '0+0' };
+    card.append(h('h3', null, '1. Host a game'), h('div', { class: 'small muted' }, 'You play as:'), seg, h('div', { class: 'small muted' }, 'Time control:'), tcPicker(tcSel),
+      h('button', { class: 'btn primary block', onclick: () => hostCreate(color, tcSel.tc) }, icon('sparkle', 18), 'Create invite'));
     main.append(h('div', { class: 'card stack' }, h('h3', null, '2. Or join a friend'), inp,
       h('button', { class: 'btn block', onclick: () => { const v = inp.value.trim(); if (!v) return toast('Paste the invite first'); pendingJoin = null; guestJoin(v); } }, 'Join game')),
       h('p', { class: 'small muted' }, 'How it works: the host sends an invite link. The friend opens it and sends back a reply code. Once the host pastes that code in, the two devices connect directly, with no server in between.'));
@@ -1990,10 +2084,17 @@ function renderOnlineGame(main) {
   const scr = gameScreen(main, {
     game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: 'friend', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: 'you', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
     canMove: turn => o.connected && !o.state.result && turn === myColor,
+    getClock: () => o.state.clock,
+    onTick: () => {
+      const s = o.state; if (s.result || !s.clock) return;
+      const f = clk.flagged(s.clock);
+      if (f) { clk.stop(s.clock); s.result = timeoutResult(g.pos, f); s.v++; sendState(); buttons(); checkOver(); }
+    },
     onUserMove: (uci, dragged) => {
       const res = g.play(uci); if (!res) return; playSound(res);
+      clk.press(o.state.clock, myColor, g.moves.length);
       o.state.moves = g.moves.slice(); o.state.drawOffer = null; o.state.v++;
-      const s = g.status(); if (s.over) o.state.result = { result: s.result, reason: s.reason };
+      const s = g.status(); if (s.over) { clk.stop(o.state.clock); o.state.result = { result: s.result, reason: s.reason }; }
       if (o.role === 'host') { profile.onlineResume = o.state.result ? null : o.state; saveProfile(); }
       sendState(); scr.refresh(dragged ? null : g.lastFromTo); buttons(); checkOver();
     },
@@ -2028,11 +2129,11 @@ function renderOnlineGame(main) {
     { ic: 'flip', label: 'Flip', on: () => scr.flip() }];
     if (!o.connected) list.push({ ic: 'plug', label: 'Reconnect', on: () => { const keep = o.role === 'host' ? o.state : null; leaveOnline(); if (keep) { profile.onlineResume = keep; saveProfile(); } render(); toast(keep ? 'Create a new invite. The game will continue where you left off.' : 'Ask the host for a new invite link.', 4000); } });
     else if (!over) {
-      list.push({ ic: 'half', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
-      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
+      list.push({ ic: 'half', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { clk.stop(s.clock); s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
+      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { clk.stop(s.clock); s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
     } else {
       list.push({ ic: 'repeat', label: s.rematch && s.rematch !== myId ? 'Accept' : 'Rematch', disabled: s.rematch === myId, on: () => {
-        if (s.rematch && s.rematch !== myId) { const w = s.white; s.white = s.black; s.black = w; s.moves = []; s.result = null; s.drawOffer = null; s.rematch = null; s.v++; sendState(); render(); }
+        if (s.rematch && s.rematch !== myId) { const w = s.white; s.white = s.black; s.black = w; s.moves = []; s.result = null; s.drawOffer = null; s.rematch = null; const [tb, ti] = parseTc(s.tc); s.clock = newClock(tb, ti); s.v++; sendState(); render(); }
         else { s.rematch = myId; s.v++; sendState(); toast('Rematch requested'); buttons(); }
       } });
     }

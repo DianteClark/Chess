@@ -174,3 +174,11 @@ a{color:var(--blue)}
 .banner .icn{color:var(--accent)} .banner.good .icn{color:var(--good)}
 .tbl td.res{font-weight:800;font-size:13px} .tbl td.res.w{color:var(--good)} .tbl td.res.l{color:var(--bad)} .tbl td.res.d{color:var(--blue)}
 .stat .l .icn{vertical-align:-2px}
+/* clocks */
+.clock{font-variant-numeric:tabular-nums;font-weight:900;font-size:20px;padding:6px 10px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);color:var(--muted);min-width:78px;text-align:center}
+.clock.on{background:#f3efe4;color:#1b1f2e;border-color:#f3efe4}
+.clock.low.on{background:var(--bad);color:#fff;border-color:var(--bad)}
+.tcs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.tcs button{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:7px 4px;display:flex;flex-direction:column;align-items:center;line-height:1.15}
+.tcs button b{font-size:15px} .tcs button small{font-size:11px;color:var(--muted);font-weight:700}
+.tcs button.on{border-color:var(--accent);background:#2e3150} .tcs button.on b{color:var(--accent)}
