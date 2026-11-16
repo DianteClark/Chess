@@ -1436,17 +1436,45 @@ const pieceUrl = p => PIECE_URL[pieceKey(p)];
 
 // ======================= SOUND =======================
 let audioCtx = null, soundOn = true;
+// Sound packs, all synthesized (no audio files): wood (default), soft, retro
+let noiseBuf = null;
 function beep(kind) {
   if (!soundOn) return;
   try {
     audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    const t = audioCtx.currentTime, o = audioCtx.createOscillator(), g = audioCtx.createGain();
-    const cfg = { move: [520, .05, 'triangle'], capture: [300, .09, 'square'], check: [880, .12, 'sine'], win: [660, .35, 'sine'], bad: [180, .2, 'sawtooth'], star: [990, .1, 'sine'] }[kind] || [500, .05, 'sine'];
-    o.type = cfg[2]; o.frequency.setValueAtTime(cfg[0], t);
-    if (kind === 'win') o.frequency.linearRampToValueAtTime(cfg[0] * 1.5, t + .3);
-    g.gain.setValueAtTime(.12, t); g.gain.exponentialRampToValueAtTime(.001, t + cfg[1] + .05);
-    o.connect(g); g.connect(audioCtx.destination); o.start(t); o.stop(t + cfg[1] + .06);
+    const pack = (profile.style && profile.style.sound) || 'wood';
+    const t = audioCtx.currentTime, out = audioCtx.createGain(); out.gain.value = 0.9; out.connect(audioCtx.destination);
+    const tone = (freq, dur, type = 'sine', vol = .12, at = 0, slide = 0) => {
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.type = type; o.frequency.setValueAtTime(freq, t + at); if (slide) o.frequency.linearRampToValueAtTime(freq * slide, t + at + dur);
+      g.gain.setValueAtTime(0.0001, t + at); g.gain.exponentialRampToValueAtTime(vol, t + at + .008); g.gain.exponentialRampToValueAtTime(.0001, t + at + dur);
+      o.connect(g); g.connect(out); o.start(t + at); o.stop(t + at + dur + .02);
+    };
+    const knock = (freq, dur, vol, at = 0) => {
+      if (!noiseBuf) { noiseBuf = audioCtx.createBuffer(1, audioCtx.sampleRate * .2, audioCtx.sampleRate); const d = noiseBuf.getChannelData(0); for (let k = 0; k < d.length; k++) d[k] = (Math.random() * 2 - 1) * Math.pow(1 - k / d.length, 3); }
+      const src = audioCtx.createBufferSource(), bp = audioCtx.createBiquadFilter(), g = audioCtx.createGain();
+      src.buffer = noiseBuf; bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 1.4;
+      g.gain.setValueAtTime(vol, t + at); g.gain.exponentialRampToValueAtTime(.0001, t + at + dur);
+      src.connect(bp); bp.connect(g); g.connect(out); src.start(t + at); src.stop(t + at + dur + .02);
+      tone(freq / 4, dur * .8, 'sine', vol * .25, at);
+    };
+    const chord = (base, type, vol) => { [1, 1.25, 1.5, 2].forEach((m, k) => tone(base * m, .45, type, vol, k * .07)); };
+    if (pack === 'wood') {
+      if (kind === 'move') knock(1700, .07, .9);
+      else if (kind === 'capture') { knock(900, .11, 1.2); knock(1500, .05, .5, .02); }
+      else if (kind === 'check') { knock(1600, .06, .8); tone(880, .14, 'triangle', .08, .04); }
+      else if (kind === 'star') tone(1320, .12, 'sine', .1, 0, 1.15);
+      else if (kind === 'bad') tone(220, .2, 'triangle', .1, 0, .8);
+      else if (kind === 'win') chord(523, 'triangle', .07);
+      else knock(1400, .05, .6);
+    } else if (pack === 'retro') {
+      const cfg = { move: [520, .05], capture: [300, .09], check: [880, .12], star: [990, .1], bad: [160, .2] }[kind];
+      if (kind === 'win') chord(392, 'square', .04); else if (cfg) tone(cfg[0], cfg[1], 'square', .07);
+    } else {
+      const cfg = { move: [660, .06], capture: [440, .1], check: [990, .14], star: [1320, .1], bad: [200, .2] }[kind];
+      if (kind === 'win') chord(523, 'sine', .07); else if (cfg) tone(cfg[0], cfg[1], 'sine', .1);
+    }
   } catch (e) { }
 }
 
@@ -2544,10 +2572,26 @@ function renderPuzzles(main) {
 // ======================= LEARN =======================
 let lessonOpen = null, lessonStep = 0;
 function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic dark' }, icon(l.icon, 24)); }
+function lessonKey(L) { return L.course ? `c:${L.course.id}/${L.id}` : L.id; }
+let courseOpen = null;
+function courseIcon(c) { return ['pawn', 'king', 'rook', 'queen', 'knight', 'bishop'].includes(c.icon) ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + { pawn: 'p', king: 'k', rook: 'r', queen: 'q', knight: 'n', bishop: 'b' }[c.icon]]})` } }) : h('div', { class: 'ic dark' }, icon(c.icon || 'book', 24)); }
+function renderCourse(main) {
+  const C = courseOpen, done = C.lessons.filter(l => profile.lessons[lessonKey(l)]).length;
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { courseOpen = null; render(); } }, icon('back', 18), 'Learn'), h('h2', { class: 'grow' }, C.title)));
+  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done · ${C.level}`)));
+  const list = h('div', { class: 'lessons' });
+  C.lessons.forEach((l, k) => { l.course = C; list.append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, h('div', { class: 'ic dark' }, h('b', null, String(k + 1))), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc || '')), h('span', { class: 'ck' + (profile.lessons[lessonKey(l)] ? ' done' : '') }, icon(profile.lessons[lessonKey(l)] ? 'check' : 'next', 20)))); });
+  main.append(list);
+}
 function renderLearn(main) {
   if (lessonOpen) return renderLesson(main);
+  if (courseOpen) return renderCourse(main);
   const done = LESSONS.filter(l => profile.lessons[l.id]).length;
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
+  if (typeof COURSES !== 'undefined' && COURSES.length) {
+    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons · ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
+    main.append(h('h3', { class: 'sect', style: { marginTop: '6px' } }, 'Beginner course'));
+  }
   let groupEl = null, lastGroup = null;
   for (const l of LESSONS) {
     if (l.group !== lastGroup) { lastGroup = l.group; groupEl = h('div', { class: 'lgroup' }, h('h3', null, l.group), h('div', { class: 'lessons' })); main.append(groupEl); }
@@ -2578,7 +2622,7 @@ function lessonTargets(b, sq) {
 }
 function renderLesson(main) {
   const L = lessonOpen, steps = L.steps, step = steps[lessonStep];
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, icon('back', 18), 'Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, icon('back', 18), L.course ? 'Course' : 'Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
   main.append(h('div', { class: 'dots' }, steps.map((_, i) => h('i', { class: i < lessonStep ? 'done' : i === lessonStep ? 'on' : '' }))));
   const txt = h('div', { class: 'txt', html: step.text });
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), txt));
@@ -2586,7 +2630,7 @@ function renderLesson(main) {
   let complete = step.type === 'text';
   const nextBtn = h('button', { class: 'btn primary grow', disabled: !complete, onclick: () => {
     if (lessonStep < steps.length - 1) { lessonStep++; render(); window.scrollTo(0, 0); }
-    else { const firstTime = !profile.lessons[L.id]; profile.lessons[L.id] = 1; saveProfile(); beep('win'); if (firstTime) setTimeout(() => rewardEvent('lesson'), 900); const idx = LESSONS.indexOf(L); const nxt = LESSONS[idx + 1];
+    else { const key = lessonKey(L), firstTime = !profile.lessons[key]; profile.lessons[key] = 1; saveProfile(); beep('win'); if (firstTime) setTimeout(() => { rewardEvent('lesson'); if (L.course && L.course.lessons.every(x => profile.lessons[lessonKey(x)])) rewardEvent('course'); }, 900); const list = L.course ? L.course.lessons : LESSONS; const idx = list.indexOf(L); const nxt = list[idx + 1];
       modal((box, close) => box.append(badge('learn', 'gold'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title),
         h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); lessonOpen = null; render(); } }, 'All lessons'), nxt ? h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = nxt; lessonStep = 0; render(); window.scrollTo(0, 0); } }, 'Next lesson') : h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = null; go('play'); } }, "Let's play!")))); }
   } }, lessonStep < steps.length - 1 ? 'Next' : 'Finish', icon(lessonStep < steps.length - 1 ? 'next' : 'check', 18));
@@ -2621,6 +2665,32 @@ function renderLesson(main) {
     bv.set({ board: b, stars });
     main.append(bv.el);
     msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
+    main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
+  } else if (step.type === 'line') {
+    let g = new Game(step.fen), k = 0;
+    const side = step.side || g.turn();
+    // the learner plays the moves at their turns; the app replies with the next move in the line
+    const autoReply = () => { while (k < step.moves.length && g.turn() !== side) { const r = g.play(step.moves[k]); k++; playSound(r); } bv.set(g.viewState(), g.lastFromTo); if (k >= step.moves.length) { bv.burst('star'); finishTask(step.success); } };
+    const bv = new BoardView({
+      orient: side,
+      getTargets: sq => (!complete && g.turn() === side) ? g.targetsFrom(sq) : null,
+      onMove: (from, to, dragged) => {
+        const uci = sqName(from) + sqName(to) + (g.needsPromo(from, to) ? 'q' : '');
+        const expected = step.moves[k], alts = (step.alt && step.alt[k]) || [];
+        if (uci === expected || uci.slice(0, 4) === (expected || '').slice(0, 4) || alts.includes(uci) || alts.includes(uci.slice(0, 4))) {
+          const r = g.play(uci); k++; playSound(r); bv.set(g.viewState(), dragged ? null : g.lastFromTo);
+          msg.className = 'taskmsg good'; msg.textContent = k < step.moves.length ? 'Good! Keep going…' : '';
+          setTimeout(autoReply, 450);
+        } else {
+          const t = new Game(g.startFen, g.moves); if (t.play(uci)) bv.set(t.viewState(), [from, to]);
+          beep('bad'); msg.className = 'taskmsg bad'; msg.textContent = step.fail || 'Not the move we are practicing. Try again!';
+          setTimeout(() => bv.set(g.viewState()), 800);
+        }
+      },
+    });
+    main.append(bv.el);
+    bv.set(g.viewState());
+    if (g.turn() !== side) setTimeout(autoReply, 500);
     main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
   } else if (step.type === 'goal') {
     let g = new Game(step.fen);
@@ -3195,6 +3265,9 @@ function renderStyle(main) {
   section('Boards', BOARD_THEMES, 'board', t => h('div', { class: 'swatch' }, h('i', { style: { background: t.light } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.light } })));
   section('Pieces', PIECE_SETS, 'pieces', t => { const urls = buildPieceSet(t, {}); return h('div', { class: 'pset' }, h('img', { src: urls.wn }), h('img', { src: urls.bq })); });
   section('Avatar', AVATAR_CHOICES, 'avatar', t => avatar(t.id, 46));
+  main.append(h('h3', { class: 'sect' }, 'Sounds'));
+  const sseg = h('div', { class: 'seg' }); const drawS = () => { sseg.innerHTML = ''; [['wood', 'Wooden'], ['soft', 'Soft'], ['retro', 'Retro']].forEach(([v, l]) => sseg.append(h('button', { class: (st.sound || 'wood') === v ? 'on' : '', onclick: () => { st.sound = v; saveProfile(); drawS(); beep('move'); setTimeout(() => beep('capture'), 250); setTimeout(() => beep('check'), 500); } }, l))); }; drawS();
+  main.append(sseg);
   main.append(h('h3', { class: 'sect' }, 'Board options'));
   const toggle = (label, key) => h('div', { class: 'card row' }, h('b', { class: 'grow' }, label), h('button', { class: 'btn sm', onclick: () => { st[key] = st[key] === false; saveProfile(); applyStyle(); render(); } }, st[key] === false ? 'Off' : 'On'));
   main.append(toggle('Show coordinates', 'coords'), toggle('Animate moves', 'anim'), toggle('Show legal move dots', 'dots'));

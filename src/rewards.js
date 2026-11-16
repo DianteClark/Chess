@@ -282,6 +282,9 @@ function renderStyle(main) {
   section('Boards', BOARD_THEMES, 'board', t => h('div', { class: 'swatch' }, h('i', { style: { background: t.light } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.dark } }), h('i', { style: { background: t.light } })));
   section('Pieces', PIECE_SETS, 'pieces', t => { const urls = buildPieceSet(t, {}); return h('div', { class: 'pset' }, h('img', { src: urls.wn }), h('img', { src: urls.bq })); });
   section('Avatar', AVATAR_CHOICES, 'avatar', t => avatar(t.id, 46));
+  main.append(h('h3', { class: 'sect' }, 'Sounds'));
+  const sseg = h('div', { class: 'seg' }); const drawS = () => { sseg.innerHTML = ''; [['wood', 'Wooden'], ['soft', 'Soft'], ['retro', 'Retro']].forEach(([v, l]) => sseg.append(h('button', { class: (st.sound || 'wood') === v ? 'on' : '', onclick: () => { st.sound = v; saveProfile(); drawS(); beep('move'); setTimeout(() => beep('capture'), 250); setTimeout(() => beep('check'), 500); } }, l))); }; drawS();
+  main.append(sseg);
   main.append(h('h3', { class: 'sect' }, 'Board options'));
   const toggle = (label, key) => h('div', { class: 'card row' }, h('b', { class: 'grow' }, label), h('button', { class: 'btn sm', onclick: () => { st[key] = st[key] === false; saveProfile(); applyStyle(); render(); } }, st[key] === false ? 'Off' : 'On'));
   main.append(toggle('Show coordinates', 'coords'), toggle('Animate moves', 'anim'), toggle('Show legal move dots', 'dots'));
