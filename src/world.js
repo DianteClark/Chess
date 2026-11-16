@@ -35,7 +35,8 @@ class VariantBoard {
     this.boardEl = h('div', { class: 'vboard', style: { aspectRatio: `${this.files} / ${this.ranks}` } });
     this.bg = h('div', { class: 'vbg' }); this.layer = h('div', { class: 'vlayer' });
     this.boardEl.append(this.bg, this.layer);
-    this.el.append(this.pocketTop, this.boardEl, this.pocketBot);
+    this.frame = h('div', { class: 'vframe' }, this.boardEl); this.coords = h('div', { class: 'vcoords' }); this.frame.append(this.coords);
+    this.el.append(this.pocketTop, this.frame, this.pocketBot);
     this.boardEl.addEventListener('click', e => this.onClick(e));
     this.drawBg();
   }
@@ -66,11 +67,11 @@ class VariantBoard {
       if (v === 'makruk') for (const r of [3, 5]) s += `<line x1="0" y1="${r * 100}" x2="${W}" y2="${r * 100}" stroke="#5a3a1c" stroke-width="2.5" stroke-dasharray="0"/>`;
       if (v === 'sittuyin') s += `<line x1="0" y1="0" x2="${W}" y2="${H}" stroke="#5a3a1c" stroke-width="3"/><line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#5a3a1c" stroke-width="3"/>`;
     }
-    // coordinates
-    const fy = H - 8;
-    for (let f = 0; f < F; f++) { const ff = this.flipped ? F - 1 - f : f; s += `<text x="${f * 100 + (this.inter ? 50 : 92)}" y="${fy}" font-size="20" text-anchor="${this.inter ? 'middle' : 'end'}" fill="rgba(60,35,15,.55)" font-family="var(--body)">${String.fromCharCode(97 + ff)}</text>`; }
-    for (let r = 0; r < R; r++) { const rr = this.flipped ? r + 1 : R - r; s += `<text x="6" y="${r * 100 + 24}" font-size="20" fill="rgba(60,35,15,.55)" font-family="var(--body)">${rr}</text>`; }
     this.bg.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+    // coordinates live on the wooden frame, never on top of the pieces
+    this.coords.innerHTML = '';
+    for (let f = 0; f < F; f++) { const ff = this.flipped ? F - 1 - f : f; this.coords.append(h('span', { class: 'cf', style: { left: `calc(var(--vf) + (100% - 2 * var(--vf)) * ${(f + .5) / F})` } }, String.fromCharCode(97 + ff))); }
+    for (let r = 0; r < R; r++) { const rr = this.flipped ? r + 1 : R - r; this.coords.append(h('span', { class: 'cr', style: { top: `calc(var(--vf) + (100% - 2 * var(--vf)) * ${(r + .5) / R})` } }, String(rr))); }
   }
   // percentage position of a square's center
   pos(sq) { const p = vsqParse(sq); if (!p) return null; let [f, r] = p; if (this.flipped) { f = this.files - 1 - f; r = this.ranks - 1 - r; } return [(f + .5) / this.files * 100, (this.ranks - 1 - r + .5) / this.ranks * 100]; }
@@ -179,7 +180,7 @@ function ensureVariants(main, then) {
 }
 
 // ---------- screens ----------
-function renderWorld(main) {
+function renderWorldGames(main) {
   if (worldView && worldView.play) return ensureVariants(main, () => renderWorldGame(main));
   if (worldView && worldView.lesson) return ensureVariants(main, () => renderWorldLesson(main));
   if (worldView && worldView.g) return renderWorldGamePage(main);
@@ -384,8 +385,8 @@ function renderWorldLesson(main) {
           : h('button', { class: 'btn primary grow', onclick: () => { close(); startWorldGame(id, { bot: 1, color: 'w' }); } }, tr("Let's play!")))));
   } }, worldView.step < steps.length - 1 ? tr('Next') : tr('Finish'), icon(worldView.step < steps.length - 1 ? 'next' : 'check', 18));
   const finishTask = text => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = tr(text || 'Great job!'); beep('win'); haptic([8, 30, 8]); };
-  if (step.fen) {
-    const g = new VGame(id, step.fen);
+  { // every step shows a board: its own position, or the starting position for general explanations
+    const g = step.fen ? new VGame(id, step.fen) : new VGame(id);
     const side = step.side || g.turn();
     const vb = new VariantBoard(id, { flipped: side === 'b' && step.type !== 'text', hideEmptyPockets: true, onMove: uci => onMove(uci) });
     const show = (extra) => { const st = vState(g, id); vb.set(Object.assign(st, extra || {}), complete || step.type === 'text' ? [] : g.legalMoves()); vb.interactive = !complete && step.type !== 'text'; };

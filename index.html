@@ -43,7 +43,7 @@
 html{background:var(--felt-2)}
 body{margin:0;min-height:100vh;color:var(--text);font-family:var(--body);font-size:16px;line-height:1.45;
   background:var(--felt-tex),radial-gradient(120% 70% at 50% 0%,#25594a 0%,var(--felt) 45%,var(--felt-2) 100%);background-attachment:fixed;
-  padding-bottom:calc(96px + var(--safe-b))}
+  padding-bottom:calc(136px + var(--safe-b))}
 button{font-family:inherit;font-size:inherit;color:inherit;border:0;cursor:pointer;background:none}
 input,textarea{font-family:inherit;font-size:16px}
 h1,h2,h3{margin:0;line-height:1.1;font-family:var(--display);font-weight:400;letter-spacing:.3px}
@@ -465,7 +465,13 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .wface svg,.wface img{width:100%;height:100%}
 .whead h2{color:var(--ink)} .whead p{margin:8px 0 0}
 .vboard-wrap{margin:10px auto;width:calc(100% - 12px);max-width:560px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.vboard{position:relative;width:100%;border-radius:6px;overflow:hidden;box-shadow:0 0 0 7px #4a2a16,0 0 0 9px #b57a48,0 10px 24px rgba(0,0,0,.4);margin:9px 0}
+.vframe{--vf:18px;position:relative;padding:var(--vf);margin:8px 0;border-radius:14px;
+  background:var(--grain),linear-gradient(160deg,#8a5530,#5a3219 55%,#43240f);box-shadow:inset 0 0 0 2px rgba(255,220,160,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 10px 24px rgba(0,0,0,.4)}
+.vboard{position:relative;width:100%;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2px #2e1a0c}
+.vcoords{position:absolute;inset:0;pointer-events:none;font-size:11px;font-weight:700;color:rgba(255,226,170,.75)}
+.vcoords span{position:absolute;line-height:1}
+.vcoords .cf{bottom:3px;transform:translateX(-50%)}
+.vcoords .cr{left:0;width:var(--vf);text-align:center;transform:translateY(-50%)}
 .vbg,.vbg svg,.vlayer{position:absolute;inset:0;width:100%;height:100%}
 .vpiece{position:absolute;pointer-events:none;transition:left .18s ease,top .18s ease;filter:drop-shadow(0 2px 1px rgba(0,0,0,.3))}
 .vpiece svg,.vpiece img{width:100%;height:100%;display:block}
@@ -2361,7 +2367,7 @@ const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
 // ======================= APP SHELL =======================
 let route = 'home';
 const appEl = () => $('#app');
-const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m), world: m => renderWorld(m) };
+const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m), world: m => renderWorldGames(m) };
 let navDir = '';
 function go(r) { if (!ROUTES[r]) r = 'home'; navDir = ''; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];
@@ -6204,7 +6210,8 @@ class VariantBoard {
     this.boardEl = h('div', { class: 'vboard', style: { aspectRatio: `${this.files} / ${this.ranks}` } });
     this.bg = h('div', { class: 'vbg' }); this.layer = h('div', { class: 'vlayer' });
     this.boardEl.append(this.bg, this.layer);
-    this.el.append(this.pocketTop, this.boardEl, this.pocketBot);
+    this.frame = h('div', { class: 'vframe' }, this.boardEl); this.coords = h('div', { class: 'vcoords' }); this.frame.append(this.coords);
+    this.el.append(this.pocketTop, this.frame, this.pocketBot);
     this.boardEl.addEventListener('click', e => this.onClick(e));
     this.drawBg();
   }
@@ -6235,11 +6242,11 @@ class VariantBoard {
       if (v === 'makruk') for (const r of [3, 5]) s += `<line x1="0" y1="${r * 100}" x2="${W}" y2="${r * 100}" stroke="#5a3a1c" stroke-width="2.5" stroke-dasharray="0"/>`;
       if (v === 'sittuyin') s += `<line x1="0" y1="0" x2="${W}" y2="${H}" stroke="#5a3a1c" stroke-width="3"/><line x1="${W}" y1="0" x2="0" y2="${H}" stroke="#5a3a1c" stroke-width="3"/>`;
     }
-    // coordinates
-    const fy = H - 8;
-    for (let f = 0; f < F; f++) { const ff = this.flipped ? F - 1 - f : f; s += `<text x="${f * 100 + (this.inter ? 50 : 92)}" y="${fy}" font-size="20" text-anchor="${this.inter ? 'middle' : 'end'}" fill="rgba(60,35,15,.55)" font-family="var(--body)">${String.fromCharCode(97 + ff)}</text>`; }
-    for (let r = 0; r < R; r++) { const rr = this.flipped ? r + 1 : R - r; s += `<text x="6" y="${r * 100 + 24}" font-size="20" fill="rgba(60,35,15,.55)" font-family="var(--body)">${rr}</text>`; }
     this.bg.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+    // coordinates live on the wooden frame, never on top of the pieces
+    this.coords.innerHTML = '';
+    for (let f = 0; f < F; f++) { const ff = this.flipped ? F - 1 - f : f; this.coords.append(h('span', { class: 'cf', style: { left: `calc(var(--vf) + (100% - 2 * var(--vf)) * ${(f + .5) / F})` } }, String.fromCharCode(97 + ff))); }
+    for (let r = 0; r < R; r++) { const rr = this.flipped ? r + 1 : R - r; this.coords.append(h('span', { class: 'cr', style: { top: `calc(var(--vf) + (100% - 2 * var(--vf)) * ${(r + .5) / R})` } }, String(rr))); }
   }
   // percentage position of a square's center
   pos(sq) { const p = vsqParse(sq); if (!p) return null; let [f, r] = p; if (this.flipped) { f = this.files - 1 - f; r = this.ranks - 1 - r; } return [(f + .5) / this.files * 100, (this.ranks - 1 - r + .5) / this.ranks * 100]; }
@@ -6348,7 +6355,7 @@ function ensureVariants(main, then) {
 }
 
 // ---------- screens ----------
-function renderWorld(main) {
+function renderWorldGames(main) {
   if (worldView && worldView.play) return ensureVariants(main, () => renderWorldGame(main));
   if (worldView && worldView.lesson) return ensureVariants(main, () => renderWorldLesson(main));
   if (worldView && worldView.g) return renderWorldGamePage(main);
@@ -6553,8 +6560,8 @@ function renderWorldLesson(main) {
           : h('button', { class: 'btn primary grow', onclick: () => { close(); startWorldGame(id, { bot: 1, color: 'w' }); } }, tr("Let's play!")))));
   } }, worldView.step < steps.length - 1 ? tr('Next') : tr('Finish'), icon(worldView.step < steps.length - 1 ? 'next' : 'check', 18));
   const finishTask = text => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = tr(text || 'Great job!'); beep('win'); haptic([8, 30, 8]); };
-  if (step.fen) {
-    const g = new VGame(id, step.fen);
+  { // every step shows a board: its own position, or the starting position for general explanations
+    const g = step.fen ? new VGame(id, step.fen) : new VGame(id);
     const side = step.side || g.turn();
     const vb = new VariantBoard(id, { flipped: side === 'b' && step.type !== 'text', hideEmptyPockets: true, onMove: uci => onMove(uci) });
     const show = (extra) => { const st = vState(g, id); vb.set(Object.assign(st, extra || {}), complete || step.type === 'text' ? [] : g.legalMoves()); vb.interactive = !complete && step.type !== 'text'; };

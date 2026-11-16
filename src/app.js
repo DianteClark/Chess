@@ -410,7 +410,7 @@ const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
 // ======================= APP SHELL =======================
 let route = 'home';
 const appEl = () => $('#app');
-const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m), world: m => renderWorld(m) };
+const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m), world: m => renderWorldGames(m) };
 let navDir = '';
 function go(r) { if (!ROUTES[r]) r = 'home'; navDir = ''; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];

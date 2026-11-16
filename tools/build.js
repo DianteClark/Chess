@@ -1,9 +1,19 @@
 // Packs everything into one self-contained index.html (no build dependencies).
 const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), rd = f => fs.readFileSync(path.join(root, f), 'utf8');
+// Guard: every script shares one global scope, so two top-level declarations with the same
+// name silently replace each other. Fail the build instead.
+function checkDuplicateGlobals(files) {
+  const seen = {};
+  for (const f of files) { const fp = path.join(root, f); if (!fs.existsSync(fp)) continue; const src = fs.readFileSync(fp, 'utf8');
+    for (const m of src.matchAll(/^(?:async )?(?:function\s+([A-Za-z_$][\w$]*)|(?:const|let|var|class)\s+([A-Za-z_$][\w$]*))/gm)) { const n = m[1] || m[2]; (seen[n] = seen[n] || []).push(f); } }
+  const dups = Object.entries(seen).filter(([, v]) => v.length > 1);
+  if (dups.length) { console.error('Duplicate global names:\n' + dups.map(([n, v]) => `  ${n}: ${v.join(', ')}`).join('\n')); process.exit(1); }
+}
 const strip = s => s.replace(/^if \(typeof module.*$/gm, '');
 // UI modules, in load order. boot.js must stay last.
 const APP_FILES = ['src/i18n.js', 'src/icons.js', 'src/art.js', 'src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.js', 'src/lobby-client.js', 'src/lobby-ui.js', 'src/sf.js', 'src/review.js', 'src/analysis.js', 'src/wpieces.js', 'src/variants.js', 'src/worldcourses_scoped', 'src/world.js', 'src/home.js', 'src/boot.js'];
+checkDuplicateGlobals([...APP_FILES, 'src/engine.js', 'src/bots.js', 'src/lessons.js']);
 // checkmate puzzles first, themed tactics appended after them (keeps saved puzzle ids stable)
 const puzzles = JSON.parse(rd('data/puzzles.json')).concat(fs.existsSync(path.join(root, 'data/tactics.json')) ? JSON.parse(rd('data/tactics.json')) : []);
 const calib = JSON.parse(rd('data/calibration.json'));
