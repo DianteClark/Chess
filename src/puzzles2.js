@@ -154,3 +154,129 @@ function renderRush(main) {
     tick(); const iv = setInterval(tick, 100); cleanups.push(() => clearInterval(iv));
   }
 }
+
+// ======================= PUZZLE DEN (hub and rated solving) =======================
+let puzCat = 'rated', puzState = null, puzMode = null;
+function pickPuzzle() {
+  const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : puzCat.startsWith('t:') ? (p.themes || []).includes(puzCat.slice(2)) : p.n === +puzCat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic');
+  const fresh = pool.filter(p => !profile.tried[p.id]);
+  if (puzCat === 'pattern' && fresh.length) return fresh[0]; // learn the famous mates in order, easiest first
+  const use = (fresh.length ? fresh : pool).slice();
+  const pr = profile.puzzle.r;
+  use.sort((a, b) => Math.abs(a.rating - pr) - Math.abs(b.rating - pr));
+  const top = use.slice(0, Math.min(6, use.length));
+  return top[Math.floor(rand() * top.length)];
+}
+const PUZ_CAT_ICON = { rated: 'target', m1: 'crown', m2: 'crown', m3: 'crown', pattern: 'book', 't:fork': 'fork', 't:pin': 'pin', 't:skewer': 'skewer', 't:discoveredAttack': 'eye', 't:hangingPiece': 'alert', 't:trappedPiece': 'key', 't:sacrifice': 'flame', 't:endgame': 'castle', 't:middlegame': 'sword', 't:backRank': 'shield', 't:deflection': 'route', 't:promotion': 'arrowUp', 't:doubleCheck': 'bolt' };
+function puzCats() {
+  const themeCounts = {}; PUZZLES.forEach(p => (p.themes || []).forEach(t => themeCounts[t] = (themeCounts[t] || 0) + 1));
+  return [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
+    .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
+}
+function puzPool(cat) { return PUZZLES.filter(p => cat === 'rated' ? true : cat === 'pattern' ? p.cat === 'pattern' : cat.startsWith('t:') ? (p.themes || []).includes(cat.slice(2)) : p.n === +cat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic'); }
+function renderPuzzles(main) {
+  if (puzMode === 'daily') return renderDaily(main);
+  if (puzMode === 'rush') return renderRush(main);
+  if (puzMode === 'solve') return renderPuzzleSolve(main);
+  const dState = dailyState(), dDone = dState.history[todayKey()];
+  const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
+  main.append(stageBanner('den', 'Puzzle Den', `${solvedCount} of ${PUZZLES.length} solved`));
+  // your rating and the big button
+  main.append(h('button', { class: 'puz-hero', onclick: () => { puzCat = 'rated'; puzState = null; puzMode = 'solve'; haptic(10); beep('confirm'); render(); } },
+    h('div', { class: 'ph-l' }, h('small', null, 'Puzzle rating'), h('b', { class: 'ph-r' }, fmtR(profile.puzzle)), h('small', null, profile.streak ? `Streak ${profile.streak}, best ${profile.best}` : `Best streak ${profile.best}`)),
+    h('div', { class: 'ph-go' }, icon('play', 26), h('span', null, 'Solve'))));
+  const week = h('div', { class: 'week' }); for (let i = 6; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); const k = d.toISOString().slice(0, 10); const v = dState.history[k]; week.append(h('i', { class: v === 1 ? 'ok' : v ? 'meh' : i === 0 ? 'today' : '' })); }
+  main.append(h('div', { class: 'puz-modes' },
+    h('button', { class: 'pmode daily' + (dDone ? '' : ' hot'), onclick: () => { puzMode = 'daily'; beep('confirm'); render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done for today' : 'New puzzle ready'), week),
+    h('button', { class: 'pmode rush', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; beep('confirm'); render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, `Best ${Math.max(0, ...Object.values(profile.rushBest || { a: 0 }))}`), h('span', { class: 'pm-sub' }, 'Beat the clock'))));
+  main.append(h('h3', { class: 'sect' }, 'Practice by theme'));
+  main.append(h('div', { class: 'puz-themes' }, puzCats().filter(([k]) => k !== 'rated').map(([k, l]) => { const pool = puzPool(k), done = pool.filter(p => profile.tried[p.id] === 1).length;
+    return h('button', { class: 'ptheme', onclick: () => { puzCat = k; puzState = null; puzMode = 'solve'; beep('tap'); render(); } }, h('span', { class: 'pt-ic' }, icon(PUZ_CAT_ICON[k] || 'puzzle', 20)), h('b', null, l), h('small', null, `${done} / ${pool.length}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / pool.length * 100) + '%' } }))); })));
+}
+function renderPuzzleSolve(main) {
+  const catName = (puzCats().find(c => c[0] === puzCat) || [0, 'Puzzles'])[1];
+  const streakChip = h('div', { class: 'streak-chip' + (profile.streak >= 3 ? ' hot' : '') }, icon('flame', 16), h('b', null, String(profile.streak || 0)));
+  const F = focusScreen(main, { title: catName, sub: `Puzzle rating ${fmtR(profile.puzzle)}`, back: () => { puzMode = null; puzState = null; render(); }, right: [streakChip] });
+  if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
+  const ps = puzState, p = ps.p;
+  const g = new Game(p.fen);
+  for (let i = 0; i < ps.step; i++) g.play(p.line[i]);
+  const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
+  const banner = h('div', { class: 'banner' });
+  const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = tr(html); };
+  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>${puzzlePrompt(p).goal}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
+  setBanner('', prompt());
+  let busy = false;
+  const board = new BoardView({
+    orient: side,
+    getTargets: sq => (!ps.done && !busy && g.turn() === side) ? g.targetsFrom(sq) : null,
+    onMove: (from, to, dragged) => {
+      const needs = g.needsPromo(from, to);
+      const uci = sqName(from) + sqName(to) + (needs ? 'q' : '');
+      attempt(uci, dragged);
+    }
+  });
+  F.above.append(banner); F.stage.append(board.el);
+  const msg = h('div', { class: 'fs-msg' }); F.below.append(msg);
+  const show = (anim) => board.set(g.viewState(), anim);
+  show();
+  function rate(success) {
+    if (!ps.rated) return null;
+    ps.rated = false;
+    const before = profile.puzzle.r;
+    profile.puzzle = cappedGlicko(profile.puzzle, { r: p.rating, rd: 80 }, success ? 1 : 0, 30, 15);
+    profile.pHist.push(Math.round(profile.puzzle.r)); if (profile.pHist.length > 300) profile.pHist.shift();
+    profile.tried[p.id] = success ? 1 : 2;
+    profile.streak = success ? profile.streak + 1 : 0; profile.best = Math.max(profile.best, profile.streak);
+    saveProfile();
+    return Math.round(profile.puzzle.r) - Math.round(before);
+  }
+  function attempt(uci, dragged) {
+    const expected = p.line[ps.step];
+    const isLast = ps.step === p.line.length - 1;
+    const test = new Game(g.startFen, g.moves); const r = test.play(uci);
+    const mates = r && test.status().reason === 'checkmate';
+    if (uci === expected || (isLast && mates)) {
+      const res = g.play(uci); playSound(res); show(dragged ? null : g.lastFromTo);
+      ps.step++;
+      if (ps.step >= p.line.length) return solved();
+      msg.className = 'fs-msg good'; msg.textContent = 'Good move! Keep going…'; beep('correct');
+      busy = true;
+      setTimeout(() => { const rr = g.play(p.line[ps.step]); ps.step++; playSound(rr); show(g.lastFromTo); busy = false; msg.textContent = 'Your move'; }, 650);
+    } else {
+      // wrong: show briefly then reset
+      if (r) { const tmp = new Game(g.startFen, g.moves); tmp.play(uci); board.set(tmp.viewState(), dragged ? null : tmp.lastFromTo); }
+      beep('wrong'); haptic(25); ps.failed = true;
+      const d = rate(false); streakChip.querySelector('b').textContent = String(profile.streak || 0); streakChip.classList.remove('hot');
+      msg.className = 'fs-msg bad'; msg.textContent = 'Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
+      busy = true; setTimeout(() => { busy = false; show(); }, 900);
+      buttons();
+    }
+  }
+  function solved() {
+    ps.done = true; board.burst('star'); haptic([8, 30, 8]);
+    rewardEvent('puzzle', { solved: true, clean: !ps.failed });
+    const d = ps.failed ? null : rate(true);
+    streakChip.querySelector('b').textContent = String(profile.streak || 0);
+    if (!ps.failed && profile.streak >= 2) { beep('combo', { n: Math.min(profile.streak, 12) }); streakChip.classList.add('hot'); if (typeof fxPop === 'function') fxPop(streakChip); } else beep('win');
+    const R = takeRewards(); if (R.xpGain && typeof fxFloat === 'function') fxFloat(board.el, `+${R.xpGain} XP`); rewardQueue.push(...[].concat(R.levels.map(l => ({ kind: 'level', lvl: l })), R.unlocks, R.achs.map(a => ({ kind: 'ach', a })), R.quests));
+    if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
+    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : (p.themes && p.themes.length ? 'Theme: ' + p.themes.filter(t => THEME_NAMES[t] && t !== 'middlegame' && t !== 'endgame').map(t => THEME_NAMES[t]).join(', ') + '.' : '')}</span>`);
+    msg.className = 'fs-msg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
+    buttons();
+  }
+  function buttons() {
+    F.setActions([
+      !ps.done ? { ic: 'bulb', label: 'Hint', on: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); beep('hint'); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'fs-msg bad'; msg.textContent = `Hint used (${d})`; } } } : null,
+      !ps.done ? { ic: 'eye', label: 'Solution', on: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } } : null,
+      { ic: 'next', label: ps.done ? 'Next puzzle' : 'Skip', primary: ps.done, on: () => { puzState = null; render(); } }]);
+  }
+  async function showSolution() {
+    buttons(); busy = true;
+    for (let i = ps.step; i < p.line.length; i++) { await new Promise(r => setTimeout(r, 700)); const rr = g.play(p.line[i]); playSound(rr); show(g.lastFromTo); }
+    setBanner('', `${iconSvgInline('bulb')}<span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
+    msg.textContent = '';
+  }
+  buttons();
+}
+

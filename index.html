@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#163829">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#14362a">
+<meta name="format-detection" content="telephone=no">
 <meta name="description" content="Knight Club: play chess against bots, solve puzzles, learn to play, and challenge friends peer-to-peer.">
 <title>Knight Club Chess</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -507,6 +508,17 @@ html[dir=rtl] .vboard-wrap,html[dir=rtl] .board-wrap{direction:ltr}
 .wstrip>span>svg{width:100%;height:100%;display:block}
 .lesson-ic.wnum{font-family:var(--display);font-size:20px;color:var(--brass-light)}
 .tbl-bot{display:flex;align-items:center;gap:8px}
+
+/* 05-lock.css */
+/* ---------- Lock the app to the screen like a native game ---------- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none;height:100%}
+body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-height:var(--app-h,100vh)}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;font-size:16px !important} /* 16px stops iOS zooming into fields */
+button,a,.card,.board-wrap,.vboard-wrap{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+img,svg{-webkit-user-drag:none;user-drag:none}
+body.focus{position:fixed;inset:0;overflow:hidden;touch-action:none}
+body.focus .fs{height:var(--app-h,100dvh)}
+body.focus .fs-bubble .txt,body.focus .coachline .ctext,body.focus .moves,body.focus .kx-ov{touch-action:pan-x pan-y}
 
 /* 10-layout.css */
 /* ---------- Safe areas: nothing ever sits under the phone's status bar ---------- */
@@ -5037,168 +5049,6 @@ async function copyText(text) {
 }
 
 // ======================= BOARD VIEW =======================
-class BoardView {
-  constructor(opts = {}) {
-    this.opts = opts;
-    this.orient = opts.orient || 'w';
-    this.el = h('div', { class: 'board-wrap' });
-    this.boardEl = h('div', { class: 'board' });
-    this.layer = h('div', { class: 'pieces' });
-    this.fx = h('div', { class: 'fx' });
-    this.el.append(this.boardEl, this.layer, this.fx);
-    this.sqEls = {};
-    for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
-      const s = r * 16 + f;
-      const el = h('div', { class: 'sq ' + ((r + f) % 2 ? 'l' : 'd') });
-      this.sqEls[s] = el; this.boardEl.append(el);
-    }
-    this.board = new Int8Array(128);
-    this.sel = -1; this.targets = []; this.marks = {};
-    this.pieceEls = {};
-    this.layout();
-    this.el.addEventListener('pointerdown', e => this.down(e));
-    this.el.addEventListener('pointermove', e => this.move(e));
-    this.el.addEventListener('pointerup', e => this.up(e));
-    this.el.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
-  }
-  pos(s) { const f = s & 7, r = s >> 4; return this.orient === 'w' ? [f, 7 - r] : [7 - f, r]; }
-  layout() {
-    for (const s in this.sqEls) {
-      const [x, y] = this.pos(+s), el = this.sqEls[s];
-      el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%';
-      el.querySelectorAll('.co').forEach(c => c.remove());
-      if (y === 7) el.append(h('span', { class: 'co f' }, 'abcdefgh'[+s & 7]));
-      if (x === 0) el.append(h('span', { class: 'co r' }, String((+s >> 4) + 1)));
-    }
-  }
-  flip() { this.orient = this.orient === 'w' ? 'b' : 'w'; this.layout(); this.draw(); }
-  setOrient(o) { if (o !== this.orient) { this.orient = o; this.layout(); this.draw(); } }
-  // state: {board:Int8Array, last:[from,to], check:sq, stars:Set, marks:{sq:cls}}
-  set(state, animate) {
-    const prev = this.board;
-    if (state.board) this.board = Int8Array.from(state.board);
-    // juice: when a new move appears, the piece lands with a bounce, captures puff, phones buzz
-    const lk = state.last ? state.last.join('-') + ':' + this.board[state.last[1]] : null;
-    const isNewMove = lk && lk !== this.lastKey && this.lastKey !== undefined;
-    this.lastKey = lk;
-    this.last = state.last || null; this.check = state.check ?? -1;
-    this.stars = state.stars || null; this.marks = state.marks || {};
-    this.arrows = state.arrows || []; this.badge = state.badge || null;
-    this.sel = -1; this.targets = [];
-    this.draw(animate);
-    if (isNewMove) {
-      const to = state.last[1], moved = this.board[to], was = prev[to];
-      const captured = was && moved && ((was & 8) !== (moved & 8));
-      const el = this.pieceEls[to];
-      setTimeout(() => { if (el && el.isConnected) { el.classList.remove('land'); void el.offsetWidth; el.classList.add('land'); } if (captured) this.puff(to); }, animate ? 190 : 0);
-      haptic(captured ? 18 : 7);
-    }
-  }
-  puff(sq) {
-    if (document.body.classList.contains('no-anim')) return;
-    const [x, y] = this.pos(sq), p = h('div', { class: 'puff' });
-    p.style.left = x * 12.5 + '%'; p.style.top = y * 12.5 + '%';
-    for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2 + Math.random() * .5, d = 18 + Math.random() * 14; const i = h('i'); i.style.setProperty('--dx', Math.cos(a) * d + 'px'); i.style.setProperty('--dy', Math.sin(a) * d + 'px'); i.style.animationDelay = (Math.random() * 60) + 'ms'; p.append(i); }
-    this.layer.append(p); setTimeout(() => p.remove(), 650);
-  }
-  sqAt(e) {
-    const r = this.el.getBoundingClientRect();
-    const x = Math.floor((e.clientX - r.left) / r.width * 8), y = Math.floor((e.clientY - r.top) / r.height * 8);
-    if (x < 0 || x > 7 || y < 0 || y > 7) return -1;
-    return this.orient === 'w' ? (7 - y) * 16 + x : y * 16 + (7 - x);
-  }
-  draw(animate) {
-    for (const s in this.sqEls) {
-      const el = this.sqEls[s], sq = +s;
-      el.classList.toggle('last', !!this.last && (this.last[0] === sq || this.last[1] === sq));
-      el.classList.toggle('sel', this.sel === sq);
-      el.classList.toggle('check', this.check === sq);
-      el.classList.remove('hint', 'mark');
-      if (this.marks[sq]) el.classList.add(this.marks[sq]);
-      el.querySelectorAll('.dot,.ring,.star').forEach(c => c.remove());
-      if (this.targets.includes(sq) && !(profile.style && profile.style.dots === false)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
-      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, icon('star', 34)));
-    }
-    this.layer.innerHTML = ''; this.pieceEls = {};
-    for (let s = 0; s < 128; s++) {
-      if (s & 0x88) { s += 7; continue; }
-      const p = this.board[s]; if (!p) continue;
-      const el = h('div', { class: 'piece' });
-      el.style.backgroundImage = `url(${pieceUrl(p)})`;
-      let [x, y] = this.pos(s);
-      if (animate && animate[1] === s) {
-        const [fx, fy] = this.pos(animate[0]);
-        el.classList.add('noanim'); el.style.left = fx * 12.5 + '%'; el.style.top = fy * 12.5 + '%';
-        requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.remove('noanim'); el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }));
-      } else { el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }
-      this.layer.append(el); this.pieceEls[s] = el;
-    }
-    // arrows (e.g. best move in Game Review) and a grade badge on a square
-    if (this.arrows && this.arrows.length) {
-      const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('viewBox', '0 0 8 8'); svg.setAttribute('class', 'arrows');
-      for (const [a, b, col] of this.arrows) {
-        const [x1, y1] = this.pos(a), [x2, y2] = this.pos(b);
-        const ax = x1 + .5, ay = y1 + .5, bx = x2 + .5, by = y2 + .5, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
-        const ex = bx - ux * .32, ey = by - uy * .32;
-        const line = document.createElementNS(NS, 'line');
-        Object.entries({ x1: ax, y1: ay, x2: ex, y2: ey, stroke: col || '#7cc04a', 'stroke-width': .17, 'stroke-linecap': 'round', opacity: .85 }).forEach(([k, v]) => line.setAttribute(k, v));
-        const head = document.createElementNS(NS, 'polygon');
-        const px = -uy, py = ux;
-        head.setAttribute('points', `${bx - ux * .05},${by - uy * .05} ${ex + px * .25},${ey + py * .25} ${ex - px * .25},${ey - py * .25}`);
-        head.setAttribute('fill', col || '#7cc04a'); head.setAttribute('opacity', .85);
-        svg.append(line, head);
-      }
-      this.layer.append(svg);
-    }
-    if (this.badge && typeof CLASSES !== 'undefined' && CLASSES[this.badge.cls]) {
-      const [x, y] = this.pos(this.badge.sq);
-      const b = classBadge(this.badge.cls, 20); b.classList.add('sqbadge');
-      b.style.left = `calc(${(x + 1) * 12.5}% - 14px)`; b.style.top = `calc(${y * 12.5}% - 6px)`;
-      this.layer.append(b);
-    }
-  }
-  select(sq, targets) { this.sel = sq; this.targets = targets; this.draw(); }
-  clearSel() { if (this.sel >= 0 || this.targets.length) { this.sel = -1; this.targets = []; this.draw(); } }
-  down(e) {
-    const sq = this.sqAt(e); if (sq < 0) return;
-    if (this.sel >= 0 && this.targets.includes(sq)) { this.commit(this.sel, sq, false); return; }
-    const t = this.opts.getTargets ? this.opts.getTargets(sq) : null;
-    if (t && t.length) {
-      this.select(sq, t);
-      const el = this.pieceEls[sq];
-      if (el) {
-        this.drag = { sq, el, x: e.clientX, y: e.clientY, moved: false };
-        try { this.el.setPointerCapture(e.pointerId); } catch (_) { }
-      }
-    } else if (t) { this.select(sq, []); }
-    else this.clearSel();
-  }
-  move(e) {
-    const d = this.drag; if (!d) return;
-    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
-    d.moved = true;
-    const r = this.el.getBoundingClientRect(), w = r.width / 8;
-    d.el.classList.add('drag');
-    d.el.style.left = (e.clientX - r.left - w / 2) + 'px'; d.el.style.top = (e.clientY - r.top - w / 2) + 'px';
-  }
-  up(e) {
-    const d = this.drag; this.drag = null;
-    if (!d || !d.moved) return;
-    const sq = this.sqAt(e);
-    if (sq >= 0 && sq !== d.sq && this.targets.includes(sq)) this.commit(d.sq, sq, true);
-    else { this.draw(); }
-  }
-  commit(from, to, dragged) {
-    this.sel = -1; this.targets = [];
-    if (this.opts.onMove) this.opts.onMove(from, to, dragged);
-  }
-  burst(name) {
-    const b = h('div', { class: 'burst' }, icon(name || 'star', 90, 'burst-ic ' + (name || 'star'))); this.fx.append(b); setTimeout(() => b.remove(), 800);
-  }
-}
-
-// ======================= GAME MODEL =======================
 const START_FEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 class Game {
   constructor(fen = START_FEN, moves = []) { this.startFen = fen; this.moves = []; this.sans = []; this.pos = new E.Position(fen); this.lastFromTo = null; for (const u of moves) this.play(u); }
@@ -5415,6 +5265,238 @@ function tcPicker(sel, onChange) {
 }
 const parseTc = k => { const [b, i] = (k || '0+0').split('+').map(Number); return [b, i]; };
 
+function stageBanner(key, title, sub, extra) {
+  return h('div', { class: 'stage short' }, roomArt(key), extra || null, h('div', { class: 'stage-lab' }, h('h2', null, title), sub ? h('small', null, sub) : null));
+}
+function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
+function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
+
+// ======================= ME / PROFILE =======================
+function sparkline(arr, color, emptyMsg) {
+  const data = arr.slice(-60); if (data.length < 2) return h('div', { class: 'small muted' }, emptyMsg || 'Play rated games to see your graph.');
+  const min = Math.min(...data) - 20, max = Math.max(...data) + 20, W = 300, H = 70;
+  const pts = data.map((v, i) => [i / (data.length - 1) * W, H - (v - min) / (max - min) * H]);
+  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
+  const el = h('div'); el.innerHTML = `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d} L${W} ${H} L0 ${H} Z" fill="${color}" opacity=".15"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
+  return el;
+}
+function migrate(p) {
+  if (!p.v || p.v < 2) {
+    if (p.rating) p.ladder = { r: Math.max(100, Math.min(3000, Math.round(p.rating.r))), games: p.games.filter(g => g.rated).length, peak: Math.round(p.rating.r) };
+    delete p.rating;
+    p.puzzle.rd = Math.min(p.puzzle.rd, 200); p.puzzle.games = p.puzzle.games || 0;
+    p.v = 2;
+  }
+  p.human = p.human || { r: 800, rd: 250, vol: 0.06, games: 0 }; p.hHist = p.hHist || [800]; p.rated = p.rated || {};
+  return p;
+}
+
+const APP_VERSION = '12.0';
+function whatsNew(force, freshAtBoot) {
+  if (!force && profile.seenVersion === APP_VERSION) return;
+  const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
+  profile.seenVersion = APP_VERSION; saveProfile();
+  if (firstEver && !force) return; // brand-new players go straight in
+  const items = [
+    ['play', 'Full-screen play', 'Games, lessons, puzzles and reviews fill your screen: no scrolling, no dock, big buttons at the bottom.'],
+    ['trophy', 'Real rewards', 'Results screens with stars and an XP bar, reward chests, and a daily login chest that grows all week.'],
+    ['search', 'A better Game Review', 'Starts at move 1, plays itself, stops at the big moments, and Hoot explains every move.'],
+    ['route', 'The lesson path', 'Lessons are now a trail with chapters and up to 3 stars each.'],
+    ['sparkle', 'A whole new feel', 'New Arena, Puzzle Den, Me tab, trophy cabinet, an animated Hoot and a brand new sound kit.'],
+  ];
+
+  modal((box, close) => box.append(h('div', { class: 'center' }, typeof hootEl === 'function' ? hootEl('cheer', 84) : hoot(72)), h('h2', { class: 'center' }, `The big update is here!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
+    h('div', { class: 'stack' }, items.map(([ic, t, d]) => h('div', { class: 'quest' }, h('div', { class: 'qi' }, icon(ic, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, t), h('div', { class: 'small muted' }, d))))),
+    h('div', { style: { height: '12px' } }), h('button', { class: 'btn primary block', onclick: () => { close(); confetti(); } }, "Let's play!")));
+}
+
+// ======================= BOOT =======================
+function boot() {
+  const saved = loadLocal();
+  if (saved) { const wasOld = !saved.v; profile = Object.assign(DEFAULT_PROFILE(), saved); if (wasOld) profile.v = 1; profile = migrate(profile); }
+  soundOn = profile.sound !== false;
+  if (typeof applyLoginGifts === 'function') applyLoginGifts();
+  applyStyle();
+  buildTabs();
+  const hr = (location.hash || '').slice(1); if (ROUTES[hr]) route = hr;
+  window.addEventListener('hashchange', () => { const hs = location.hash; const jm = hs.match(/^#join=(.+)$/); if (jm) { pendingJoin = jm[1]; friendView = 'online'; leaveOnline(); go('friend'); return; } const r = hs.slice(1); if (ROUTES[r] && r !== route) go(r); });
+  initWorker();
+  const jm = (location.hash || '').match(/^#join=(.+)$/);
+  if (jm) { pendingJoin = jm[1]; route = 'friend'; friendView = 'online'; try { history.replaceState(null, '', '#friend'); } catch (e) { } }
+  render();
+  const freshAtBoot = !profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length;
+  setTimeout(() => whatsNew(false, freshAtBoot), 600);
+}
+
+;
+// The chess board: drawing, dragging, tapping, arrows, highlights and animations.
+'use strict';
+class BoardView {
+  constructor(opts = {}) {
+    this.opts = opts;
+    this.orient = opts.orient || 'w';
+    this.el = h('div', { class: 'board-wrap' });
+    this.boardEl = h('div', { class: 'board' });
+    this.layer = h('div', { class: 'pieces' });
+    this.fx = h('div', { class: 'fx' });
+    this.el.append(this.boardEl, this.layer, this.fx);
+    this.sqEls = {};
+    for (let r = 0; r < 8; r++) for (let f = 0; f < 8; f++) {
+      const s = r * 16 + f;
+      const el = h('div', { class: 'sq ' + ((r + f) % 2 ? 'l' : 'd') });
+      this.sqEls[s] = el; this.boardEl.append(el);
+    }
+    this.board = new Int8Array(128);
+    this.sel = -1; this.targets = []; this.marks = {};
+    this.pieceEls = {};
+    this.layout();
+    this.el.addEventListener('pointerdown', e => this.down(e));
+    this.el.addEventListener('pointermove', e => this.move(e));
+    this.el.addEventListener('pointerup', e => this.up(e));
+    this.el.addEventListener('pointercancel', () => { this.drag = null; this.draw(); });
+  }
+  pos(s) { const f = s & 7, r = s >> 4; return this.orient === 'w' ? [f, 7 - r] : [7 - f, r]; }
+  layout() {
+    for (const s in this.sqEls) {
+      const [x, y] = this.pos(+s), el = this.sqEls[s];
+      el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%';
+      el.querySelectorAll('.co').forEach(c => c.remove());
+      if (y === 7) el.append(h('span', { class: 'co f' }, 'abcdefgh'[+s & 7]));
+      if (x === 0) el.append(h('span', { class: 'co r' }, String((+s >> 4) + 1)));
+    }
+  }
+  flip() { this.orient = this.orient === 'w' ? 'b' : 'w'; this.layout(); this.draw(); }
+  setOrient(o) { if (o !== this.orient) { this.orient = o; this.layout(); this.draw(); } }
+  // state: {board:Int8Array, last:[from,to], check:sq, stars:Set, marks:{sq:cls}}
+  set(state, animate) {
+    const prev = this.board;
+    if (state.board) this.board = Int8Array.from(state.board);
+    // juice: when a new move appears, the piece lands with a bounce, captures puff, phones buzz
+    const lk = state.last ? state.last.join('-') + ':' + this.board[state.last[1]] : null;
+    const isNewMove = lk && lk !== this.lastKey && this.lastKey !== undefined;
+    this.lastKey = lk;
+    this.last = state.last || null; this.check = state.check ?? -1;
+    this.stars = state.stars || null; this.marks = state.marks || {};
+    this.arrows = state.arrows || []; this.badge = state.badge || null;
+    this.sel = -1; this.targets = [];
+    this.draw(animate);
+    if (isNewMove) {
+      const to = state.last[1], moved = this.board[to], was = prev[to];
+      const captured = was && moved && ((was & 8) !== (moved & 8));
+      const el = this.pieceEls[to];
+      setTimeout(() => { if (el && el.isConnected) { el.classList.remove('land'); void el.offsetWidth; el.classList.add('land'); } if (captured) this.puff(to); }, animate ? 190 : 0);
+      haptic(captured ? 18 : 7);
+    }
+  }
+  puff(sq) {
+    if (document.body.classList.contains('no-anim')) return;
+    const [x, y] = this.pos(sq), p = h('div', { class: 'puff' });
+    p.style.left = x * 12.5 + '%'; p.style.top = y * 12.5 + '%';
+    for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2 + Math.random() * .5, d = 18 + Math.random() * 14; const i = h('i'); i.style.setProperty('--dx', Math.cos(a) * d + 'px'); i.style.setProperty('--dy', Math.sin(a) * d + 'px'); i.style.animationDelay = (Math.random() * 60) + 'ms'; p.append(i); }
+    this.layer.append(p); setTimeout(() => p.remove(), 650);
+  }
+  sqAt(e) {
+    const r = this.el.getBoundingClientRect();
+    const x = Math.floor((e.clientX - r.left) / r.width * 8), y = Math.floor((e.clientY - r.top) / r.height * 8);
+    if (x < 0 || x > 7 || y < 0 || y > 7) return -1;
+    return this.orient === 'w' ? (7 - y) * 16 + x : y * 16 + (7 - x);
+  }
+  draw(animate) {
+    for (const s in this.sqEls) {
+      const el = this.sqEls[s], sq = +s;
+      el.classList.toggle('last', !!this.last && (this.last[0] === sq || this.last[1] === sq));
+      el.classList.toggle('sel', this.sel === sq);
+      el.classList.toggle('check', this.check === sq);
+      el.classList.remove('hint', 'mark');
+      if (this.marks[sq]) el.classList.add(this.marks[sq]);
+      el.querySelectorAll('.dot,.ring,.star').forEach(c => c.remove());
+      if (this.targets.includes(sq) && !(profile.style && profile.style.dots === false)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
+      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, icon('star', 34)));
+    }
+    this.layer.innerHTML = ''; this.pieceEls = {};
+    for (let s = 0; s < 128; s++) {
+      if (s & 0x88) { s += 7; continue; }
+      const p = this.board[s]; if (!p) continue;
+      const el = h('div', { class: 'piece' });
+      el.style.backgroundImage = `url(${pieceUrl(p)})`;
+      let [x, y] = this.pos(s);
+      if (animate && animate[1] === s) {
+        const [fx, fy] = this.pos(animate[0]);
+        el.classList.add('noanim'); el.style.left = fx * 12.5 + '%'; el.style.top = fy * 12.5 + '%';
+        requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.remove('noanim'); el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }));
+      } else { el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }
+      this.layer.append(el); this.pieceEls[s] = el;
+    }
+    // arrows (e.g. best move in Game Review) and a grade badge on a square
+    if (this.arrows && this.arrows.length) {
+      const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 8 8'); svg.setAttribute('class', 'arrows');
+      for (const [a, b, col] of this.arrows) {
+        const [x1, y1] = this.pos(a), [x2, y2] = this.pos(b);
+        const ax = x1 + .5, ay = y1 + .5, bx = x2 + .5, by = y2 + .5, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+        const ex = bx - ux * .32, ey = by - uy * .32;
+        const line = document.createElementNS(NS, 'line');
+        Object.entries({ x1: ax, y1: ay, x2: ex, y2: ey, stroke: col || '#7cc04a', 'stroke-width': .17, 'stroke-linecap': 'round', opacity: .85 }).forEach(([k, v]) => line.setAttribute(k, v));
+        const head = document.createElementNS(NS, 'polygon');
+        const px = -uy, py = ux;
+        head.setAttribute('points', `${bx - ux * .05},${by - uy * .05} ${ex + px * .25},${ey + py * .25} ${ex - px * .25},${ey - py * .25}`);
+        head.setAttribute('fill', col || '#7cc04a'); head.setAttribute('opacity', .85);
+        svg.append(line, head);
+      }
+      this.layer.append(svg);
+    }
+    if (this.badge && typeof CLASSES !== 'undefined' && CLASSES[this.badge.cls]) {
+      const [x, y] = this.pos(this.badge.sq);
+      const b = classBadge(this.badge.cls, 20); b.classList.add('sqbadge');
+      b.style.left = `calc(${(x + 1) * 12.5}% - 14px)`; b.style.top = `calc(${y * 12.5}% - 6px)`;
+      this.layer.append(b);
+    }
+  }
+  select(sq, targets) { this.sel = sq; this.targets = targets; this.draw(); }
+  clearSel() { if (this.sel >= 0 || this.targets.length) { this.sel = -1; this.targets = []; this.draw(); } }
+  down(e) {
+    const sq = this.sqAt(e); if (sq < 0) return;
+    if (this.sel >= 0 && this.targets.includes(sq)) { this.commit(this.sel, sq, false); return; }
+    const t = this.opts.getTargets ? this.opts.getTargets(sq) : null;
+    if (t && t.length) {
+      this.select(sq, t);
+      const el = this.pieceEls[sq];
+      if (el) {
+        this.drag = { sq, el, x: e.clientX, y: e.clientY, moved: false };
+        try { this.el.setPointerCapture(e.pointerId); } catch (_) { }
+      }
+    } else if (t) { this.select(sq, []); }
+    else this.clearSel();
+  }
+  move(e) {
+    const d = this.drag; if (!d) return;
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 6) return;
+    d.moved = true;
+    const r = this.el.getBoundingClientRect(), w = r.width / 8;
+    d.el.classList.add('drag');
+    d.el.style.left = (e.clientX - r.left - w / 2) + 'px'; d.el.style.top = (e.clientY - r.top - w / 2) + 'px';
+  }
+  up(e) {
+    const d = this.drag; this.drag = null;
+    if (!d || !d.moved) return;
+    const sq = this.sqAt(e);
+    if (sq >= 0 && sq !== d.sq && this.targets.includes(sq)) this.commit(d.sq, sq, true);
+    else { this.draw(); }
+  }
+  commit(from, to, dragged) {
+    this.sel = -1; this.targets = [];
+    if (this.opts.onMove) this.opts.onMove(from, to, dragged);
+  }
+  burst(name) {
+    const b = h('div', { class: 'burst' }, icon(name || 'star', 90, 'burst-ic ' + (name || 'star'))); this.fx.append(b); setTimeout(() => b.remove(), 800);
+  }
+}
+
+// ======================= GAME MODEL =======================
+
+;
+// Playing games: the shared game screen, the Arena (bots) and Pass & Play.
+'use strict';
 // ======================= GAME SCREEN (shared) =======================
 // cfg: {game, bottom:{name,rating,avatar}, top:{...}, orient, canMove(color), onUserMove(uci), buttons:[...], onBoardReady}
 function gameScreen(main, cfg) {
@@ -5518,11 +5600,6 @@ function gameScreen(main, cfg) {
     get viewing() { return viewPly !== null; },
   };
 }
-function stageBanner(key, title, sub, extra) {
-  return h('div', { class: 'stage short' }, roomArt(key), extra || null, h('div', { class: 'stage-lab' }, h('h2', null, title), sub ? h('small', null, sub) : null));
-}
-function myAvatar() { return (profile.style && profile.style.avatar) || 'you'; }
-function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ? 'capture' : 'move'); }
 
 // ======================= PLAY VS BOT =======================
 let playSel = { bot: 0, color: 'w', rated: true, tc: '0+0', coach: true, variant: 'std' };
@@ -5734,19 +5811,8 @@ function renderBotGame(main) {
   if (!cur.result) { const st = g.status(); if (st.over) finish(st.result, st.reason); else if (g.turn() !== cur.color) botTurn(); else coachTurnStart(); }
 }
 
-// ======================= FRIENDS =======================
-let friendView = 'menu';
-function renderFriend(main) {
-  if (friendView === 'local') return renderLocalGame(main);
-  if (friendView === 'online') return renderOnline(main);
-  if (friendView === 'world') return renderWorld(main);
-  main.append(
-    stageBanner('courtyard', 'Courtyard', 'Play people near and far'),
-    h('button', { class: 'card lesson hero', onclick: () => { friendView = 'world'; lobbyView = 'home'; render(); } }, h('div', { class: 'ic gold' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play the World'), h('div', { class: 'd' }, 'Quick match with players near your rating. Rated and checked by the server.')), h('span', { class: 'ck' }, icon('next', 20))),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('link', 24)), h('div', null, h('div', { class: 't' }, 'Invite a Friend'), h('div', { class: 'd' }, 'Send a link. Your devices connect directly (peer-to-peer).')), h('span', { class: 'ck' }, icon('next', 20))),
-    h('p', { class: 'small muted' }, 'Play the World games count toward your Online rating, which is separate from your Bot League rating. Friend invites and Pass & Play are just for fun.'));
-}
+
+// ======================= PASS & PLAY =======================
 function newLocalGame() {
   const st = profile.localGame || {}; const sel = { tc: st.tc || '0+0' };
   sel.variant = st.variant || 'std';
@@ -5794,6 +5860,23 @@ function renderLocalGame(main) {
   buttons();
 }
 
+
+;
+// The Courtyard: friend menu and peer-to-peer invites over WebRTC.
+'use strict';
+// ======================= FRIENDS =======================
+let friendView = 'menu';
+function renderFriend(main) {
+  if (friendView === 'local') return renderLocalGame(main);
+  if (friendView === 'online') return renderOnline(main);
+  if (friendView === 'world') return renderWorld(main);
+  main.append(
+    stageBanner('courtyard', 'Courtyard', 'Play people near and far'),
+    h('button', { class: 'card lesson hero', onclick: () => { friendView = 'world'; lobbyView = 'home'; render(); } }, h('div', { class: 'ic gold' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play the World'), h('div', { class: 'd' }, 'Quick match with players near your rating. Rated and checked by the server.')), h('span', { class: 'ck' }, icon('next', 20))),
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('link', 24)), h('div', null, h('div', { class: 't' }, 'Invite a Friend'), h('div', { class: 'd' }, 'Send a link. Your devices connect directly (peer-to-peer).')), h('span', { class: 'ck' }, icon('next', 20))),
+    h('p', { class: 'small muted' }, 'Play the World games count toward your Online rating, which is separate from your Bot League rating. Friend invites and Pass & Play are just for fun.'));
+}
 // ---------- online: true peer-to-peer over WebRTC ----------
 // Signaling is copy/paste (or a link): the host's "invite" holds its WebRTC offer, the guest
 // replies with an "answer" code. After that the two browsers talk directly over a data channel.
@@ -6052,130 +6135,10 @@ function renderOnlineGame(main) {
 }
 
 // ======================= PUZZLES =======================
-let puzCat = 'rated', puzState = null, puzMode = null;
-function pickPuzzle() {
-  const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : puzCat.startsWith('t:') ? (p.themes || []).includes(puzCat.slice(2)) : p.n === +puzCat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic');
-  const fresh = pool.filter(p => !profile.tried[p.id]);
-  if (puzCat === 'pattern' && fresh.length) return fresh[0]; // learn the famous mates in order, easiest first
-  const use = (fresh.length ? fresh : pool).slice();
-  const pr = profile.puzzle.r;
-  use.sort((a, b) => Math.abs(a.rating - pr) - Math.abs(b.rating - pr));
-  const top = use.slice(0, Math.min(6, use.length));
-  return top[Math.floor(rand() * top.length)];
-}
-const PUZ_CAT_ICON = { rated: 'target', m1: 'crown', m2: 'crown', m3: 'crown', pattern: 'book', 't:fork': 'fork', 't:pin': 'pin', 't:skewer': 'skewer', 't:discoveredAttack': 'eye', 't:hangingPiece': 'alert', 't:trappedPiece': 'key', 't:sacrifice': 'flame', 't:endgame': 'castle', 't:middlegame': 'sword', 't:backRank': 'shield', 't:deflection': 'route', 't:promotion': 'arrowUp', 't:doubleCheck': 'bolt' };
-function puzCats() {
-  const themeCounts = {}; PUZZLES.forEach(p => (p.themes || []).forEach(t => themeCounts[t] = (themeCounts[t] || 0) + 1));
-  return [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
-    .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
-}
-function puzPool(cat) { return PUZZLES.filter(p => cat === 'rated' ? true : cat === 'pattern' ? p.cat === 'pattern' : cat.startsWith('t:') ? (p.themes || []).includes(cat.slice(2)) : p.n === +cat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic'); }
-function renderPuzzles(main) {
-  if (puzMode === 'daily') return renderDaily(main);
-  if (puzMode === 'rush') return renderRush(main);
-  if (puzMode === 'solve') return renderPuzzleSolve(main);
-  const dState = dailyState(), dDone = dState.history[todayKey()];
-  const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
-  main.append(stageBanner('den', 'Puzzle Den', `${solvedCount} of ${PUZZLES.length} solved`));
-  // your rating and the big button
-  main.append(h('button', { class: 'puz-hero', onclick: () => { puzCat = 'rated'; puzState = null; puzMode = 'solve'; haptic(10); beep('confirm'); render(); } },
-    h('div', { class: 'ph-l' }, h('small', null, 'Puzzle rating'), h('b', { class: 'ph-r' }, fmtR(profile.puzzle)), h('small', null, profile.streak ? `Streak ${profile.streak}, best ${profile.best}` : `Best streak ${profile.best}`)),
-    h('div', { class: 'ph-go' }, icon('play', 26), h('span', null, 'Solve'))));
-  const week = h('div', { class: 'week' }); for (let i = 6; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); const k = d.toISOString().slice(0, 10); const v = dState.history[k]; week.append(h('i', { class: v === 1 ? 'ok' : v ? 'meh' : i === 0 ? 'today' : '' })); }
-  main.append(h('div', { class: 'puz-modes' },
-    h('button', { class: 'pmode daily' + (dDone ? '' : ' hot'), onclick: () => { puzMode = 'daily'; beep('confirm'); render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done for today' : 'New puzzle ready'), week),
-    h('button', { class: 'pmode rush', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; beep('confirm'); render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, `Best ${Math.max(0, ...Object.values(profile.rushBest || { a: 0 }))}`), h('span', { class: 'pm-sub' }, 'Beat the clock'))));
-  main.append(h('h3', { class: 'sect' }, 'Practice by theme'));
-  main.append(h('div', { class: 'puz-themes' }, puzCats().filter(([k]) => k !== 'rated').map(([k, l]) => { const pool = puzPool(k), done = pool.filter(p => profile.tried[p.id] === 1).length;
-    return h('button', { class: 'ptheme', onclick: () => { puzCat = k; puzState = null; puzMode = 'solve'; beep('tap'); render(); } }, h('span', { class: 'pt-ic' }, icon(PUZ_CAT_ICON[k] || 'puzzle', 20)), h('b', null, l), h('small', null, `${done} / ${pool.length}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / pool.length * 100) + '%' } }))); })));
-}
-function renderPuzzleSolve(main) {
-  const catName = (puzCats().find(c => c[0] === puzCat) || [0, 'Puzzles'])[1];
-  const streakChip = h('div', { class: 'streak-chip' + (profile.streak >= 3 ? ' hot' : '') }, icon('flame', 16), h('b', null, String(profile.streak || 0)));
-  const F = focusScreen(main, { title: catName, sub: `Puzzle rating ${fmtR(profile.puzzle)}`, back: () => { puzMode = null; puzState = null; render(); }, right: [streakChip] });
-  if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
-  const ps = puzState, p = ps.p;
-  const g = new Game(p.fen);
-  for (let i = 0; i < ps.step; i++) g.play(p.line[i]);
-  const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
-  const banner = h('div', { class: 'banner' });
-  const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = tr(html); };
-  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>${puzzlePrompt(p).goal}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
-  setBanner('', prompt());
-  let busy = false;
-  const board = new BoardView({
-    orient: side,
-    getTargets: sq => (!ps.done && !busy && g.turn() === side) ? g.targetsFrom(sq) : null,
-    onMove: (from, to, dragged) => {
-      const needs = g.needsPromo(from, to);
-      const uci = sqName(from) + sqName(to) + (needs ? 'q' : '');
-      attempt(uci, dragged);
-    }
-  });
-  F.above.append(banner); F.stage.append(board.el);
-  const msg = h('div', { class: 'fs-msg' }); F.below.append(msg);
-  const show = (anim) => board.set(g.viewState(), anim);
-  show();
-  function rate(success) {
-    if (!ps.rated) return null;
-    ps.rated = false;
-    const before = profile.puzzle.r;
-    profile.puzzle = cappedGlicko(profile.puzzle, { r: p.rating, rd: 80 }, success ? 1 : 0, 30, 15);
-    profile.pHist.push(Math.round(profile.puzzle.r)); if (profile.pHist.length > 300) profile.pHist.shift();
-    profile.tried[p.id] = success ? 1 : 2;
-    profile.streak = success ? profile.streak + 1 : 0; profile.best = Math.max(profile.best, profile.streak);
-    saveProfile();
-    return Math.round(profile.puzzle.r) - Math.round(before);
-  }
-  function attempt(uci, dragged) {
-    const expected = p.line[ps.step];
-    const isLast = ps.step === p.line.length - 1;
-    const test = new Game(g.startFen, g.moves); const r = test.play(uci);
-    const mates = r && test.status().reason === 'checkmate';
-    if (uci === expected || (isLast && mates)) {
-      const res = g.play(uci); playSound(res); show(dragged ? null : g.lastFromTo);
-      ps.step++;
-      if (ps.step >= p.line.length) return solved();
-      msg.className = 'fs-msg good'; msg.textContent = 'Good move! Keep going…'; beep('correct');
-      busy = true;
-      setTimeout(() => { const rr = g.play(p.line[ps.step]); ps.step++; playSound(rr); show(g.lastFromTo); busy = false; msg.textContent = 'Your move'; }, 650);
-    } else {
-      // wrong: show briefly then reset
-      if (r) { const tmp = new Game(g.startFen, g.moves); tmp.play(uci); board.set(tmp.viewState(), dragged ? null : tmp.lastFromTo); }
-      beep('wrong'); haptic(25); ps.failed = true;
-      const d = rate(false); streakChip.querySelector('b').textContent = String(profile.streak || 0); streakChip.classList.remove('hot');
-      msg.className = 'fs-msg bad'; msg.textContent = 'Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
-      busy = true; setTimeout(() => { busy = false; show(); }, 900);
-      buttons();
-    }
-  }
-  function solved() {
-    ps.done = true; board.burst('star'); haptic([8, 30, 8]);
-    rewardEvent('puzzle', { solved: true, clean: !ps.failed });
-    const d = ps.failed ? null : rate(true);
-    streakChip.querySelector('b').textContent = String(profile.streak || 0);
-    if (!ps.failed && profile.streak >= 2) { beep('combo', { n: Math.min(profile.streak, 12) }); streakChip.classList.add('hot'); if (typeof fxPop === 'function') fxPop(streakChip); } else beep('win');
-    const R = takeRewards(); if (R.xpGain && typeof fxFloat === 'function') fxFloat(board.el, `+${R.xpGain} XP`); rewardQueue.push(...[].concat(R.levels.map(l => ({ kind: 'level', lvl: l })), R.unlocks, R.achs.map(a => ({ kind: 'ach', a })), R.quests));
-    if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
-    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : (p.themes && p.themes.length ? 'Theme: ' + p.themes.filter(t => THEME_NAMES[t] && t !== 'middlegame' && t !== 'endgame').map(t => THEME_NAMES[t]).join(', ') + '.' : '')}</span>`);
-    msg.className = 'fs-msg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
-    buttons();
-  }
-  function buttons() {
-    F.setActions([
-      !ps.done ? { ic: 'bulb', label: 'Hint', on: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); beep('hint'); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'fs-msg bad'; msg.textContent = `Hint used (${d})`; } } } : null,
-      !ps.done ? { ic: 'eye', label: 'Solution', on: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } } : null,
-      { ic: 'next', label: ps.done ? 'Next puzzle' : 'Skip', primary: ps.done, on: () => { puzState = null; render(); } }]);
-  }
-  async function showSolution() {
-    buttons(); busy = true;
-    for (let i = ps.step; i < p.line.length; i++) { await new Promise(r => setTimeout(r, 700)); const rr = g.play(p.line[i]); playSound(rr); show(g.lastFromTo); }
-    setBanner('', `${iconSvgInline('bulb')}<span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
-    msg.textContent = '';
-  }
-  buttons();
-}
 
+;
+// The Library: beginner path, courses and the lesson player.
+'use strict';
 // ======================= LEARN =======================
 let lessonOpen = null, lessonStep = 0;
 function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic dark' }, icon(l.icon, 24)); }
@@ -6382,62 +6345,6 @@ function showLessonResults(o) {
     buttons: [{ label: 'All lessons', on: o.done }, { label: o.nextLabel, primary: true, on: o.next || o.done }] });
 }
 
-// ======================= ME / PROFILE =======================
-function sparkline(arr, color, emptyMsg) {
-  const data = arr.slice(-60); if (data.length < 2) return h('div', { class: 'small muted' }, emptyMsg || 'Play rated games to see your graph.');
-  const min = Math.min(...data) - 20, max = Math.max(...data) + 20, W = 300, H = 70;
-  const pts = data.map((v, i) => [i / (data.length - 1) * W, H - (v - min) / (max - min) * H]);
-  const d = pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
-  const el = h('div'); el.innerHTML = `<svg class="spark" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><path d="${d} L${W} ${H} L0 ${H} Z" fill="${color}" opacity=".15"/><path d="${d}" fill="none" stroke="${color}" stroke-width="2.5" vector-effect="non-scaling-stroke" stroke-linejoin="round"/></svg>`;
-  return el;
-}
-function migrate(p) {
-  if (!p.v || p.v < 2) {
-    if (p.rating) p.ladder = { r: Math.max(100, Math.min(3000, Math.round(p.rating.r))), games: p.games.filter(g => g.rated).length, peak: Math.round(p.rating.r) };
-    delete p.rating;
-    p.puzzle.rd = Math.min(p.puzzle.rd, 200); p.puzzle.games = p.puzzle.games || 0;
-    p.v = 2;
-  }
-  p.human = p.human || { r: 800, rd: 250, vol: 0.06, games: 0 }; p.hHist = p.hHist || [800]; p.rated = p.rated || {};
-  return p;
-}
-
-const APP_VERSION = '12.0';
-function whatsNew(force, freshAtBoot) {
-  if (!force && profile.seenVersion === APP_VERSION) return;
-  const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
-  profile.seenVersion = APP_VERSION; saveProfile();
-  if (firstEver && !force) return; // brand-new players go straight in
-  const items = [
-    ['play', 'Full-screen play', 'Games, lessons, puzzles and reviews fill your screen: no scrolling, no dock, big buttons at the bottom.'],
-    ['trophy', 'Real rewards', 'Results screens with stars and an XP bar, reward chests, and a daily login chest that grows all week.'],
-    ['search', 'A better Game Review', 'Starts at move 1, plays itself, stops at the big moments, and Hoot explains every move.'],
-    ['route', 'The lesson path', 'Lessons are now a trail with chapters and up to 3 stars each.'],
-    ['sparkle', 'A whole new feel', 'New Arena, Puzzle Den, Me tab, trophy cabinet, an animated Hoot and a brand new sound kit.'],
-  ];
-
-  modal((box, close) => box.append(h('div', { class: 'center' }, typeof hootEl === 'function' ? hootEl('cheer', 84) : hoot(72)), h('h2', { class: 'center' }, `The big update is here!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
-    h('div', { class: 'stack' }, items.map(([ic, t, d]) => h('div', { class: 'quest' }, h('div', { class: 'qi' }, icon(ic, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, t), h('div', { class: 'small muted' }, d))))),
-    h('div', { style: { height: '12px' } }), h('button', { class: 'btn primary block', onclick: () => { close(); confetti(); } }, "Let's play!")));
-}
-
-// ======================= BOOT =======================
-function boot() {
-  const saved = loadLocal();
-  if (saved) { const wasOld = !saved.v; profile = Object.assign(DEFAULT_PROFILE(), saved); if (wasOld) profile.v = 1; profile = migrate(profile); }
-  soundOn = profile.sound !== false;
-  if (typeof applyLoginGifts === 'function') applyLoginGifts();
-  applyStyle();
-  buildTabs();
-  const hr = (location.hash || '').slice(1); if (ROUTES[hr]) route = hr;
-  window.addEventListener('hashchange', () => { const hs = location.hash; const jm = hs.match(/^#join=(.+)$/); if (jm) { pendingJoin = jm[1]; friendView = 'online'; leaveOnline(); go('friend'); return; } const r = hs.slice(1); if (ROUTES[r] && r !== route) go(r); });
-  initWorker();
-  const jm = (location.hash || '').match(/^#join=(.+)$/);
-  if (jm) { pendingJoin = jm[1]; route = 'friend'; friendView = 'online'; try { history.replaceState(null, '', '#friend'); } catch (e) { } }
-  render();
-  const freshAtBoot = !profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length;
-  setTimeout(() => whatsNew(false, freshAtBoot), 600);
-}
 
 ;
 // Puzzles 2.0: a reusable puzzle board, Puzzle Rush, the Daily Puzzle and theme filters.
@@ -6596,6 +6503,132 @@ function renderRush(main) {
     tick(); const iv = setInterval(tick, 100); cleanups.push(() => clearInterval(iv));
   }
 }
+
+// ======================= PUZZLE DEN (hub and rated solving) =======================
+let puzCat = 'rated', puzState = null, puzMode = null;
+function pickPuzzle() {
+  const pool = PUZZLES.filter(p => puzCat === 'rated' ? true : puzCat === 'pattern' ? p.cat === 'pattern' : puzCat.startsWith('t:') ? (p.themes || []).includes(puzCat.slice(2)) : p.n === +puzCat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic');
+  const fresh = pool.filter(p => !profile.tried[p.id]);
+  if (puzCat === 'pattern' && fresh.length) return fresh[0]; // learn the famous mates in order, easiest first
+  const use = (fresh.length ? fresh : pool).slice();
+  const pr = profile.puzzle.r;
+  use.sort((a, b) => Math.abs(a.rating - pr) - Math.abs(b.rating - pr));
+  const top = use.slice(0, Math.min(6, use.length));
+  return top[Math.floor(rand() * top.length)];
+}
+const PUZ_CAT_ICON = { rated: 'target', m1: 'crown', m2: 'crown', m3: 'crown', pattern: 'book', 't:fork': 'fork', 't:pin': 'pin', 't:skewer': 'skewer', 't:discoveredAttack': 'eye', 't:hangingPiece': 'alert', 't:trappedPiece': 'key', 't:sacrifice': 'flame', 't:endgame': 'castle', 't:middlegame': 'sword', 't:backRank': 'shield', 't:deflection': 'route', 't:promotion': 'arrowUp', 't:doubleCheck': 'bolt' };
+function puzCats() {
+  const themeCounts = {}; PUZZLES.forEach(p => (p.themes || []).forEach(t => themeCounts[t] = (themeCounts[t] || 0) + 1));
+  return [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
+    .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
+}
+function puzPool(cat) { return PUZZLES.filter(p => cat === 'rated' ? true : cat === 'pattern' ? p.cat === 'pattern' : cat.startsWith('t:') ? (p.themes || []).includes(cat.slice(2)) : p.n === +cat.slice(-1) && p.cat !== 'pattern' && p.cat !== 'tactic'); }
+function renderPuzzles(main) {
+  if (puzMode === 'daily') return renderDaily(main);
+  if (puzMode === 'rush') return renderRush(main);
+  if (puzMode === 'solve') return renderPuzzleSolve(main);
+  const dState = dailyState(), dDone = dState.history[todayKey()];
+  const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
+  main.append(stageBanner('den', 'Puzzle Den', `${solvedCount} of ${PUZZLES.length} solved`));
+  // your rating and the big button
+  main.append(h('button', { class: 'puz-hero', onclick: () => { puzCat = 'rated'; puzState = null; puzMode = 'solve'; haptic(10); beep('confirm'); render(); } },
+    h('div', { class: 'ph-l' }, h('small', null, 'Puzzle rating'), h('b', { class: 'ph-r' }, fmtR(profile.puzzle)), h('small', null, profile.streak ? `Streak ${profile.streak}, best ${profile.best}` : `Best streak ${profile.best}`)),
+    h('div', { class: 'ph-go' }, icon('play', 26), h('span', null, 'Solve'))));
+  const week = h('div', { class: 'week' }); for (let i = 6; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); const k = d.toISOString().slice(0, 10); const v = dState.history[k]; week.append(h('i', { class: v === 1 ? 'ok' : v ? 'meh' : i === 0 ? 'today' : '' })); }
+  main.append(h('div', { class: 'puz-modes' },
+    h('button', { class: 'pmode daily' + (dDone ? '' : ' hot'), onclick: () => { puzMode = 'daily'; beep('confirm'); render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done for today' : 'New puzzle ready'), week),
+    h('button', { class: 'pmode rush', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; beep('confirm'); render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, `Best ${Math.max(0, ...Object.values(profile.rushBest || { a: 0 }))}`), h('span', { class: 'pm-sub' }, 'Beat the clock'))));
+  main.append(h('h3', { class: 'sect' }, 'Practice by theme'));
+  main.append(h('div', { class: 'puz-themes' }, puzCats().filter(([k]) => k !== 'rated').map(([k, l]) => { const pool = puzPool(k), done = pool.filter(p => profile.tried[p.id] === 1).length;
+    return h('button', { class: 'ptheme', onclick: () => { puzCat = k; puzState = null; puzMode = 'solve'; beep('tap'); render(); } }, h('span', { class: 'pt-ic' }, icon(PUZ_CAT_ICON[k] || 'puzzle', 20)), h('b', null, l), h('small', null, `${done} / ${pool.length}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(done / pool.length * 100) + '%' } }))); })));
+}
+function renderPuzzleSolve(main) {
+  const catName = (puzCats().find(c => c[0] === puzCat) || [0, 'Puzzles'])[1];
+  const streakChip = h('div', { class: 'streak-chip' + (profile.streak >= 3 ? ' hot' : '') }, icon('flame', 16), h('b', null, String(profile.streak || 0)));
+  const F = focusScreen(main, { title: catName, sub: `Puzzle rating ${fmtR(profile.puzzle)}`, back: () => { puzMode = null; puzState = null; render(); }, right: [streakChip] });
+  if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
+  const ps = puzState, p = ps.p;
+  const g = new Game(p.fen);
+  for (let i = 0; i < ps.step; i++) g.play(p.line[i]);
+  const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
+  const banner = h('div', { class: 'banner' });
+  const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = tr(html); };
+  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>${puzzlePrompt(p).goal}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
+  setBanner('', prompt());
+  let busy = false;
+  const board = new BoardView({
+    orient: side,
+    getTargets: sq => (!ps.done && !busy && g.turn() === side) ? g.targetsFrom(sq) : null,
+    onMove: (from, to, dragged) => {
+      const needs = g.needsPromo(from, to);
+      const uci = sqName(from) + sqName(to) + (needs ? 'q' : '');
+      attempt(uci, dragged);
+    }
+  });
+  F.above.append(banner); F.stage.append(board.el);
+  const msg = h('div', { class: 'fs-msg' }); F.below.append(msg);
+  const show = (anim) => board.set(g.viewState(), anim);
+  show();
+  function rate(success) {
+    if (!ps.rated) return null;
+    ps.rated = false;
+    const before = profile.puzzle.r;
+    profile.puzzle = cappedGlicko(profile.puzzle, { r: p.rating, rd: 80 }, success ? 1 : 0, 30, 15);
+    profile.pHist.push(Math.round(profile.puzzle.r)); if (profile.pHist.length > 300) profile.pHist.shift();
+    profile.tried[p.id] = success ? 1 : 2;
+    profile.streak = success ? profile.streak + 1 : 0; profile.best = Math.max(profile.best, profile.streak);
+    saveProfile();
+    return Math.round(profile.puzzle.r) - Math.round(before);
+  }
+  function attempt(uci, dragged) {
+    const expected = p.line[ps.step];
+    const isLast = ps.step === p.line.length - 1;
+    const test = new Game(g.startFen, g.moves); const r = test.play(uci);
+    const mates = r && test.status().reason === 'checkmate';
+    if (uci === expected || (isLast && mates)) {
+      const res = g.play(uci); playSound(res); show(dragged ? null : g.lastFromTo);
+      ps.step++;
+      if (ps.step >= p.line.length) return solved();
+      msg.className = 'fs-msg good'; msg.textContent = 'Good move! Keep going…'; beep('correct');
+      busy = true;
+      setTimeout(() => { const rr = g.play(p.line[ps.step]); ps.step++; playSound(rr); show(g.lastFromTo); busy = false; msg.textContent = 'Your move'; }, 650);
+    } else {
+      // wrong: show briefly then reset
+      if (r) { const tmp = new Game(g.startFen, g.moves); tmp.play(uci); board.set(tmp.viewState(), dragged ? null : tmp.lastFromTo); }
+      beep('wrong'); haptic(25); ps.failed = true;
+      const d = rate(false); streakChip.querySelector('b').textContent = String(profile.streak || 0); streakChip.classList.remove('hot');
+      msg.className = 'fs-msg bad'; msg.textContent = 'Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
+      busy = true; setTimeout(() => { busy = false; show(); }, 900);
+      buttons();
+    }
+  }
+  function solved() {
+    ps.done = true; board.burst('star'); haptic([8, 30, 8]);
+    rewardEvent('puzzle', { solved: true, clean: !ps.failed });
+    const d = ps.failed ? null : rate(true);
+    streakChip.querySelector('b').textContent = String(profile.streak || 0);
+    if (!ps.failed && profile.streak >= 2) { beep('combo', { n: Math.min(profile.streak, 12) }); streakChip.classList.add('hot'); if (typeof fxPop === 'function') fxPop(streakChip); } else beep('win');
+    const R = takeRewards(); if (R.xpGain && typeof fxFloat === 'function') fxFloat(board.el, `+${R.xpGain} XP`); rewardQueue.push(...[].concat(R.levels.map(l => ({ kind: 'level', lvl: l })), R.unlocks, R.achs.map(a => ({ kind: 'ach', a })), R.quests));
+    if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
+    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : (p.themes && p.themes.length ? 'Theme: ' + p.themes.filter(t => THEME_NAMES[t] && t !== 'middlegame' && t !== 'endgame').map(t => THEME_NAMES[t]).join(', ') + '.' : '')}</span>`);
+    msg.className = 'fs-msg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
+    buttons();
+  }
+  function buttons() {
+    F.setActions([
+      !ps.done ? { ic: 'bulb', label: 'Hint', on: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); beep('hint'); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'fs-msg bad'; msg.textContent = `Hint used (${d})`; } } } : null,
+      !ps.done ? { ic: 'eye', label: 'Solution', on: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } } : null,
+      { ic: 'next', label: ps.done ? 'Next puzzle' : 'Skip', primary: ps.done, on: () => { puzState = null; render(); } }]);
+  }
+  async function showSolution() {
+    buttons(); busy = true;
+    for (let i = ps.step; i < p.line.length; i++) { await new Promise(r => setTimeout(r, 700)); const rr = g.play(p.line[i]); playSound(rr); show(g.lastFromTo); }
+    setBanner('', `${iconSvgInline('bulb')}<span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
+    msg.textContent = '';
+  }
+  buttons();
+}
+
 
 ;
 // Rewards: XP and levels, achievements, and unlockable board themes, piece sets and avatars.
@@ -10659,6 +10692,15 @@ function renderHome(main) {
 }
 
 ;
+// Native-app feel: no pinch zoom, no double-tap zoom, a stable app height that does not jump
+// when the browser toolbar shows or hides.
+(function lockViewport() {
+  const setH = () => document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+  setH(); window.addEventListener('resize', () => { if (!document.activeElement || !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) setH(); }); window.addEventListener('orientationchange', () => setTimeout(setH, 300));
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) document.addEventListener(ev, e => e.preventDefault(), { passive: false });
+  document.addEventListener('touchmove', e => { if (e.touches && e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+})();
 // Start the app after every module has loaded (and the chosen language's words are in).
 initI18n().catch(() => { }).finally(boot);
 // opening moment: the brass medallion drops in, the knight lands, then the clubhouse appears

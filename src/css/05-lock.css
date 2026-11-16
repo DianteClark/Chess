@@ -1,0 +1,9 @@
+/* ---------- Lock the app to the screen like a native game ---------- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation;overscroll-behavior:none;height:100%}
+body{overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;min-height:var(--app-h,100vh)}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;font-size:16px !important} /* 16px stops iOS zooming into fields */
+button,a,.card,.board-wrap,.vboard-wrap{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+img,svg{-webkit-user-drag:none;user-drag:none}
+body.focus{position:fixed;inset:0;overflow:hidden;touch-action:none}
+body.focus .fs{height:var(--app-h,100dvh)}
+body.focus .fs-bubble .txt,body.focus .coachline .ctext,body.focus .moves,body.focus .kx-ov{touch-action:pan-x pan-y}

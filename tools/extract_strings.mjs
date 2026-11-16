@@ -9,7 +9,7 @@ const require = createRequire(import.meta.url);
 const acorn = require('acorn'), walk = require('acorn-walk');
 const root = path.join(path.dirname(new URL(import.meta.url).pathname), '..');
 const FILES = ['src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.js', 'src/lobby-ui.js', 'src/review.js', 'src/analysis.js',
-  'src/home.js', 'src/boot.js', 'src/lessons.js', 'src/courses.js', 'src/bots.js', 'src/worldcourses.js', 'src/variants.js', 'src/world.js', 'src/i18n.js', 'src/me.js', 'src/daily.js', 'src/fx.js', 'src/layout.js'];
+  'src/home.js', 'src/boot.js', 'src/lessons.js', 'src/courses.js', 'src/bots.js', 'src/worldcourses.js', 'src/variants.js', 'src/world.js', 'src/i18n.js', 'src/me.js', 'src/daily.js', 'src/fx.js', 'src/layout.js', 'src/board.js', 'src/play.js', 'src/friends.js', 'src/learn.js', 'src/home.js', 'src/lobby-client.js'];
 // calls whose string arguments are never shown to people
 const SKIP_CALLS = new Set(['icon', 'iconSvgInline', 'querySelector', 'querySelectorAll', 'getElementById', 'addEventListener', 'removeEventListener', 'setAttribute', 'getAttribute',
   'beep', 'go', 'haptic', 'badge', 'avatar', 'pieceImg', 'classBadge', 'sqFromName', 'moveFromUci', 'moveFromSan', 'play', 'roomArt', 'stageBanner_key', 'matchMedia', 'getItem', 'setItem',

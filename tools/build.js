@@ -12,7 +12,7 @@ function checkDuplicateGlobals(files) {
 }
 const strip = s => s.replace(/^if \(typeof module.*$/gm, '');
 // UI modules, in load order. boot.js must stay last.
-const APP_FILES = ['src/i18n.js', 'src/icons.js', 'src/art.js', 'src/layout.js', 'src/audio.js', 'src/fx.js', 'src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.js', 'src/lobby-client.js', 'src/lobby-ui.js', 'src/sf.js', 'src/review.js', 'src/analysis.js', 'src/wpieces.js', 'src/variants.js', 'src/worldcourses_scoped', 'src/world.js', 'src/me.js', 'src/daily.js', 'src/home.js', 'src/boot.js'];
+const APP_FILES = ['src/i18n.js', 'src/icons.js', 'src/art.js', 'src/layout.js', 'src/audio.js', 'src/fx.js', 'src/app.js', 'src/board.js', 'src/play.js', 'src/friends.js', 'src/learn.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.js', 'src/lobby-client.js', 'src/lobby-ui.js', 'src/sf.js', 'src/review.js', 'src/analysis.js', 'src/wpieces.js', 'src/variants.js', 'src/worldcourses_scoped', 'src/world.js', 'src/me.js', 'src/daily.js', 'src/home.js', 'src/boot.js'];
 checkDuplicateGlobals([...APP_FILES, 'src/engine.js', 'src/bots.js', 'src/lessons.js']);
 // checkmate puzzles first, themed tactics appended after them (keeps saved puzzle ids stable)
 const puzzles = JSON.parse(rd('data/puzzles.json')).concat(fs.existsSync(path.join(root, 'data/tactics.json')) ? JSON.parse(rd('data/tactics.json')) : []);
