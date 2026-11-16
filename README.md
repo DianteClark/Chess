@@ -1,75 +1,74 @@
-# Knight Club Chess
+# Knight Club Chess 10.0
 
-A complete chess game in one HTML file, written from scratch with no game engine, no frameworks and no build dependencies. Play it on a phone or a computer.
+A complete, free chess app in one page: play bots and people, learn with a coach that explains your games, solve puzzles every day, and collect rewards along the way. No ads, no account, no paywall. Built from scratch, with no game engine or framework.
 
 ## [Play now: dianteclark.github.io/Chess](https://dianteclark.github.io/Chess/)
 
-Works on phones and computers. You can also download `index.html` and open it in any browser.
+Works on phones and computers. Install it to your home screen (Me > Install) and it works offline too.
 
-## What's inside
+See [CHANGELOG.md](CHANGELOG.md) for everything new in 10.0.
+
+## Features
 
 | | |
 |---|---|
-| **Play vs bots** | 8 bots from Pip (total beginner) to The Tower (full strength). Rated or casual (casual allows undo and hints). |
-| **Friends** | **Pass & Play** on one device, or **Online**: true peer-to-peer over WebRTC. The two browsers connect directly, with no game server. |
-| **Puzzles** | Checkmate puzzles (mate in 1, 2 and 3) plus famous named mates. Every puzzle's solution is proven by an exhaustive solver. |
-| **Learn** | 16 interactive lessons for kids with Professor Hoot: the board, each piece ("collect the stars"), capturing, check, checkmate, castling, promotion, en passant, draws and tips. |
-| **Ratings** | Glicko-2 ratings for games and puzzles, with history graphs. |
+| **Play bots** | 8 calibrated bots from Pip (total beginner) to The Tower. Rated Bot League or casual games with a Live Coach. Clocks, Chess960. |
+| **Play people** | Play the World: quick pairing, server-checked games and verified ratings, Top 50 leaderboard. Invite a friend peer-to-peer, or Pass & Play on one device. |
+| **Game Review** | Stockfish 19 grades every move, and the coach explains mistakes in plain words. Accuracy, eval graph, key moments, retry your mistakes. |
+| **Analysis** | Analysis board with live engine lines, opening names, position editor, FEN/PGN import and export. Insights dashboard across your games. |
+| **Puzzles** | Daily Puzzle, Puzzle Rush, checkmate puzzles, famous mating patterns and themed tactics, all verified. |
+| **Learn** | 16 kids' lessons with Professor Hoot, plus courses on openings, tactics and endgames. |
+| **Rewards** | XP and levels, achievements, daily quests, unlockable boards, piece sets and avatars. |
 
-## How online play works
+## Ratings
 
-1. The host taps **Friends → Play Online → Create invite** and sends the link to a friend.
-2. The friend opens the link, taps **Join**, and sends back the reply code their screen shows.
-3. The host pastes the reply code, and the devices connect directly over a WebRTC data channel.
+- **Bot League** (vs bots): Elo ladder from the Pawn League to the King League. At most 40 points per game in 10 placement games, then at most 20. Bot ratings were measured with a 390-game calibration tournament (`tools/calibrate.js`, `tools/fit_elo.js`), anchored at Pip = 300 and The Tower = 2000.
+- **Online** (vs people): Glicko-2 kept by the server, so results can't be faked. At most 50 points per game while provisional, then 30.
+- **Puzzles**: Glicko-2, at most 30 points per puzzle while provisional, then 15.
 
-Only the connection setup (an "SDP offer/answer") is passed by hand, which is why no server is needed. Public STUN servers help the two devices find each other. Very strict networks, like some school or office Wi-Fi, block direct connections. If that happens, try mobile data on one device. Both sides validate every move, so a tampered client can't make an illegal move.
+These ratings compare fairly inside Knight Club. They are estimates, not official FIDE or chess.com ratings.
 
-## How the ratings were made
-
-- **Player ratings** use **Glicko-2**. New players start at 800 with a "?" (provisional) mark until enough games are played.
-- **Bot ratings are measured, not guessed.** The bots played a calibration tournament against each other (`tools/calibrate.js`). Their relative strengths were fitted by maximum likelihood (`tools/fit_elo.js`), and the scale was then pinned at two ends: Pip at 300 and The Tower at 2000. Bot-vs-bot results stretch rating gaps compared with human play, so the measured spacing is scaled to fit between those two points. Results are in `data/calibration.json`.
-- **Puzzle ratings** are estimated from how much searching the engine needs to find the solution and how many tempting wrong moves (checks and captures) a position has.
-
-These ratings compare fairly with each other inside Knight Club. They are estimates, not official FIDE or chess.com ratings.
-
-## Project layout
+## How it's built
 
 ```
-index.html              ← the built game (everything inlined, about 150 KB)
-src/engine.js           rules (0x88 board), notation, alpha-beta search, mate solver
-src/bots.js             bot personalities + opening book
-src/lessons.js          kids' course content
-src/app.js              UI: board, game modes, WebRTC, puzzles, lessons, ratings
-src/style.css, src/template.html
-data/                   calibration results, puzzle set
-tools/                  build, tests and data generators (Node.js, no npm packages)
+index.html               the built app (everything inlined)
+sw.js, manifest.webmanifest, icon*.{svg,png}   installable offline app
+src/engine.js            rules (0x88), notation, alpha-beta search, mate solver, Chess960
+src/bots.js              bot personalities + opening book
+src/lessons.js           kids' course      src/courses.js   openings, tactics, endgames
+src/app.js               board, game modes, puzzles, lessons, profile
+src/review.js            Game Review, coach, Live Coach        src/analysis.js  analysis board
+src/puzzles2.js          Daily Puzzle, Puzzle Rush, themes     src/rewards.js   XP, achievements, quests, styles
+src/insights.js          insights dashboard                    src/icons.js     original SVG art
+src/lobby-client.js, src/lobby-ui.js   Play the World          src/sf.js        Stockfish bridge
+vendor/stockfish/        Stockfish 19 Lite (single-threaded WASM, GPL-3.0, unmodified)
+lobby/                   Cloudflare Worker + Durable Object (lobby server), see lobby/PROTOCOL.md
+data/                    calibration, puzzles, tactics
+tools/                   build, tests and data generators (Node.js)
+```
+
+### Online lobby (Cloudflare)
+
+`lobby/` is deployed automatically by Cloudflare Workers Builds on every push. It runs on the free plan, live at https://knightclub-lobby.chesscomplex.workers.dev (`/health`, `/leaderboard`, `/stats`).
+
+### Developing
+
+```bash
+node tools/build.js              # rebuild index.html after editing src/
+node tools/perft.js              # move generator vs standard perft counts (16.5M positions)
+node tools/perft960.js           # Chess960 perft
+node tools/test2.js              # notation, draw rules, search
+node tools/validate_lessons.js   # every lesson task is solvable, par moves are exact
+node tools/validate_courses.js   # every course position and answer is engine-checked
+node tools/verify_puzzles.js     # every checkmate puzzle is proven by the solver
+node lobby/sync-engine.mjs       # after changing src/engine.js
+cd lobby && npm install && cd .. && node tools/lobby_test.mjs   # 71 end-to-end lobby tests
 ```
 
 ## License
 
-Knight Club is free software under the **GNU General Public License v3.0** (see `LICENSE`).
-You may use, copy, change and share it, as long as you keep it open under the same license.
-
-## Online lobby (Cloudflare)
-
-`lobby/` holds a tiny Cloudflare Worker that Cloudflare deploys automatically from this repo, live at https://knightclub-lobby.chesscomplex.workers.dev (health check: `/health`).
-Right now it only answers a health check. In Phase 3 it will list open games and set up connections, while the games themselves stay peer-to-peer.
-
-## Developing
-
-```bash
-node tools/perft.js            # move generator vs. standard perft counts
-node tools/test2.js            # notation, draw rules, search sanity checks
-node tools/validate_lessons.js # every lesson task is solvable; "par" moves are exact
-node tools/build.js            # rebuild index.html after editing src/
-```
-
-Regenerating data (slow): `node tools/calibrate.js 30` → `node tools/fit_elo.js` → `node tools/gen_puzzles.js` → `node tools/rate_puzzles.js`.
-
-### Engine verification
-
-The move generator matches the published perft node counts for six standard test positions (16.5 million positions in total). The positions include castling, en passant, promotion and discovered-check edge cases.
+Knight Club is free software under the **GNU General Public License v3.0** (see `LICENSE`). Stockfish is also GPL-3.0 (see `vendor/stockfish/Copying.txt`).
 
 ## Design
 
-Knight Club uses no emoji. Every icon, the bot characters, Professor Hoot and the chess pieces are original SVG artwork drawn for this project (`src/icons.js`, `src/app.js`).
+Knight Club uses no emoji. Every icon, the bot characters, Professor Hoot and the chess pieces are original SVG artwork drawn for this project.
