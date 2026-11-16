@@ -1,5 +1,16 @@
 # Changelog
 
+## 10.1 — The Clubhouse
+
+A complete visual overhaul so that getting around is as fun as playing.
+
+- **Clubhouse home**: an illustrated home screen where each area is a room: the Arena (bots), Puzzle Den, Library (lessons), World Hall (online), Courtyard (friends) and Trophy Hall. Each area opens with its own room banner.
+- **New identity**: card-table felt, walnut and brass, ivory and ebony. Lilita One for titles and Atkinson Hyperlegible for reading, bundled with the app so they work offline.
+- **Wooden dock** with a brass Play medallion, screen transitions and an opening splash.
+- **New art**: shaded Club piece set (new default), wooden board frame, bot portraits with studio lighting in brass medallions, paper speech bubbles.
+- **Juice**: pieces land with a bounce, captures puff dust, check pulses, phones buzz on moves, ratings count up, level ups get a full celebration.
+- Sentence-case labels and plainer wording throughout. Reduced-motion settings are respected.
+
 ## 10.0 — the big one
 
 Knight Club grows from a solid chess game into a full chess home: a coach that explains your games, real online play, puzzles every day, courses, rewards and a whole new original look. Still 100% free, no ads, no account.

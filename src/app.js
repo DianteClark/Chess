@@ -1428,23 +1428,21 @@ function migrate(p) {
   return p;
 }
 
-const APP_VERSION = '10.0';
+const APP_VERSION = '10.1';
 function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
   const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
   profile.seenVersion = APP_VERSION; saveProfile();
   if (firstEver && !force) return; // brand-new players go straight in
   const items = [
-    ['search', 'Game Review + Coach', 'Stockfish grades every move and Professor Hoot explains your mistakes in plain words.'],
-    ['learn', 'Live Coach', 'Casual bot games now have a coach who helps as you play.'],
-    ['globe', 'Play the World', 'Quick matches against real people, with verified ratings and a leaderboard.'],
-    ['clock', 'Clocks and Chess960', 'Bullet to classical time controls, plus shuffled starting positions.'],
-    ['bolt', 'Puzzle Rush, Daily Puzzle', 'And themed tactics puzzles.'],
-    ['book', 'New courses', 'Openings, tactics and endgames.'],
-    ['trophy', 'Rewards', 'Levels, achievements, daily quests, unlockable boards, pieces and avatars.'],
-    ['download', 'Install it', 'Add Knight Club to your home screen. It even works offline.'],
+    ['home', 'The Clubhouse', 'A brand new home: walk between the Arena, Puzzle Den, Library, World Hall, Courtyard and Trophy Hall.'],
+    ['palette', 'A whole new look', 'Felt, walnut and brass, new fonts, shaded pieces and a wooden board.'],
+    ['play', 'Play button', 'The brass medallion in the middle of the dock takes you straight to a game.'],
+    ['sparkle', 'Juice', 'Pieces land with a bounce, captures kick up dust, and level ups get a real celebration.'],
+    ['search', 'Still here', 'Game Review with the coach, Live Coach, Play the World, puzzles, courses and rewards.'],
   ];
-  modal((box, close) => box.append(h('div', { class: 'center' }, hoot(72)), h('h2', { class: 'center' }, `Welcome to Knight Club ${APP_VERSION}!`), h('p', { class: 'center muted small' }, 'A big update. Here is what is new:'),
+
+  modal((box, close) => box.append(h('div', { class: 'center' }, hoot(72)), h('h2', { class: 'center' }, `Welcome to the Clubhouse!`), h('p', { class: 'center muted small' }, `Knight Club ${APP_VERSION} is here. This is what changed:`),
     h('div', { class: 'stack' }, items.map(([ic, t, d]) => h('div', { class: 'quest' }, h('div', { class: 'qi' }, icon(ic, 18)), h('div', { class: 'grow' }, h('div', { class: 'qt' }, t), h('div', { class: 'small muted' }, d))))),
     h('div', { style: { height: '12px' } }), h('button', { class: 'btn primary block', onclick: () => { close(); confetti(); } }, "Let's play!")));
 }

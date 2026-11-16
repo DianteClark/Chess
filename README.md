@@ -1,4 +1,4 @@
-# Knight Club Chess 10.0
+# Knight Club Chess 10.1
 
 A complete, free chess app in one page: play bots and people, learn with a coach that explains your games, solve puzzles every day, and collect rewards along the way. No ads, no account, no paywall. Built from scratch, with no game engine or framework.
 
