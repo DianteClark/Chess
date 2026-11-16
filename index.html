@@ -7,6 +7,12 @@
 <meta name="description" content="Knight Club: play chess against bots, solve puzzles, learn to play, and challenge friends peer-to-peer.">
 <title>Knight Club Chess</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Knight Club">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -284,6 +290,7 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .qgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .qgrid .q{background:var(--bg2);border-radius:12px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px}
 .qgrid .q b{font-size:18px} .qgrid .q small{font-size:11px;color:var(--muted);font-weight:700}
+.lesson-ic{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--card2);color:var(--accent);flex:none}
 </style>
 </head>
 <body>
@@ -2574,6 +2581,9 @@ function renderMe(main) {
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for rated games in Play the World. The server checks every move and keeps the rating, so nobody can fake a result. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
+  const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+  if (!standalone) main.append(h('div', { class: 'card row' }, h('div', { class: 'ic dark lesson-ic' }, icon('download', 22)), h('div', { class: 'grow' }, h('b', null, 'Install Knight Club'), h('div', { class: 'small muted' }, 'Add it to your home screen. It works offline too.')),
+    h('button', { class: 'btn sm primary', onclick: async () => { if (typeof installPrompt !== 'undefined' && installPrompt) { installPrompt.prompt(); installPrompt = null; } else modal((box, close) => box.append(h('h2', null, 'Install the app'), h('p', null, h('b', null, 'iPhone / iPad: '), 'open this page in Safari, tap the Share button, then "Add to Home Screen".'), h('p', null, h('b', null, 'Android: '), 'open the browser menu and tap "Install app" or "Add to Home screen".'), h('p', { class: 'muted small' }, 'Once installed, puzzles, lessons and bot games work without internet.'), h('button', { class: 'btn primary block', onclick: close }, 'Got it'))); } }, 'Install')));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
@@ -4231,6 +4241,12 @@ function renderEditor(main) {
 ;
 // Start the app after every module has loaded.
 boot();
+// Installable app + offline play (only when served over http/https, not from a local file)
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; });
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { }); });
+}
 </script>
 </body>
 </html>
