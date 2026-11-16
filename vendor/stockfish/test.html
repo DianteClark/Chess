@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Stockfish bridge test</title></head>
+<body><pre id="out"></pre>
+<script src="../../src/sf.js"></script>
+<script>
+// Served from the repo root: open /vendor/stockfish/test.html
+SF.path = '../../vendor/stockfish/stockfish-19-lite-single.js';
+var out = document.getElementById('out');
+function log(s) { out.textContent += s + '\n'; console.log(s); }
+var START = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+(async function () {
+  var res = {};
+  try {
+    var t = performance.now(); await SF.ready(); res.loadMs = Math.round(performance.now() - t);
+    log('loaded ' + SF.name + ' in ' + res.loadMs + ' ms');
+    for (var d of [12, 14, 16]) {
+      await SF.newGame();
+      t = performance.now();
+      var r = await SF.analyze(START, { depth: d });
+      res['d' + d] = Math.round(performance.now() - t);
+      log('start depth ' + d + ': ' + res['d' + d] + ' ms  best ' + r.bestmove + ' ' + JSON.stringify(r.lines[0]).slice(0, 120));
+    }
+    // mate in 2 (white): 1.Qxh7+?  use a known one
+    r = await SF.analyze('r2qkb1r/pp2nppp/3p4/2pNN1B1/2BnP3/3P4/PPP2PPP/R2bK2R w KQkq - 1 0', { depth: 14 });
+    log('mate-in-2: best ' + r.bestmove + ' mate ' + r.lines[0].mate + ' pv ' + r.lines[0].pv.join(' '));
+    res.mate = r.lines[0].mate; res.mateBest = r.bestmove;
+    r = await SF.analyze('r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3', { depth: 14, multipv: 3 });
+    r.lines.forEach(function (l) { log('multipv ' + l.multipv + ' d' + l.depth + ' cp ' + l.scoreCp + ' ' + l.pv.slice(0, 4).join(' ')); });
+    res.multi = r.lines.length;
+    // black to move perspective check: white is a queen up, black to move -> negative
+    r = await SF.analyze('rnb1kbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1', { depth: 10 });
+    log('black to move, queen down: cp ' + r.lines[0].scoreCp); res.persp = r.lines[0].scoreCp;
+    r = await SF.analyze(START, { moves: ['e2e4', 'e7e5'], movetime: 300 });
+    log('movetime 300 with moves: best ' + r.bestmove + ' depth ' + r.depth);
+    // stop() test
+    var p = SF.analyze(START, { depth: 40 });
+    setTimeout(function () { SF.stop(); }, 400);
+    r = await p; log('stopped search returned depth ' + r.depth + ' best ' + r.bestmove);
+    res.stopped = r.depth;
+    await SF.setSkill(3);
+    r = await SF.analyze(START, { depth: 8 }); log('skill 3 best ' + r.bestmove);
+    await SF.setSkill(20);
+    res.ok = true;
+  } catch (e) { log('ERROR ' + e.message); res.error = e.message; }
+  window.RESULT = res; log('DONE ' + JSON.stringify(res));
+})();
+</script></body></html>

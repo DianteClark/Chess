@@ -144,7 +144,7 @@ class BoardView {
       if (this.marks[sq]) el.classList.add(this.marks[sq]);
       el.querySelectorAll('.dot,.ring,.star').forEach(c => c.remove());
       if (this.targets.includes(sq)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
-      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, '⭐'));
+      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, icon('star', 34)));
     }
     this.layer.innerHTML = ''; this.pieceEls = {};
     for (let s = 0; s < 128; s++) {
@@ -196,8 +196,8 @@ class BoardView {
     this.sel = -1; this.targets = [];
     if (this.opts.onMove) this.opts.onMove(from, to, dragged);
   }
-  burst(emoji) {
-    const b = h('div', { class: 'burst' }, emoji); this.fx.append(b); setTimeout(() => b.remove(), 800);
+  burst(name) {
+    const b = h('div', { class: 'burst' }, icon(name || 'star', 90, 'burst-ic ' + (name || 'star'))); this.fx.append(b); setTimeout(() => b.remove(), 800);
   }
 }
 
@@ -317,7 +317,7 @@ function cappedGlicko(cur, opp, score, capProv, capEst) {
   nr.games = (cur.games || 0) + 1;
   return nr;
 }
-const BANDS = [[0, 'Beginner', '🌱'], [600, 'Novice', '🐣'], [1000, 'Intermediate', '🦊'], [1400, 'Club player', '🦉'], [1800, 'Expert', '🧙'], [2200, 'Master level', '👑']];
+const BANDS = [[0, 'Beginner'], [600, 'Novice'], [1000, 'Intermediate'], [1400, 'Club player'], [1800, 'Expert'], [2200, 'Master level']];
 const band = r => { let b = BANDS[0]; for (const x of BANDS) if (r >= x[0]) b = x; return b; };
 const fmtR = rt => Math.round(rt.r) + (rt.rd > 110 ? '?' : '');
 
@@ -328,7 +328,7 @@ function loadLocal() { try { const s = localStorage.getItem('kc-profile'); if (s
 function saveProfile() { profile.updated = Date.now(); try { localStorage.setItem('kc-profile', JSON.stringify(profile)); } catch (e) { } refreshChip(); }
 function refreshChip() {
   const c = document.getElementById('rchip'); if (!c) return;
-  c.innerHTML = ''; c.append(leagueIcon(profile.ladder.r), ' ' + profile.ladder.r, h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)));
+  c.innerHTML = ''; c.append(leagueIcon(profile.ladder.r), ' ' + profile.ladder.r, h('small', null, icon('puzzle', 14), ' ' + fmtR(profile.puzzle)));
 }
 
 // ======================= DATA =======================
@@ -355,8 +355,8 @@ function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === route));
 }
 function buildTabs() {
-  const items = [['play', '♞', 'Play'], ['friend', '🤝', 'Friends'], ['puzzles', '🧩', 'Puzzles'], ['learn', '🎓', 'Learn'], ['me', '⭐', 'Me']];
-  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => h('button', { 'data-r': r, onclick: () => go(r) }, h('span', { class: 'ic' }, ic), l)));
+  const items = [['play', 'play', 'Play'], ['friend', 'friends', 'Friends'], ['puzzles', 'puzzle', 'Puzzles'], ['learn', 'learn', 'Learn'], ['me', 'user', 'Me']];
+  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => h('button', { 'data-r': r, onclick: () => go(r) }, icon(ic, 24), l)));
   document.body.append(h('nav', { class: 'tabs' }, inner));
 }
 
@@ -385,7 +385,7 @@ function gameScreen(main, cfg) {
     const capEl = h('div', { class: 'caps' });
     const turnEl = h('div', { class: 'turnmark hidden' });
     const status = h('div', { class: 'thinking' });
-    const el = h('div', { class: 'pbar' }, h('div', { class: 'avatar' }, who.avatar || '🙂'),
+    const el = h('div', { class: 'pbar' }, h('div', { class: 'avatar' }, avatar(who.avatar || 'you', 38)),
       h('div', { class: 'grow' }, h('div', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'pname' }, who.name), h('span', { class: 'prating' }, who.rating ? '(' + who.rating + ')' : ''), turnEl), capEl), status);
     return { el, capEl, turnEl, status, colorIdx };
   };
@@ -393,10 +393,10 @@ function gameScreen(main, cfg) {
   const topBar = bar(cfg.players[bottomColor ? 'w' : 'b'], bottomColor ^ 1), botBar = bar(cfg.players[bottomColor ? 'b' : 'w'], bottomColor);
   const movesEl = h('div', { class: 'moves' });
   const navEl = h('div', { class: 'nav' },
-    h('button', { class: 'btn sm', onclick: () => setView(0) }, '⏮'),
-    h('button', { class: 'btn sm', onclick: () => setView(Math.max(0, (viewPly ?? g.moves.length) - 1)) }, '◀'),
-    h('button', { class: 'btn sm', onclick: () => setView((viewPly ?? g.moves.length) + 1) }, '▶'),
-    h('button', { class: 'btn sm', onclick: () => setView(null) }, '⏭'));
+    h('button', { class: 'btn sm', 'aria-label': 'First move', onclick: () => setView(0) }, icon('first', 20)),
+    h('button', { class: 'btn sm', 'aria-label': 'Previous move', onclick: () => setView(Math.max(0, (viewPly ?? g.moves.length) - 1)) }, icon('prev', 20)),
+    h('button', { class: 'btn sm', 'aria-label': 'Next move', onclick: () => setView((viewPly ?? g.moves.length) + 1) }, icon('next', 20)),
+    h('button', { class: 'btn sm', 'aria-label': 'Last move', onclick: () => setView(null) }, icon('last', 20)));
   const ctrl = h('div', { class: 'controls' });
   main.append(h('div', null, topBar.el, board.el, botBar.el), movesEl, navEl, ctrl);
   function setView(p) { if (p !== null && p >= g.moves.length) p = null; viewPly = p; refresh(); }
@@ -429,7 +429,7 @@ function gameScreen(main, cfg) {
   function setButtons(list) {
     ctrl.innerHTML = '';
     ctrl.style.gridTemplateColumns = `repeat(${list.length},1fr)`;
-    for (const b of list) ctrl.append(h('button', { class: 'btn', onclick: b.on, disabled: b.disabled }, h('span', { class: 'ic' }, b.ic), b.label));
+    for (const b of list) ctrl.append(h('button', { class: 'btn', onclick: b.on, disabled: b.disabled }, icon(b.ic, 22), b.label));
   }
   refresh();
   return {
@@ -460,15 +460,15 @@ function renderPlay(main) {
     const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
     stakes.textContent = playSel.rated ? `Win ${f(eloDelta(L.r, br, 1, K))} · Draw ${f(eloDelta(L.r, br, .5, K))} · Loss ${f(eloDelta(L.r, br, 0, K))}` + (L.games < PLACEMENT_GAMES ? `  (placement game ${L.games + 1}/${PLACEMENT_GAMES})` : '') : 'Casual: your rating will not change';
   };
-  const drawGrid = () => { playBtn.textContent = '▶  Play ' + BOTS[playSel.bot].name; drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, b.avatar), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, '★ ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
+  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), 'Play ' + BOTS[playSel.bot].name); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']], 'color')),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, '🏆 Rated'], [false, '🧸 Casual (undo + hints)']], 'rated')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual (undo + hints)']], 'rated')),
       playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated) {
@@ -481,27 +481,27 @@ function renderBotGame(main) {
   const g = new Game(START_FEN, cur.moves);
   let thinking = false, alive = true;
   cleanups.push(() => { alive = false; });
-  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: '🙂' };
+  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: 'you' };
   const them = { name: bot.name, rating: bot.rating, avatar: bot.avatar };
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
     canMove: turn => !thinking && !cur.result && turn === cur.color,
     onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
   });
-  main.append(h('div', { class: 'center small muted' }, cur.rated ? '🏆 Rated game' : '🧸 Casual game: undo and hints allowed'));
+  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : 'Casual game: undo and hints allowed'));
   function buttons() {
     const over = !!cur.result;
-    const list = [{ ic: '🔄', label: 'Flip', on: () => scr.flip() }];
+    const list = [{ ic: 'flip', label: 'Flip', on: () => scr.flip() }];
     if (!cur.rated) {
-      list.push({ ic: '↩️', label: 'Undo', disabled: over || thinking || g.moves.length < 1, on: () => { g.undo(); if (g.turn() !== cur.color) g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } });
-      list.push({ ic: '💡', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
+      list.push({ ic: 'undo', label: 'Undo', disabled: over || thinking || g.moves.length < 1, on: () => { g.undo(); if (g.turn() !== cur.color) g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } });
+      list.push({ ic: 'bulb', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
     }
     if (over) {
-      list.push({ ic: '🔁', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated) });
-      list.push({ ic: '🏠', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
+      list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated) });
+      list.push({ ic: 'plus', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
     } else {
-      list.push({ ic: '🤝', label: 'Draw?', disabled: thinking, on: offerDraw });
-      list.push({ ic: '🏳️', label: 'Resign', on: () => confirmBox('Resign?', cur.rated && g.moves.length >= 2 ? 'This counts as a loss for your rating.' : 'End this game?', 'Resign', () => finish(cur.color === 'w' ? '0-1' : '1-0', 'resignation')) });
+      list.push({ ic: 'half', label: 'Draw?', disabled: thinking, on: offerDraw });
+      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', cur.rated && g.moves.length >= 2 ? 'This counts as a loss for your rating.' : 'End this game?', 'Resign', () => finish(cur.color === 'w' ? '0-1' : '1-0', 'resignation')) });
     }
     scr.setButtons(list);
   }
@@ -518,7 +518,7 @@ function renderBotGame(main) {
   function offerDraw() {
     // Bot accepts when it is not better, or the position is dead-even late in the game
     const accept = lastBotScore <= -60 || (g.moves.length > 70 && Math.abs(lastBotScore) < 25);
-    if (accept) { toast(bot.name + ' accepts the draw 🤝'); finish('1/2-1/2', 'agreement'); }
+    if (accept) { toast(bot.name + ' accepts the draw.'); finish('1/2-1/2', 'agreement'); }
     else toast(bot.name + ' wants to keep playing!');
   }
   function afterMove() {
@@ -561,16 +561,16 @@ function renderBotGame(main) {
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
-    if (score === 1) { beep('win'); scr.board.burst('🏆'); }
+    if (score === 1) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }
   function showResult(score, reason, counted, before, after, promo) {
     const d = Math.round(after) - Math.round(before);
     modal((box, close) => box.append(
-      h('div', { class: 'big-emoji' }, score === 1 ? '🏆' : score === 0.5 ? '🤝' : '💪'),
+      badge(score === 1 ? 'trophy' : score === 0.5 ? 'half' : 'shield', score === 1 ? 'gold' : score === 0.5 ? 'blue' : 'red'),
       h('h2', { class: 'center' }, score === 1 ? 'You win!' : score === 0.5 ? 'Draw!' : bot.name + ' wins'),
       h('p', { class: 'center muted' }, 'by ' + reason),
-      counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' → ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
+      counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' ', icon('arrowRight', 16), ' ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
       counted && d === 0 && score === 1 ? h('p', { class: 'center small muted' }, 'This bot is far below your level, so wins no longer count. Try a stronger bot!') : null,
       promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
       score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
@@ -589,32 +589,32 @@ function renderFriend(main) {
   if (friendView === 'online') return renderOnline(main);
   main.append(
     h('h2', null, 'Play with a friend'),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic' }, '📱'), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic' }, '🌐'), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
-    h('p', { class: 'small muted' }, `Online games count toward your 🌐 Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
+    h('p', { class: 'small muted' }, `Online games count toward your Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
 }
 function renderLocalGame(main) {
   const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true });
   const g = new Game(START_FEN, st.moves);
   const scr = gameScreen(main, {
-    game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: '⚪' }, b: { name: 'Black', avatar: '⚫' } },
+    game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: 'white' }, b: { name: 'Black', avatar: 'black' } },
     canMove: () => !g.status().over,
     onUserMove: (uci, dragged) => {
       const res = g.play(uci); if (!res) return; playSound(res);
       st.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo);
       const s = g.status();
-      if (s.over) { beep('win'); setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, s.result === '1/2-1/2' ? '🤝' : '🏆'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); }
+      if (s.over) { beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); }
       else if (st.autoFlip) setTimeout(() => { if (scr.board.orient !== g.turn()) scr.flip(); }, 450);
       buttons();
     },
   });
   function buttons() {
     scr.setButtons([
-      { ic: '⬅️', label: 'Back', on: () => { friendView = 'menu'; render(); } },
-      { ic: '🔄', label: 'Flip', on: () => scr.flip() },
-      { ic: st.autoFlip ? '🔁' : '⏸️', label: st.autoFlip ? 'Auto-flip' : 'No flip', on: () => { st.autoFlip = !st.autoFlip; saveProfile(); buttons(); toast(st.autoFlip ? 'Board turns after each move' : 'Board stays put'); } },
-      { ic: '↩️', label: 'Undo', disabled: !g.moves.length, on: () => { g.undo(); st.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } },
-      { ic: '🆕', label: 'New', on: () => confirmBox('New game?', 'Start over from the beginning.', 'New game', () => { st.moves = []; saveProfile(); render(); }) },
+      { ic: 'back', label: 'Back', on: () => { friendView = 'menu'; render(); } },
+      { ic: 'flip', label: 'Flip', on: () => scr.flip() },
+      { ic: st.autoFlip ? 'repeat' : 'x', label: st.autoFlip ? 'Auto-flip' : 'No flip', on: () => { st.autoFlip = !st.autoFlip; saveProfile(); buttons(); toast(st.autoFlip ? 'Board turns after each move' : 'Board stays put'); } },
+      { ic: 'undo', label: 'Undo', disabled: !g.moves.length, on: () => { g.undo(); st.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } },
+      { ic: 'plus', label: 'New', on: () => confirmBox('New game?', 'Start over from the beginning.', 'New game', () => { st.moves = []; saveProfile(); render(); }) },
     ]);
   }
   buttons();
@@ -738,42 +738,42 @@ async function guestJoin(inviteCode) {
 let pendingJoin = null;
 function renderOnline(main) {
   if (online && online.state && (online.phase === 'live' || online.phase === 'lost')) return renderOnlineGame(main);
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { leaveOnline(); friendView = 'menu'; render(); } }, '⬅ Back'), h('h2', null, 'Play Online')));
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { leaveOnline(); friendView = 'menu'; render(); } }, icon('back', 18), 'Back'), h('h2', null, 'Play Online')));
   if (!window.RTCPeerConnection) { main.append(h('div', { class: 'card' }, 'This browser does not support peer-to-peer connections. Try Chrome, Safari or Firefox.')); return; }
   const card = h('div', { class: 'card stack' }); main.append(card);
   const ph = online && online.phase;
   if (!online) {
     let color = 'r';
     const seg = h('div', { class: 'seg' });
-    const drawSeg = () => { seg.innerHTML = ''; [['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; drawSeg(); } }, l))); };
+    const drawSeg = () => { seg.innerHTML = ''; [['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; drawSeg(); } }, l))); };
     drawSeg();
     const inp = h('textarea', { class: 'input', rows: 3, placeholder: 'Paste the invite link or code here' });
     if (pendingJoin) { inp.value = pendingJoin; }
     card.append(h('h3', null, '1. Host a game'), h('div', { class: 'small muted' }, 'You play as:'), seg,
-      h('button', { class: 'btn primary block', onclick: () => hostCreate(color) }, '✨ Create invite'));
+      h('button', { class: 'btn primary block', onclick: () => hostCreate(color) }, icon('sparkle', 18), 'Create invite'));
     main.append(h('div', { class: 'card stack' }, h('h3', null, '2. Or join a friend'), inp,
       h('button', { class: 'btn block', onclick: () => { const v = inp.value.trim(); if (!v) return toast('Paste the invite first'); pendingJoin = null; guestJoin(v); } }, 'Join game')),
       h('p', { class: 'small muted' }, 'How it works: the host sends an invite link. The friend opens it and sends back a reply code. Once the host pastes that code in, the two devices connect directly, with no server in between.'));
     return;
   }
-  if (ph === 'making' || ph === 'connecting') { card.append(h('div', { class: 'center' }, '⏳ ', ph === 'making' ? 'Preparing connection…' : 'Connecting to your friend…')); }
+  if (ph === 'making' || ph === 'connecting') { card.append(h('div', { class: 'center' }, icon('hourglass', 18), ' ', ph === 'making' ? 'Preparing connection…' : 'Connecting to your friend…')); }
   else if (ph === 'invite') {
     const link = inviteLink(online.code);
     const ans = h('textarea', { class: 'input', rows: 3, placeholder: "Paste your friend's reply code here" });
     card.append(h('h3', null, 'Step 1: Send this invite'),
       h('div', { class: 'small muted' }, 'Text or message this link to your friend:'),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(link, 'Join my chess game!') }, '📤 Share invite'), h('button', { class: 'btn', onclick: () => copyText(link) }, '📋 Copy')),
+      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(link, 'Join my chess game!') }, icon('share', 18), 'Share invite'), h('button', { class: 'btn', onclick: () => copyText(link) }, icon('copy', 18), 'Copy')),
       h('h3', null, 'Step 2: Paste their reply'), ans,
-      h('button', { class: 'btn block', onclick: () => { const v = ans.value.trim(); if (!v) return toast('Paste the reply code first'); hostAccept(v); } }, '🔗 Connect'),
+      h('button', { class: 'btn block', onclick: () => { const v = ans.value.trim(); if (!v) return toast('Paste the reply code first'); hostAccept(v); } }, icon('link', 18), 'Connect'),
       h('button', { class: 'btn ghost', onclick: () => { leaveOnline(); render(); } }, 'Cancel'));
   } else if (ph === 'answer') {
     card.append(h('h3', null, 'Almost there!'),
       h('div', { class: 'small muted' }, `Send this reply code back to ${online.hostName || 'your friend'}. The game starts as soon as they paste it in.`),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(online.code, 'My chess reply code') }, '📤 Share reply'), h('button', { class: 'btn', onclick: () => copyText(online.code) }, '📋 Copy')),
-      h('div', { class: 'center muted small' }, '⏳ Waiting for the connection…'),
+      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(online.code, 'My chess reply code') }, icon('share', 18), 'Share reply'), h('button', { class: 'btn', onclick: () => copyText(online.code) }, icon('copy', 18), 'Copy')),
+      h('div', { class: 'center muted small' }, icon('hourglass', 16), ' Waiting for the connection…'),
       h('button', { class: 'btn ghost', onclick: () => { leaveOnline(); render(); } }, 'Cancel'));
   } else if (ph === 'error' || ph === 'lost') {
-    card.append(h('h3', null, '😕 ' + (ph === 'lost' ? 'Connection lost' : 'Something went wrong')), h('p', { class: 'small muted' }, online.err || 'The connection closed.'),
+    card.append(h('h3', null, (ph === 'lost' ? 'Connection lost' : 'Something went wrong')), h('p', { class: 'small muted' }, online.err || 'The connection closed.'),
       h('button', { class: 'btn primary block', onclick: () => { leaveOnline(); render(); } }, 'Start over'));
   }
 }
@@ -790,7 +790,7 @@ function rateOnline(st, opp, score) {
   profile.human = cappedGlicko(profile.human, { r: clamp(opp.r, 100, 3000, 800), rd: clamp(opp.rd, 50, 350, 250) }, score, 50, 30);
   const after = Math.round(profile.human.r);
   profile.hHist.push(after); if (profile.hHist.length > 200) profile.hHist.shift();
-  profile.games.unshift({ t: Date.now(), opp: (opp.name || 'Friend') + ' 🌐', score, reason: st.result.reason, rated: true, before, after, online: true });
+  profile.games.unshift({ t: Date.now(), opp: (opp.name || 'Friend') + ' (online)', score, reason: st.result.reason, rated: true, before, after, online: true });
   profile.games = profile.games.slice(0, 50);
   saveProfile();
   return { before, after };
@@ -809,7 +809,7 @@ function renderOnlineGame(main) {
   setLive();
   main.append(h('div', { class: 'row' }, live, h('span', { class: 'grow' })));
   const scr = gameScreen(main, {
-    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: '🧑', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: '🙂', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
+    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: 'friend', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: 'you', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
     canMove: turn => o.connected && !o.state.result && turn === myColor,
     onUserMove: (uci, dragged) => {
       const res = g.play(uci); if (!res) return; playSound(res);
@@ -825,9 +825,9 @@ function renderOnlineGame(main) {
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
     const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = rateOnline(o.state, oppInfo, score);
-    if (win) { beep('win'); scr.board.burst('🏆'); }
-    setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, r.result === '1/2-1/2' ? '🤝' : win ? '🏆' : '💪'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
-      rc ? h('p', { class: 'center' }, '🌐 Online rating ', h('b', null, rc.before), ' → ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
+    if (win) { beep('win'); scr.board.burst('trophy'); }
+    setTimeout(() => modal((box, close) => box.append(badge(r.result === '1/2-1/2' ? 'half' : win ? 'trophy' : 'shield', r.result === '1/2-1/2' ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
+      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
       h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
   }
   o.onState = (prevLen) => {
@@ -839,20 +839,20 @@ function renderOnlineGame(main) {
     Object.assign(g, new Game(START_FEN, s2.moves));
     if (s2.moves.length > prevLen) { beep(g.pos.inCheck() ? 'check' : 'move'); scr.refresh(g.lastFromTo); } else scr.refresh();
     if (o.role === 'host') { profile.onlineResume = s2.result ? null : s2; saveProfile(); }
-    if (s2.drawOffer && s2.drawOffer !== myId && !s2.result) toast('Your friend offers a draw. Tap 🤝 to accept.', 3500);
-    if (s2.rematch && s2.rematch !== myId && s2.result) toast('Your friend wants a rematch! Tap 🔁', 3500);
+    if (s2.drawOffer && s2.drawOffer !== myId && !s2.result) toast('Your friend offers a draw. Tap Accept to agree.', 3500);
+    if (s2.rematch && s2.rematch !== myId && s2.result) toast('Your friend wants a rematch! Tap Accept.', 3500);
     buttons(); checkOver();
   };
   function buttons() {
     const s = o.state, over = !!s.result;
-    const list = [{ ic: '⬅️', label: 'Leave', on: () => confirmBox('Leave game?', 'This closes the connection to your friend.', 'Leave', () => { leaveOnline(); friendView = 'menu'; render(); }) },
-    { ic: '🔄', label: 'Flip', on: () => scr.flip() }];
-    if (!o.connected) list.push({ ic: '🔌', label: 'Reconnect', on: () => { const keep = o.role === 'host' ? o.state : null; leaveOnline(); if (keep) { profile.onlineResume = keep; saveProfile(); } render(); toast(keep ? 'Create a new invite. The game will continue where you left off.' : 'Ask the host for a new invite link.', 4000); } });
+    const list = [{ ic: 'back', label: 'Leave', on: () => confirmBox('Leave game?', 'This closes the connection to your friend.', 'Leave', () => { leaveOnline(); friendView = 'menu'; render(); }) },
+    { ic: 'flip', label: 'Flip', on: () => scr.flip() }];
+    if (!o.connected) list.push({ ic: 'plug', label: 'Reconnect', on: () => { const keep = o.role === 'host' ? o.state : null; leaveOnline(); if (keep) { profile.onlineResume = keep; saveProfile(); } render(); toast(keep ? 'Create a new invite. The game will continue where you left off.' : 'Ask the host for a new invite link.', 4000); } });
     else if (!over) {
-      list.push({ ic: '🤝', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
-      list.push({ ic: '🏳️', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
+      list.push({ ic: 'half', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
+      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
     } else {
-      list.push({ ic: '🔁', label: s.rematch && s.rematch !== myId ? 'Accept' : 'Rematch', disabled: s.rematch === myId, on: () => {
+      list.push({ ic: 'repeat', label: s.rematch && s.rematch !== myId ? 'Accept' : 'Rematch', disabled: s.rematch === myId, on: () => {
         if (s.rematch && s.rematch !== myId) { const w = s.white; s.white = s.black; s.black = w; s.moves = []; s.result = null; s.drawOffer = null; s.rematch = null; s.v++; sendState(); render(); }
         else { s.rematch = myId; s.v++; sendState(); toast('Rematch requested'); buttons(); }
       } });
@@ -876,9 +876,9 @@ function pickPuzzle() {
   return top[Math.floor(rand() * top.length)];
 }
 function renderPuzzles(main) {
-  const cats = [['rated', '🎯 For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', '🏛️ Famous mates']];
+  const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']];
   const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} 🔥 · Solved ${solvedCount}/${PUZZLES.length}`))));
+  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} · Solved ${solvedCount}/${PUZZLES.length}`))));
   main.append(h('div', { class: 'cats' }, cats.map(([k, l]) => h('button', { class: puzCat === k ? 'on' : '', onclick: () => { puzCat = k; puzState = null; render(); } }, l))));
   if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
   const ps = puzState, p = ps.p;
@@ -887,7 +887,7 @@ function renderPuzzles(main) {
   const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
   const banner = h('div', { class: 'banner' });
   const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = html; };
-  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>checkmate in ${p.n}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">★ ${p.rating}</span>`;
+  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>checkmate in ${p.n}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
   setBanner('', prompt());
   let busy = false;
   const board = new BoardView({
@@ -924,7 +924,7 @@ function renderPuzzles(main) {
       const res = g.play(uci); playSound(res); show(dragged ? null : g.lastFromTo);
       ps.step++;
       if (ps.step >= p.line.length) return solved();
-      msg.className = 'taskmsg good'; msg.textContent = '✓ Good move! Keep going…';
+      msg.className = 'taskmsg good'; msg.textContent = 'Good move! Keep going…';
       busy = true;
       setTimeout(() => { const rr = g.play(p.line[ps.step]); ps.step++; playSound(rr); show(g.lastFromTo); busy = false; msg.textContent = 'Your move'; }, 650);
     } else {
@@ -932,31 +932,31 @@ function renderPuzzles(main) {
       if (r) { const tmp = new Game(g.startFen, g.moves); tmp.play(uci); board.set(tmp.viewState(), dragged ? null : tmp.lastFromTo); }
       beep('bad'); ps.failed = true;
       const d = rate(false);
-      msg.className = 'taskmsg bad'; msg.textContent = '✗ Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
+      msg.className = 'taskmsg bad'; msg.textContent = 'Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
       busy = true; setTimeout(() => { busy = false; show(); }, 900);
       buttons();
     }
   }
   function solved() {
-    ps.done = true; beep('win'); board.burst('⭐');
+    ps.done = true; beep('win'); board.burst('star');
     const d = ps.failed ? null : rate(true);
     if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
-    setBanner('good', `<span style="font-size:22px">🎉</span><span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
+    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
     msg.className = 'taskmsg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
     buttons();
   }
   function buttons() {
     btnRow.innerHTML = '';
     if (!ps.done) {
-      btnRow.append(h('button', { class: 'btn grow', onclick: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'taskmsg bad'; msg.textContent = `Hint used (${d})`; } } }, '💡 Hint'));
-      btnRow.append(h('button', { class: 'btn grow', onclick: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } }, '👀 Solution'));
+      btnRow.append(h('button', { class: 'btn grow', onclick: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'taskmsg bad'; msg.textContent = `Hint used (${d})`; } } }, icon('bulb', 18), 'Hint'));
+      btnRow.append(h('button', { class: 'btn grow', onclick: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } }, icon('eye', 18), 'Solution'));
     }
-    btnRow.append(h('button', { class: 'btn primary grow', onclick: () => { puzState = null; render(); } }, ps.done ? 'Next ▶' : 'Skip'));
+    btnRow.append(h('button', { class: 'btn primary grow', onclick: () => { puzState = null; render(); } }, ps.done ? 'Next' : 'Skip', icon('next', 18)));
   }
   async function showSolution() {
     buttons(); busy = true;
     for (let i = ps.step; i < p.line.length; i++) { await new Promise(r => setTimeout(r, 700)); const rr = g.play(p.line[i]); playSound(rr); show(g.lastFromTo); }
-    setBanner('', `<span>💡</span><span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
+    setBanner('', `${iconSvgInline('bulb')}<span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
     msg.textContent = '';
   }
   buttons();
@@ -964,15 +964,15 @@ function renderPuzzles(main) {
 
 // ======================= LEARN =======================
 let lessonOpen = null, lessonStep = 0;
-function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic' }, l.icon); }
+function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic dark' }, icon(l.icon, 24)); }
 function renderLearn(main) {
   if (lessonOpen) return renderLesson(main);
   const done = LESSONS.filter(l => profile.lessons[l.id]).length;
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, '🦉'), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
+  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   let groupEl = null, lastGroup = null;
   for (const l of LESSONS) {
     if (l.group !== lastGroup) { lastGroup = l.group; groupEl = h('div', { class: 'lgroup' }, h('h3', null, l.group), h('div', { class: 'lessons' })); main.append(groupEl); }
-    $('.lessons', groupEl).append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, lessonIcon(l), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc)), h('span', { class: 'ck' }, profile.lessons[l.id] ? '✅' : '›')));
+    $('.lessons', groupEl).append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, lessonIcon(l), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc)), h('span', { class: 'ck' + (profile.lessons[l.id] ? ' done' : '') }, icon(profile.lessons[l.id] ? 'check' : 'next', 20))));
   }
 }
 function fenToBoard(fen) { return new E.Position(fen.includes(' ') ? fen : fen + ' w - - 0 1').board; }
@@ -999,19 +999,19 @@ function lessonTargets(b, sq) {
 }
 function renderLesson(main) {
   const L = lessonOpen, steps = L.steps, step = steps[lessonStep];
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, '⬅ Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, icon('back', 18), 'Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
   main.append(h('div', { class: 'dots' }, steps.map((_, i) => h('i', { class: i < lessonStep ? 'done' : i === lessonStep ? 'on' : '' }))));
   const txt = h('div', { class: 'txt', html: step.text });
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, step.mascot || '🦉'), txt));
+  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), txt));
   const msg = h('div', { class: 'taskmsg' });
   let complete = step.type === 'text';
   const nextBtn = h('button', { class: 'btn primary grow', disabled: !complete, onclick: () => {
     if (lessonStep < steps.length - 1) { lessonStep++; render(); window.scrollTo(0, 0); }
     else { profile.lessons[L.id] = 1; saveProfile(); beep('win'); const idx = LESSONS.indexOf(L); const nxt = LESSONS[idx + 1];
-      modal((box, close) => box.append(h('div', { class: 'big-emoji' }, '🎓'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title + ' ✓'),
+      modal((box, close) => box.append(badge('learn', 'gold'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title),
         h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); lessonOpen = null; render(); } }, 'All lessons'), nxt ? h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = nxt; lessonStep = 0; render(); window.scrollTo(0, 0); } }, 'Next lesson') : h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = null; go('play'); } }, "Let's play!")))); }
-  } }, lessonStep < steps.length - 1 ? 'Next ▶' : 'Finish ✓');
-  const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || '🎉 Great job!'; beep('win'); };
+  } }, lessonStep < steps.length - 1 ? 'Next' : 'Finish', icon(lessonStep < steps.length - 1 ? 'next' : 'check', 18));
+  const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || 'Great job!'; beep('win'); };
 
   if (step.type === 'text' && step.board) {
     const bv = new BoardView({ orient: step.orient || 'w' });
@@ -1035,14 +1035,14 @@ function renderLesson(main) {
         beep(got ? 'star' : cap ? 'capture' : 'move');
         bv.set({ board: b, stars, last: [from, to] }, dragged ? null : [from, to]);
         const left = stars.size + (step.captureAll ? enemiesLeft() : 0);
-        if (!left) { bv.burst('⭐'); finishTask(movesUsed <= (step.par || 99) ? `🎉 Perfect! You did it in ${movesUsed} moves!` : `🎉 You did it in ${movesUsed} moves! (Can you do it in ${step.par}?)`); }
-        else msg.textContent = (stars.size ? `⭐ ${stars.size} left` : '') + (step.captureAll && enemiesLeft() ? `  🎯 ${enemiesLeft()} to capture` : '');
+        if (!left) { bv.burst('star'); finishTask(movesUsed <= (step.par || 99) ? `Perfect! You did it in ${movesUsed} moves!` : `You did it in ${movesUsed} moves! Can you do it in ${step.par}?`); }
+        else msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} left` : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
       }
     });
     bv.set({ board: b, stars });
     main.append(bv.el);
-    msg.textContent = (stars.size ? `⭐ ${stars.size} to collect` : '') + (step.captureAll ? `  🎯 ${enemiesLeft()} to capture` : '');
-    main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, '↺ Restart'));
+    msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
+    main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
   } else if (step.type === 'goal') {
     let g = new Game(step.fen);
     const side = g.turn();
@@ -1061,10 +1061,10 @@ function renderLesson(main) {
         else if (step.goal === 'castle') ok = !!(E.mFlags(m) & E.F_CASTLE);
         else if (step.goal === 'promote') ok = !!E.mPromo(m);
         else if (step.goal === 'move') ok = step.moves.includes(uci.slice(0, 4));
-        if (ok) { bv.burst(step.goal === 'mate' ? '👑' : '⭐'); finishTask(step.success); }
+        if (ok) { bv.burst(step.goal === 'mate' ? 'crown' : 'star'); finishTask(step.success); }
         else {
           const st = g.status();
-          msg.className = 'taskmsg bad'; msg.textContent = st.reason === 'stalemate' ? '😮 Oops, that is stalemate (a draw)! Try again.' : (step.fail || 'Not quite. Try again!');
+          msg.className = 'taskmsg bad'; msg.textContent = st.reason === 'stalemate' ? 'Oops, that is stalemate (a draw)! Try again.' : (step.fail || 'Not quite. Try again!');
           beep('bad');
           setTimeout(() => { g = new Game(step.fen); bv.set(g.viewState()); }, 1100);
         }
@@ -1074,7 +1074,7 @@ function renderLesson(main) {
     main.append(bv.el);
   }
   main.append(msg);
-  main.append(h('div', { class: 'row' }, lessonStep > 0 ? h('button', { class: 'btn', onclick: () => { lessonStep--; render(); } }, '◀ Back') : null, nextBtn));
+  main.append(h('div', { class: 'row' }, lessonStep > 0 ? h('button', { class: 'btn', onclick: () => { lessonStep--; render(); } }, icon('back', 18), 'Back') : null, nextBtn));
 }
 
 // ======================= ME / PROFILE =======================
@@ -1096,28 +1096,28 @@ function renderMe(main) {
   const bar = h('div', { style: { height: '10px', borderRadius: '6px', background: 'var(--bg2)', overflow: 'hidden', margin: '8px 0 4px' } }, h('div', { style: { height: '100%', width: Math.round(lg.pct * 100) + '%', background: 'linear-gradient(90deg,#ffc56b,#ff9f43)' } }));
   main.append(h('div', { class: 'card' },
     h('div', { class: 'row' }, h('img', { src: PIECE_URL['w' + lg.piece], style: { width: '52px', height: '52px', background: 'var(--light)', borderRadius: '14px', padding: '4px' } }),
-      h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, '♞ BOT LEAGUE'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
+      h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'BOT LEAGUE'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
       h('div', { style: { fontSize: '30px', fontWeight: 900 } }, L.r)),
-    bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached! 👑'),
+    bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached!'),
     sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w}W · ${l}L · ${d}D`)));
   main.append(h('div', { class: 'stats' },
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🌐 Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🧩 Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best} 🔥`))));
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
   if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
-  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', null, g.score === 1 ? '🏆' : g.score === 0.5 ? '🤝' : '❌'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
+  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
   main.append(h('div', { class: 'card stack' },
     h('h3', null, 'How ratings work'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '♞ Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
     h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '🌐 Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '🧩 Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
-  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, soundOn ? '🔊 On' : '🔇 Off')));
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
+  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
-  main.append(h('p', { class: 'small muted center' }, '💾 Your progress is saved in this browser on this device.'));
+  main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
 }
 
 // older saves had one Glicko "rating" for bots; move it onto the new ladder
@@ -1145,4 +1145,3 @@ function boot() {
   if (jm) { pendingJoin = jm[1]; route = 'friend'; friendView = 'online'; try { history.replaceState(null, '', '#friend'); } catch (e) { } }
   render();
 }
-boot();

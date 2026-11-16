@@ -156,6 +156,35 @@ h1,h2,h3{margin:0;line-height:1.15}
 .hidden{display:none!important}
 .center{text-align:center}
 a{color:var(--blue)}
+/* ---- original icon system ---- */
+.icn{display:inline-flex;align-items:center;justify-content:center;line-height:0;flex:none}
+.icn svg{display:block}
+.btn .icn{margin:0 -1px}
+.controls .btn .icn{margin-bottom:3px}
+.tabs button .icn{margin-bottom:1px}
+.seg button{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.chip .icn{color:var(--blue)}
+.rt .icn{color:var(--accent);vertical-align:-2px}
+.av-img{display:block;border-radius:50%}
+.avatar{background:none;padding:0}
+.avatar .av-img{border-radius:12px}
+.bot .av .av-img{border-radius:14px}
+.sq .star .icn{color:#ffc93c;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.sq .star .icn svg{width:min(8vw,40px);height:min(8vw,40px)}
+.burst-ic{filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+.burst-ic.star,.burst-ic.trophy,.burst-ic.crown{color:#ffc93c}
+.badge{width:76px;height:76px;margin:0 auto 6px;border-radius:24px;display:flex;align-items:center;justify-content:center}
+.badge.gold{background:linear-gradient(160deg,#ffd77a,#ff9f43);color:#4a2a05}
+.badge.blue{background:linear-gradient(160deg,#9ccbff,#4f8fe8);color:#0c2547}
+.badge.red{background:linear-gradient(160deg,#ffa3a3,#e86a6a);color:#4a0c0c}
+.badge.green{background:linear-gradient(160deg,#8ff0bd,#3cbf7c);color:#063019}
+.lesson .ic.dark{background:var(--card2);color:var(--accent)}
+.lesson .ck{color:var(--muted)} .lesson .ck.done{color:var(--good)}
+.bubble .who{flex:none}
+.hoot{display:block}
+.banner .icn{color:var(--accent)} .banner.good .icn{color:var(--good)}
+.tbl td.res{font-weight:800;font-size:13px} .tbl td.res.w{color:var(--good)} .tbl td.res.l{color:var(--bad)} .tbl td.res.d{color:var(--blue)}
+.stat .l .icn{vertical-align:-2px}
 </style>
 </head>
 <body>
@@ -875,14 +904,14 @@ function ChessEngineFactory() {
 </script>
 <script>// Bot personalities + opening book. Shared by the app and the calibration script.
 const BOT_LEVELS = [
-  { id: 1, name: 'Pip',        avatar: '🐣', blurb: 'Just learned how the pieces move.',         depth: 1, nodes: 2000,   noise: 160, blunder: 0.45, book: 0 },
-  { id: 2, name: 'Bea',        avatar: '🐝', blurb: 'Likes grabbing pieces. Forgets to defend.', depth: 1, nodes: 3000,   noise: 100, blunder: 0.27, book: 0 },
-  { id: 3, name: 'Milo',       avatar: '🦊', blurb: 'Spots free pieces, misses traps.',          depth: 1, nodes: 5000,   noise: 60,  blunder: 0.13, book: 2 },
-  { id: 4, name: 'Rosa',       avatar: '🦉', blurb: 'Careful, but misses tricks.',               depth: 2, nodes: 10000,  noise: 45,  blunder: 0.08, book: 4 },
-  { id: 5, name: 'Sir Knight', avatar: '🐴', blurb: 'Plays solid, loves forks.',                 depth: 2, nodes: 20000,  noise: 25,  blunder: 0.03, book: 6 },
-  { id: 6, name: 'Bishop Bo',  avatar: '🧙', blurb: 'Thinks a few moves deep.',                  depth: 3, nodes: 40000,  noise: 15,  blunder: 0.01, book: 8 },
-  { id: 7, name: 'Queen Vera', avatar: '👑', blurb: 'Strong club player.',                       depth: 5, nodes: 80000,  noise: 6,   blunder: 0.0,  book: 10 },
-  { id: 8, name: 'The Tower',  avatar: '🏰', blurb: 'Full strength. Good luck!',                depth: 64, nodes: 350000, noise: 0,   blunder: 0.0,  book: 12 },
+  { id: 1, name: 'Pip',        avatar: 'pip', blurb: 'Just learned how the pieces move.',         depth: 1, nodes: 2000,   noise: 160, blunder: 0.45, book: 0 },
+  { id: 2, name: 'Bea',        avatar: 'bea', blurb: 'Likes grabbing pieces. Forgets to defend.', depth: 1, nodes: 3000,   noise: 100, blunder: 0.27, book: 0 },
+  { id: 3, name: 'Milo',       avatar: 'milo', blurb: 'Spots free pieces, misses traps.',          depth: 1, nodes: 5000,   noise: 60,  blunder: 0.13, book: 2 },
+  { id: 4, name: 'Rosa',       avatar: 'rosa', blurb: 'Careful, but misses tricks.',               depth: 2, nodes: 10000,  noise: 45,  blunder: 0.08, book: 4 },
+  { id: 5, name: 'Sir Knight', avatar: 'knight', blurb: 'Plays solid, loves forks.',                 depth: 2, nodes: 20000,  noise: 25,  blunder: 0.03, book: 6 },
+  { id: 6, name: 'Bishop Bo',  avatar: 'bo', blurb: 'Thinks a few moves deep.',                  depth: 3, nodes: 40000,  noise: 15,  blunder: 0.01, book: 8 },
+  { id: 7, name: 'Queen Vera', avatar: 'vera', blurb: 'Strong club player.',                       depth: 5, nodes: 80000,  noise: 6,   blunder: 0.0,  book: 10 },
+  { id: 8, name: 'The Tower',  avatar: 'tower', blurb: 'Full strength. Good luck!',                depth: 64, nodes: 350000, noise: 0,   blunder: 0.0,  book: 12 },
 ];
 // A small book of sound openings (SAN). Bots follow a random line for `book` plies.
 const OPENINGS = [
@@ -924,13 +953,13 @@ function botChooseMove(E, searcher, pos, level, rng, salt, plyIndex, bookLine) {
 //  stars - move your piece to collect every star (and capture black pieces if captureAll)
 //  goal  - real chess position; succeed by reaching the goal (check, mate, castle, promote, move)
 const LESSONS = [
-  { id: 'board', group: 'The Basics', icon: '🏁', title: 'The Chessboard', desc: '64 squares and how to name them', steps: [
+  { id: 'board', group: 'The Basics', icon: 'board', title: 'The Chessboard', desc: '64 squares and how to name them', steps: [
     { type: 'text', text: 'Welcome to chess! It is a battle between two armies: <b>White</b> and <b>Black</b>. White always moves first.', board: '8/8/8/8/8/8/8/8' },
     { type: 'text', text: 'The board has <b>64 squares</b>: 8 rows and 8 columns. The columns are called <b>files</b> (a to h). The rows are called <b>ranks</b> (1 to 8).', board: '8/8/8/8/8/8/8/8', marks: ['a1', 'a2', 'a3', 'a4', 'a5', 'a6', 'a7', 'a8'] },
     { type: 'text', text: 'Every square has a name made from its file letter and rank number, like a map! The blue square is <b>e4</b>.', board: '8/8/8/8/8/8/8/8', marks: ['e4'] },
     { type: 'text', text: 'Golden rule for setting up: the bottom-right corner is always a <b>light</b> square. Remember: <b>"Light on the right!"</b>', board: '8/8/8/8/8/8/8/8', marks: ['h1'] },
   ] },
-  { id: 'setup', group: 'The Basics', icon: '🧩', title: 'Setting Up', desc: 'Where every piece starts', steps: [
+  { id: 'setup', group: 'The Basics', icon: 'puzzle', title: 'Setting Up', desc: 'Where every piece starts', steps: [
     { type: 'text', text: 'Each army has <b>16 pieces</b>: 1 king, 1 queen, 2 rooks, 2 bishops, 2 knights and 8 pawns.', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR' },
     { type: 'text', text: 'The <b>rooks</b> go in the corners. Next to them are the <b>knights</b>, then the <b>bishops</b>.', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', marks: ['a1', 'h1', 'b1', 'g1', 'c1', 'f1'] },
     { type: 'text', text: 'The <b>queen goes on her own color</b>: the white queen on a light square, the black queen on a dark square. The <b>king</b> takes the last spot.', board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', marks: ['d1', 'd8', 'e1', 'e8'] },
@@ -967,60 +996,188 @@ const LESSONS = [
     { type: 'text', text: 'Pawns <b>capture differently</b>: one square <b>diagonally forward</b>. A pawn cannot capture straight ahead.', board: '8/8/8/3pr3/4P3/8/8/8', showMoves: 'e4' },
     { type: 'stars', text: 'Capture all the black pieces with your pawn!', pieces: { d2: 'P', c3: 'p', b4: 'n', c5: 'b' }, stars: [], captureAll: true, par: 3 },
   ] },
-  { id: 'capture', group: 'Playing the Game', icon: '🎯', title: 'Capturing', desc: 'Taking enemy pieces', steps: [
+  { id: 'capture', group: 'Playing the Game', icon: 'target', title: 'Capturing', desc: 'Taking enemy pieces', steps: [
     { type: 'text', text: 'You <b>capture</b> by moving onto a square with an enemy piece. The captured piece leaves the board. You can never capture your own pieces.' },
     { type: 'stars', text: 'Use your queen to capture every black piece!', pieces: { d1: 'Q', d7: 'p', h3: 'n', a3: 'b' }, stars: [], captureAll: true, par: 3 },
     { type: 'stars', text: 'Now with a knight. Hop, hop, capture!', pieces: { b1: 'N', c3: 'p', e4: 'p', g5: 'r' }, stars: [], captureAll: true, par: 3 },
   ] },
-  { id: 'values', group: 'Playing the Game', icon: '💎', title: 'Piece Values', desc: 'Which pieces are worth more?', steps: [
+  { id: 'values', group: 'Playing the Game', icon: 'gem', title: 'Piece Values', desc: 'Which pieces are worth more?', steps: [
     { type: 'text', text: 'Pieces have points: <b>Pawn = 1</b>, <b>Knight = 3</b>, <b>Bishop = 3</b>, <b>Rook = 5</b>, <b>Queen = 9</b>. The king is <b>priceless</b>, because you can never trade him!' },
     { type: 'text', text: 'Try not to give away a big piece for a small one. Trading your queen (9) for a knight (3) is a bad deal!' },
-    { type: 'goal', text: 'Your knight can capture two pieces. Pick the <b>most valuable</b> one!', fen: '4k3/8/3q1p2/8/4N3/8/8/4K3 w - - 0 1', goal: 'move', moves: ['e4d6'], success: '🎉 Yes! The queen is worth 9 points!', fail: 'That piece is worth less. Look for the queen!' },
+    { type: 'goal', text: 'Your knight can capture two pieces. Pick the <b>most valuable</b> one!', fen: '4k3/8/3q1p2/8/4N3/8/8/4K3 w - - 0 1', goal: 'move', moves: ['e4d6'], success: 'Yes! The queen is worth 9 points!', fail: 'That piece is worth less. Look for the queen!' },
   ] },
-  { id: 'check', group: 'Playing the Game', icon: '⚠️', title: 'Check!', desc: 'Attacking the king', steps: [
+  { id: 'check', group: 'Playing the Game', icon: 'alert', title: 'Check!', desc: 'Attacking the king', steps: [
     { type: 'text', text: 'When a piece attacks the enemy king, it is called <b>check</b>. The king must get out of check right away!', board: '4k3/8/8/8/8/8/8/R3K3', marks: ['e8'] },
-    { type: 'goal', text: 'Put the black king in <b>check</b>!', fen: '4k3/8/8/8/8/8/8/R3K3 w - - 0 1', goal: 'check', success: '🎉 Check! The king is under attack.' },
+    { type: 'goal', text: 'Put the black king in <b>check</b>!', fen: '4k3/8/8/8/8/8/8/R3K3 w - - 0 1', goal: 'check', success: 'Check! The king is under attack.' },
     { type: 'text', text: 'There are <b>3 ways</b> to escape check:<br>1. <b>Move</b> the king to a safe square.<br>2. <b>Block</b> the attack with another piece.<br>3. <b>Capture</b> the attacking piece.' },
-    { type: 'goal', text: 'Your king is in check from the black queen. <b>Capture it</b> with your king!', fen: '4k3/8/8/8/8/8/3q4/4K3 w - - 0 1', goal: 'move', moves: ['e1d2'], success: '🎉 Captured! Your king is safe.', fail: 'Your king is safe, but you can do better. Capture the queen!' },
-    { type: 'goal', text: 'The black rook gives check. <b>Block</b> it with your bishop!', fen: '4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1', goal: 'move', moves: ['d2e3'], success: '🎉 Blocked! The bishop shields the king.', fail: 'That works too, but this time use the bishop to block!' },
+    { type: 'goal', text: 'Your king is in check from the black queen. <b>Capture it</b> with your king!', fen: '4k3/8/8/8/8/8/3q4/4K3 w - - 0 1', goal: 'move', moves: ['e1d2'], success: 'Captured! Your king is safe.', fail: 'Your king is safe, but you can do better. Capture the queen!' },
+    { type: 'goal', text: 'The black rook gives check. <b>Block</b> it with your bishop!', fen: '4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1', goal: 'move', moves: ['d2e3'], success: 'Blocked! The bishop shields the king.', fail: 'That works too, but this time use the bishop to block!' },
   ] },
-  { id: 'mate', group: 'Playing the Game', icon: '👑', title: 'Checkmate!', desc: 'How you win the game', steps: [
+  { id: 'mate', group: 'Playing the Game', icon: 'crown', title: 'Checkmate!', desc: 'How you win the game', steps: [
     { type: 'text', text: '<b>Checkmate</b> means the king is in check and there is <b>no way to escape</b>. Checkmate wins the game!', board: 'R5k1/5ppp/8/8/8/8/8/6K1', marks: ['g8'] },
-    { type: 'goal', text: 'The black king is stuck behind its own pawns. Find <b>checkmate in one move</b>!', fen: '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1', goal: 'mate', success: '👑 Checkmate! That is called a back-rank mate.' },
-    { type: 'goal', text: 'Your king helps your queen. Find the <b>checkmate</b>!', fen: '4k3/8/4K3/8/8/8/8/7Q w - - 0 1', goal: 'mate', success: '👑 Checkmate! Teamwork!' },
-    { type: 'goal', text: 'A famous trap! The square f7 is weak. Find <b>checkmate</b>!', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', goal: 'mate', success: "👑 Checkmate! That's Scholar's Mate. Watch out for it in your own games!" },
+    { type: 'goal', text: 'The black king is stuck behind its own pawns. Find <b>checkmate in one move</b>!', fen: '6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1', goal: 'mate', success: 'Checkmate! That is called a back-rank mate.' },
+    { type: 'goal', text: 'Your king helps your queen. Find the <b>checkmate</b>!', fen: '4k3/8/4K3/8/8/8/8/7Q w - - 0 1', goal: 'mate', success: 'Checkmate! Teamwork!' },
+    { type: 'goal', text: 'A famous trap! The square f7 is weak. Find <b>checkmate</b>!', fen: 'r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4', goal: 'mate', success: "Checkmate! That's Scholar's Mate. Watch out for it in your own games!" },
   ] },
-  { id: 'castling', group: 'Special Moves', icon: '🏰', title: 'Castling', desc: 'Tuck your king in safe', steps: [
+  { id: 'castling', group: 'Special Moves', icon: 'castle', title: 'Castling', desc: 'Tuck your king in safe', steps: [
     { type: 'text', text: '<b>Castling</b> is a special move that keeps your king safe. The king moves <b>two squares</b> toward a rook, and the rook <b>hops over</b> to the other side of the king.', board: '4k3/8/8/8/8/8/8/R3K2R', marks: ['e1', 'g1', 'f1', 'h1'] },
     { type: 'text', text: 'You can castle only if: the king and that rook <b>have not moved</b> yet, nothing is <b>between</b> them, and the king is <b>not in check</b> and won\'t pass through check.' },
-    { type: 'goal', text: 'Castle! Tap your king, then tap the square <b>two steps to the right</b>.', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 1', goal: 'castle', success: '🎉 Castled! Your king is tucked away safely.', fail: 'Not quite. Tap the king, then the square two steps toward the rook.' },
+    { type: 'goal', text: 'Castle! Tap your king, then tap the square <b>two steps to the right</b>.', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 1', goal: 'castle', success: 'Castled! Your king is tucked away safely.', fail: 'Not quite. Tap the king, then the square two steps toward the rook.' },
   ] },
-  { id: 'promotion', group: 'Special Moves', icon: '✨', title: 'Promotion', desc: 'A pawn becomes a queen', steps: [
+  { id: 'promotion', group: 'Special Moves', icon: 'arrowUp', title: 'Promotion', desc: 'A pawn becomes a queen', steps: [
     { type: 'text', text: 'When a pawn reaches the <b>other side</b> of the board, it gets <b>promoted</b>! It turns into a queen, rook, bishop or knight. Usually a queen!', board: '8/4P3/8/8/8/8/8/8', marks: ['e8'] },
-    { type: 'goal', text: 'Push your pawn to the end and <b>promote</b> it!', fen: 'k7/4P3/8/8/8/8/8/6K1 w - - 0 1', goal: 'promote', success: '✨ A brand new queen!' },
+    { type: 'goal', text: 'Push your pawn to the end and <b>promote</b> it!', fen: 'k7/4P3/8/8/8/8/8/6K1 w - - 0 1', goal: 'promote', success: 'A brand new queen!' },
     { type: 'stars', text: 'Walk your pawn all the way up. It becomes a queen at the top! Then grab the last star.', pieces: { b2: 'P' }, stars: ['b4', 'b8', 'h2'], promote: true, par: 6 },
   ] },
-  { id: 'enpassant', group: 'Special Moves', icon: '🥷', title: 'En Passant', desc: 'The sneaky pawn capture', steps: [
+  { id: 'enpassant', group: 'Special Moves', icon: 'ninja', title: 'En Passant', desc: 'The sneaky pawn capture', steps: [
     { type: 'text', text: '<b>En passant</b> (say "on pah-SAHN") is a sneaky pawn rule. If an enemy pawn jumps <b>two squares</b> and lands right <b>next to</b> your pawn, you can capture it as if it had moved only one square.' },
     { type: 'text', text: 'You must do it <b>right away</b>, on your very next move, or the chance is gone!', board: '4k3/8/8/3pP3/8/8/8/4K3', marks: ['d5', 'd6'] },
-    { type: 'goal', text: 'Black just moved a pawn two squares to d5. Capture it <b>en passant</b>! (Move your pawn to d6.)', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', goal: 'move', moves: ['e5d6'], success: '🥷 Sneaky! The black pawn is gone.', fail: 'Try moving your e5 pawn diagonally to d6.' },
+    { type: 'goal', text: 'Black just moved a pawn two squares to d5. Capture it <b>en passant</b>! (Move your pawn to d6.)', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', goal: 'move', moves: ['e5d6'], success: 'Sneaky! The black pawn is gone.', fail: 'Try moving your e5 pawn diagonally to d6.' },
   ] },
-  { id: 'draws', group: 'Winning & Drawing', icon: '🤝', title: 'Stalemate & Draws', desc: 'When nobody wins', steps: [
+  { id: 'draws', group: 'Winning & Drawing', icon: 'half', title: 'Stalemate & Draws', desc: 'When nobody wins', steps: [
     { type: 'text', text: '<b>Stalemate</b>: it is your turn, you are <b>not</b> in check, but you have <b>no legal moves</b>. That is a <b>draw</b> (a tie), even if you have fewer pieces!', board: '7k/5Q2/6K1/8/8/8/8/8', marks: ['h8'] },
     { type: 'text', text: 'Other draws:<br>• Both players <b>agree</b> to a draw.<br>• The same position happens <b>3 times</b>.<br>• <b>Not enough pieces</b> to checkmate (like king vs king).<br>• <b>50 moves</b> by each player with no capture or pawn move.' },
-    { type: 'goal', text: 'Careful! Some queen moves cause stalemate. Find the <b>checkmate</b> instead.', fen: '7k/4Q3/6K1/8/8/8/8/8 w - - 0 1', goal: 'mate', success: '👑 Checkmate, not stalemate. Well done!' },
+    { type: 'goal', text: 'Careful! Some queen moves cause stalemate. Find the <b>checkmate</b> instead.', fen: '7k/4Q3/6K1/8/8/8/8/8 w - - 0 1', goal: 'mate', success: 'Checkmate, not stalemate. Well done!' },
   ] },
-  { id: 'tips', group: 'Winning & Drawing', icon: '🌟', title: 'Winning Tips', desc: 'Play like a champion', steps: [
+  { id: 'tips', group: 'Winning & Drawing', icon: 'bulb', title: 'Winning Tips', desc: 'Play like a champion', steps: [
     { type: 'text', text: '<b>Start strong:</b><br>1. Move a center pawn (e or d pawn).<br>2. Bring out your <b>knights and bishops</b>.<br>3. <b>Castle</b> early to keep your king safe.<br>4. Don\'t bring your queen out too early.' },
-    { type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>🔍 What is my opponent attacking?<br>🎁 Can I capture something for free?<br>🛡️ Is my piece safe on its new square?' },
-    { type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick 🐣. Then try the <b>Puzzles</b> to get even better.', mascot: '🦉' },
+    { type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>1. What is my opponent attacking?<br>2. Can I capture something for free?<br>3. Is my piece safe on its new square?' },
+    { type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick. Then try the <b>Puzzles</b> to get even better.' },
   ] },
 ];
 
 </script>
 <script>const PUZZLE_DATA = [{"fen":"6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1","line":["d1d8"],"n":1,"cat":"pattern","name":"Back-Rank Mate","tip":"The king is trapped behind its own pawns.","rating":350},{"fen":"rnbqkbnr/pppp1ppp/8/4p3/6P1/5P2/PPPPP2P/RNBQKBNR b KQkq - 0 2","line":["d8h4"],"n":1,"cat":"pattern","name":"Fool's Mate","tip":"White opened the diagonal to their own king.","rating":350},{"fen":"6rk/6pp/8/6N1/8/8/8/6K1 w - - 0 1","line":["g5f7"],"n":1,"cat":"pattern","name":"Smothered Mate","tip":"The king's own pieces block every escape.","rating":350},{"fen":"8/4N1pk/8/8/8/8/2K5/R7 w - - 0 1","line":["a1h1"],"n":1,"cat":"pattern","name":"Anastasia's Mate","tip":"The knight guards g8 and g6.","rating":350},{"fen":"7k/R7/5N2/8/8/8/8/7K w - - 0 1","line":["a7h7"],"n":1,"cat":"pattern","name":"Arabian Mate","tip":"Rook and knight work as a team.","rating":350},{"fen":"2kr4/p2p4/8/8/5B2/8/4B3/6K1 w - - 0 1","line":["e2a6"],"n":1,"cat":"pattern","name":"Boden's Mate","tip":"Two bishops on crossing diagonals.","rating":350},{"fen":"1k6/ppp5/8/8/8/8/8/K3R3 w - - 0 1","line":["e1e8"],"n":1,"cat":"pattern","name":"Corridor Mate","tip":"A king stuck on the edge behind pawns.","rating":350},{"fen":"4k3/5p2/8/6B1/8/8/8/3R2K1 w - - 0 1","line":["d1d8"],"n":1,"cat":"pattern","name":"Opera Mate","tip":"Rook checks on the file; bishop guards the escape.","rating":350},{"fen":"8/R4P2/2k5/1p4b1/p2p4/P7/KP6/3rq3 b - - 0 67","line":["d1a1"],"n":1,"cat":"mate1","rating":350},{"fen":"4r3/ppp2kp1/8/1P4p1/P4p2/R7/5PPP/2r1BK2 b - - 6 42","line":["c1e1"],"n":1,"cat":"mate1","rating":350},{"fen":"2r1r1k1/ppp2pp1/1n6/3P3p/5Q2/PB6/1PPR1PPP/4R1K1 b - - 0 21","line":["e8e1"],"n":1,"cat":"mate1","rating":350},{"fen":"4R3/p1k2p2/3b3p/p6P/N2p3r/5p2/1PPP1P2/2BN1K2 b - - 3 40","line":["h4h1"],"n":1,"cat":"mate1","rating":350},{"fen":"6k1/R7/8/8/8/8/8/1R4K1 w - - 0 1","line":["b1b8"],"n":1,"cat":"pattern","name":"Ladder Mate","tip":"One rook holds the 7th rank.","rating":380},{"fen":"5rk1/6p1/6P1/7Q/8/8/8/6K1 w - - 0 1","line":["h5h7"],"n":1,"cat":"pattern","name":"Damiano's Mate","tip":"Your pawn protects the queen.","rating":380},{"fen":"5rk1/7p/8/6N1/8/3B4/1B6/6K1 w - - 0 1","line":["d3h7"],"n":1,"cat":"pattern","name":"Blackburne's Mate","tip":"Bishops and a knight cover every square.","rating":380},{"fen":"5r2/r4p2/p3kp1p/p7/4bPP1/PP6/7P/3RR1K1 w - - 0 34","line":["e1e4"],"n":1,"cat":"mate1","rating":380},{"fen":"4r3/2R2pk1/7p/5p1P/7K/6P1/2p2r2/8 b - - 1 48","line":["f2h2"],"n":1,"cat":"mate1","rating":380},{"fen":"2rk1b1r/2Nbppp1/2p1p2p/q1P5/p4B2/3Q1N2/PPP2PPP/3R1RK1 w - - 2 20","line":["d3d7"],"n":1,"cat":"mate1","rating":380},{"fen":"4k2r/ppp2ppp/8/4p3/4P3/P3nP2/1P4PP/3r1RKR b k - 7 20","line":["d1f1"],"n":1,"cat":"mate1","rating":380},{"fen":"r5k1/pp3p2/5qp1/8/3bb1P1/3n4/P4Q1P/1R1R2K1 b - - 7 34","line":["f6f2"],"n":1,"cat":"mate1","rating":380},{"fen":"8/6PN/8/p2k1p2/P3p3/5bP1/3b1P1K/Rrq5 b - - 0 58","line":["c1h1"],"n":1,"cat":"mate1","rating":380},{"fen":"r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4","line":["h5f7"],"n":1,"cat":"pattern","name":"Scholar's Mate","tip":"f7 is only defended by the king.","rating":400},{"fen":"6k1/5p1p/5PpQ/8/8/8/8/6K1 w - - 0 1","line":["h6g7"],"n":1,"cat":"pattern","name":"Lolli Mate","tip":"The f6 pawn supports the queen on g7.","rating":400},{"fen":"4rk2/p1p2p1p/2b5/5N2/1P4p1/2p5/2P2bPP/3K1B1R b - - 1 36","line":["e8e1"],"n":1,"cat":"mate1","rating":400},{"fen":"r3k2r/pp3pbp/5np1/2pP4/4p3/P3P2b/1PNP1PqP/R1B1KR2 b Qkq - 0 16","line":["g2f1"],"n":1,"cat":"mate1","rating":400},{"fen":"rkb4r/pp3ppp/2p4n/4n1N1/3P4/6QP/PPP2PP1/R5K1 w - - 0 19","line":["g3e5"],"n":1,"cat":"mate1","rating":400},{"fen":"6r1/1p1r1pp1/4p2p/3p3k/p2P4/P2P2R1/1P2KP2/6R1 w - - 0 45","line":["g1h1"],"n":1,"cat":"mate1","rating":400},{"fen":"6k1/6pp/4R3/5Q2/7r/7P/5PP1/6K1 w - - 9 61","line":["e6e8"],"n":1,"cat":"mate1","rating":400},{"fen":"8/2pR4/p1P1KN2/4P3/1P5k/r7/P6P/6R1 w - - 8 45","line":["d7h7"],"n":1,"cat":"mate1","rating":400},{"fen":"4k3/8/4K3/8/7Q/8/8/8 w - - 0 1","line":["h4e7"],"n":1,"cat":"pattern","name":"Queen Kiss","tip":"Your king protects the queen right in front of the enemy king.","rating":430},{"fen":"1Rq1kb1r/p2b1pp1/3p4/3Pp1Bp/Q7/5N2/P1P2PPP/4R1K1 w - - 1 22","line":["b8c8"],"n":1,"cat":"mate1","rating":430},{"fen":"r3k2r/1pp2ppp/p7/2B1bb2/8/Pq6/1P2BPPP/K1R4R b kq - 5 19","line":["b3b2"],"n":1,"cat":"mate1","rating":430},{"fen":"r1b2rk1/ppp2ppp/3b4/3P4/1n6/2N5/PP2BPPq/R1BQRK2 b - - 1 15","line":["h2h1"],"n":1,"cat":"mate1","rating":430},{"fen":"r3k2r/pp3ppp/2n5/8/3bqP2/1P2B1P1/2P4P/3RKR2 b kq - 12 26","line":["e4e3"],"n":1,"cat":"mate1","rating":430},{"fen":"3r4/2p4p/p4k1P/5p2/1pb1p3/2r3PR/1P3P2/4KN2 b - - 22 51","line":["c3c1"],"n":1,"cat":"mate1","rating":430},{"fen":"r1k1r3/pp4pp/4p3/2pp1n1P/3n1BQ1/PqPP4/1P1K1PP1/R3R3 b - - 2 21","line":["b3c2"],"n":1,"cat":"mate1","rating":450},{"fen":"6k1/2p2pp1/p3P2p/8/p7/P5P1/1pr4P/5K1R b - - 0 35","line":["b2b1q"],"n":1,"cat":"mate1","rating":450},{"fen":"rk6/p6p/Q3Bb2/1ppPp3/4P3/P2P4/1P4PP/R5K1 w - - 1 38","line":["a6c8"],"n":1,"cat":"mate1","rating":450},{"fen":"r1bk2r1/pppp1p1p/2P2p1B/8/1Q1P4/5N2/PP3PPP/4R1K1 w - - 5 24","line":["b4e7"],"n":1,"cat":"mate1","rating":450},{"fen":"r1b2r1k/1ppp1p2/2n1pP2/p5Q1/3P4/2PB4/PP3PP1/R4RK1 w - - 1 18","line":["g5g7"],"n":1,"cat":"mate1","rating":450},{"fen":"r2qkb1r/p1pbpppp/2n2n2/4N3/p1BP4/4P3/1P1N1PPP/R1BQK2R w KQkq - 3 9","line":["c4f7"],"n":1,"cat":"mate1","rating":450},{"fen":"r1b5/pp3Q1p/4p3/6p1/P3P2k/7P/1PP2PP1/3R1RK1 w - - 1 25","line":["f7h7"],"n":1,"cat":"mate1","rating":450},{"fen":"2r3k1/1pp2ppp/8/5B2/2P5/1PK1p2P/P5q1/R6R b - - 1 21","line":["g2d2"],"n":1,"cat":"mate1","rating":450},{"fen":"3rkr2/8/8/8/2Q5/8/8/6K1 w - - 0 1","line":["c4e6"],"n":1,"cat":"pattern","name":"Epaulette Mate","tip":"The rooks on each side are like shoulder pads.","rating":480},{"fen":"r7/p3kp2/b1p5/3n4/B3p3/4PqP1/PPP2P2/1R2K3 b - - 3 28","line":["f3e2"],"n":1,"cat":"mate1","rating":480},{"fen":"r5kr/1p1b1pp1/3b1n1p/p1n1pP2/4PQP1/1P1P4/PP1BN2P/3RKB1R b - - 4 18","line":["c5d3"],"n":1,"cat":"mate1","rating":480},{"fen":"8/p2r1p2/1Br5/3k3P/2p2R2/P5P1/1P4K1/4R3 w - - 1 39","line":["f4d4"],"n":1,"cat":"mate1","rating":480},{"fen":"r5k1/1bp2ppp/pp3n2/3q2r1/2Bp3K/P4PPP/RPPN1b2/2Q4R b - - 0 24","line":["f2g3"],"n":1,"cat":"mate1","rating":480},{"fen":"N1bb4/pp6/2p5/kB2q1p1/2Q1P3/8/PP3PPP/2KR3R w - - 1 23","line":["b2b4"],"n":1,"cat":"mate1","rating":480},{"fen":"5rk1/2p2ppp/1p6/2qP2QP/p1b5/3p4/P3rPP1/3R1K2 b - - 3 36","line":["c5f2"],"n":1,"cat":"mate1","rating":480},{"fen":"7Q/pp2kp1p/4q1p1/1P1R2P1/2P5/P7/6KP/4R3 w - - 4 43","line":["h8d8"],"n":1,"cat":"mate1","rating":480},{"fen":"6k1/2p1b3/1p4pp/1r1p2P1/p2P3K/P6P/1P4r1/R3B3 b - - 0 42","line":["h6g5"],"n":1,"cat":"mate1","rating":480},{"fen":"r6r/kpQ4p/5P2/8/5R2/P7/1P4PP/2R3K1 w - - 7 37","line":["f4a4"],"n":1,"cat":"mate1","rating":480},{"fen":"7R/1p1k2p1/p1ppRb2/8/2BP1Q2/8/PPb3P1/6K1 w - - 2 36","line":["f4d6"],"n":1,"cat":"mate1","rating":480},{"fen":"6k1/r5pp/p1b5/P1pp1p2/2R5/6P1/1r2q1BP/Q3N1KR b - - 1 34","line":["e2f2"],"n":1,"cat":"mate1","rating":480},{"fen":"7Q/8/6p1/6k1/2b1K3/7P/5PP1/8 w - - 18 59","line":["f2f4"],"n":1,"cat":"mate1","rating":500},{"fen":"r7/p3kp2/b1p5/8/B3pP2/5qP1/PPP2P2/1R2K3 b - - 0 29","line":["f3e2"],"n":1,"cat":"mate1","rating":500},{"fen":"r1b2r2/pp1k1p1p/3p1Q2/2pPp1B1/4P3/3P2P1/PP3PBP/R4RK1 w - - 1 19","line":["f6e7"],"n":1,"cat":"mate1","rating":500},{"fen":"rk5r/p1p4p/2Q3p1/3N2P1/3P4/8/P1P2P1P/b5K1 w - - 0 27","line":["c6c7"],"n":1,"cat":"mate1","rating":500},{"fen":"2Rr3k/1p4p1/4p1Qp/pq1pB3/b2P4/7P/1P3PP1/RK6 w - - 4 76","line":["g6g7"],"n":1,"cat":"mate1","rating":500},{"fen":"r1br4/p1qnk1p1/3Np2p/2p1P3/1R1P2Q1/1BP5/1P3PPP/5RK1 w - - 0 24","line":["g4g7"],"n":1,"cat":"mate1","rating":500},{"fen":"r1k2b2/2p1ppp1/1Q6/8/p2P4/6BP/qP3PP1/2R1R1K1 w - - 1 34","line":["b6c7"],"n":1,"cat":"mate1","rating":500},{"fen":"r3r1k1/4bppp/p7/5P2/1P1pqn2/7P/P7/R1R1B1K1 b - - 0 26","line":["e4g2"],"n":1,"cat":"mate1","rating":500},{"fen":"rnb1k2r/2p2ppp/p2b4/Np2N3/5PB1/3Pp1q1/PPP2R2/R2QK3 b Qkq - 1 17","line":["g3f2"],"n":1,"cat":"mate1","rating":500},{"fen":"6k1/p1p5/4b1pR/3n4/3q4/6K1/6P1/5B2 b - - 0 43","line":["d4f4"],"n":1,"cat":"mate1","rating":500},{"fen":"4k3/2p2p2/4n3/4P3/1qbp4/5P2/2P5/K3Q1r1 b - - 7 57","line":["g1e1"],"n":1,"cat":"mate1","rating":500},{"fen":"1r4k1/5p2/8/2q3b1/6P1/8/K6R/8 b - - 11 59","line":["c5a5"],"n":1,"cat":"mate1","rating":530},{"fen":"1kr5/pp3ppp/8/8/1bQqb3/P3p2P/1P2P1P1/2K2B1R b - - 0 23","line":["d4d2"],"n":1,"cat":"mate1","rating":530},{"fen":"3rr2k/4nQ1q/p2p4/1p1PP3/7R/7P/6P1/5RK1 w - - 6 59","line":["h4h7"],"n":1,"cat":"mate1","rating":530},{"fen":"1r2kr2/pp4p1/n2QB3/6Bp/8/8/PP3PPP/R4RK1 w - - 3 24","line":["d6d7"],"n":1,"cat":"mate1","rating":530},{"fen":"r2k1b2/BQ1qp1p1/8/p3P3/7r/8/PP3PPP/2RR2K1 w - - 1 28","line":["b7d7"],"n":1,"cat":"mate1","rating":530},{"fen":"5b1k/rp2nQ2/p5p1/2P1ppNp/1n2P3/4B3/PPP2PPP/3RR1K1 w - - 3 26","line":["f7h7"],"n":1,"cat":"mate1","rating":530},{"fen":"2qk3b/p1p2Q2/1p1pPp2/1P6/2B1P3/P6P/2P3P1/3R2K1 w - - 5 38","line":["f7f8"],"n":1,"cat":"mate1","rating":530},{"fen":"2bqkb1r/r1p1pppp/1n6/pN2P2n/Q1pP2P1/5N2/PP3P1P/R1B1KB1R w KQk - 1 10","line":["b5c7"],"n":1,"cat":"mate1","rating":530},{"fen":"r1b1k2r/ppQ2ppp/3p1n2/3N1q2/8/8/PP2PPPP/2KR1B1R w - - 4 17","line":["c7e7"],"n":1,"cat":"mate1","rating":530},{"fen":"8/2B5/6pp/4Q3/3P2k1/2p1K3/prP3P1/7R w - - 4 59","line":["e5f4"],"n":1,"cat":"mate1","rating":530},{"fen":"4Q3/5rk1/8/p6R/5R2/6K1/r7/8 w - - 5 45","line":["e8f7"],"n":1,"cat":"mate1","rating":550},{"fen":"8/pr2kp2/8/2p5/1B6/2q5/P5P1/1K6 b - - 1 34","line":["b7b4"],"n":1,"cat":"mate1","rating":550},{"fen":"r1bqr1k1/1ppp3p/p4B1Q/3Pp1p1/8/3B4/PP3PPP/R4RK1 w - - 2 18","line":["h6g7"],"n":1,"cat":"mate1","rating":550},{"fen":"r3r1k1/p4ppp/1Pp5/8/K2p4/2q5/P2N4/R1B2R2 b - - 0 27","line":["a7b6"],"n":1,"cat":"mate1","rating":550},{"fen":"8/1p1R3p/p2k4/8/8/2r2nPP/4r3/7K b - - 1 42","line":["d6d7","g3g4","e2h2"],"n":2,"cat":"mate2","rating":570},{"fen":"r1b1k3/1pQ5/p1p2p2/8/2P1PKPr/2Nq4/PP3P2/RR6 b q - 0 20","line":["h4g4"],"n":1,"cat":"mate1","rating":580},{"fen":"6k1/2B2p2/3P1Pb1/2b2qP1/8/r7/7K/8 b - - 6 50","line":["f5h3"],"n":1,"cat":"mate1","rating":580},{"fen":"8/2p4R/6p1/6k1/8/5Q2/PrP3PP/6K1 w - - 5 40","line":["h2h4"],"n":1,"cat":"mate1","rating":580},{"fen":"r3k2r/pp2nppp/8/8/3b1P2/1P3qP1/2PB3P/3RK1R1 b kq - 8 24","line":["f3f2"],"n":1,"cat":"mate1","rating":580},{"fen":"r4rk1/pb4p1/7p/1p2p2Q/3pP2P/PP4P1/6KR/n3q3 b - - 3 31","line":["e1f1"],"n":1,"cat":"mate1","rating":580},{"fen":"4r3/2R2pkp/8/5pKP/8/6P1/2p2r2/8 b - - 3 47","line":["h7h6","g5h4","f2h2"],"n":2,"cat":"mate2","rating":600},{"fen":"r4rk1/2p3pp/p1n2q2/3bp3/1p1p4/7P/PP1NBPP1/2RR2K1 b - - 1 30","line":["f6f2","g1h2","f2g2"],"n":2,"cat":"mate2","rating":600},{"fen":"6k1/6p1/8/1p3p2/r3b3/1KB4p/1PP4P/3R2R1 w - - 0 40","line":["g1g7","g8f8","d1d8"],"n":2,"cat":"mate2","rating":600},{"fen":"8/2pR4/p1P1K3/4P2k/1P4N1/r7/P6P/6R1 w - - 6 44","line":["g4f6","h5h6","d7h7"],"n":2,"cat":"mate2","rating":600},{"fen":"k6r/rpp5/p2bP3/6P1/8/2Q2B2/PP3P2/3RR1K1 w - - 0 40","line":["c3h8","d6f8","d1d8"],"n":2,"cat":"mate2","rating":620},{"fen":"4k2r/ppp2ppp/8/4p3/4P3/P3nP2/1P1r1RPP/6KR b k - 5 19","line":["d2d1","f2f1","d1f1"],"n":2,"cat":"mate2","rating":620},{"fen":"r1b1r3/1ppN3p/p1k5/5QB1/3R4/2P5/PPP3PP/5K1R w - - 1 22","line":["f5d5"],"n":1,"cat":"mate1","rating":630},{"fen":"2r3k1/1p1P1ppp/8/K7/2P5/1q6/7P/3R4 b - - 0 68","line":["c8a8"],"n":1,"cat":"mate1","rating":630},{"fen":"5k1r/1R3pp1/4p1p1/p3B3/n6P/6P1/r3qPB1/2K4R b - - 1 39","line":["e2c2"],"n":1,"cat":"mate1","rating":630},{"fen":"r7/6Rp/p2k4/8/P1K2P2/6PP/1q6/3r4 b - - 0 38","line":["d1d4"],"n":1,"cat":"mate1","rating":630},{"fen":"6k1/ppp2ppp/8/3q1b2/2R3rP/4K3/PP3P2/8 b - - 1 31","line":["d5d3"],"n":1,"cat":"mate1","rating":630},{"fen":"1r2kb1r/p2b1pp1/3p4/3Pp1Bp/Q7/2q2N2/P1P2PPP/1R2R1K1 w - - 0 21","line":["b1b8","c3c8","b8c8"],"n":2,"cat":"mate2","rating":650},{"fen":"r1b2rk1/1p1n1pp1/7p/3pb3/1K6/1Q1Nq3/P1P3PP/R4B1R b - - 3 20","line":["e3b6"],"n":1,"cat":"mate1","rating":650},{"fen":"r2qkb1r/p3pppp/2b5/3nN3/Q7/2N1P3/PP3PPP/R1B1KB1R w KQ - 2 13","line":["a4c6","d8d7","c6d7"],"n":2,"cat":"mate2","rating":650},{"fen":"2r3r1/3R2p1/p3k3/2p2p1p/Ppb5/4BPP1/1PP3BP/3R2K1 w - - 0 27","line":["d1d6","e6e5","e3f4"],"n":2,"cat":"mate2","rating":650},{"fen":"r5k1/pp3p2/5qp1/8/4b1P1/2bn4/P3Q2P/1R1R2K1 b - - 5 33","line":["c3d4","e2e3","d4e3"],"n":2,"cat":"mate2","rating":650},{"fen":"6k1/1p6/p3bB1p/8/1P3b2/8/P1KR3q/8 b - - 0 32","line":["h2d2","c2b1","d2a2"],"n":2,"cat":"mate2","rating":650},{"fen":"rk3b2/2p1ppp1/1n6/1Q6/p2P4/6BP/qP3PP1/2R1R1K1 w - - 1 33","line":["b5b6","b8c8","b6c7"],"n":2,"cat":"mate2","rating":670},{"fen":"3k4/2p1b3/4QB2/1q1P4/1p6/5B2/1Pp2PPP/4K2R w - - 1 37","line":["f6e7","d8e8","f3h5"],"n":2,"cat":"mate2","rating":670},{"fen":"3r1b2/pp2kp1Q/4b1p1/8/4q3/2K5/PPP2P1P/R6R b - - 4 19","line":["e4d4"],"n":1,"cat":"mate1","rating":680},{"fen":"7k/6R1/8/1p3p2/r3b3/1KB4p/1PP4P/3R4 w - - 1 41","line":["d1d8"],"n":1,"cat":"mate1","rating":680},{"fen":"4k3/2p1B3/4Q3/1q1P4/1p6/5B2/1Pp2PPP/4K2R w - - 1 38","line":["f3h5"],"n":1,"cat":"mate1","rating":680},{"fen":"N1b1kb1r/pp1p1pp1/2n3n1/4P1Bp/3P3P/8/PPP5/R2QKBNR w KQ - 3 14","line":["a8c7"],"n":1,"cat":"mate1","rating":710},{"fen":"r7/6Rp/p2k4/8/PKp2P2/6PP/8/2qr4 b - - 0 37","line":["c1b2","b4c4","d1d4"],"n":2,"cat":"mate2","rating":720},{"fen":"r3k2r/pp2nppp/8/8/3bqP2/1P4P1/2PB3P/3R1KR1 b kq - 6 23","line":["e4f3","f1e1","f3f2"],"n":2,"cat":"mate2","rating":720},{"fen":"3k3r/2pnb1Q1/2r4p/4p1p1/8/8/PPP2PPP/R1BR2K1 w - - 0 28","line":["g7h8","e7f8","h8f8"],"n":2,"cat":"mate2","rating":750},{"fen":"r1b1k2r/1pQ5/p1p2p2/8/2P1PK2/2Nq4/PP3PP1/RR6 b q - 3 19","line":["h8h4","g2g4","h4g4"],"n":2,"cat":"mate2","rating":770},{"fen":"5k1r/1R3pp1/q3p1p1/p3B3/n6P/6P1/r3PPB1/3K3R b - - 0 38","line":["a6e2","d1c1","e2c2"],"n":2,"cat":"mate2","rating":770},{"fen":"r3k2r/pp3ppp/2n5/8/3b1P2/1P3qP1/2PB3P/3RKR2 b kq - 10 25","line":["f3e4","d2e3","e4e3"],"n":2,"cat":"mate2","rating":770},{"fen":"1r6/pB2kp2/8/2p5/8/B1q5/P5P1/1K6 b - - 11 33","line":["b8b7","a3b2","c3b2"],"n":2,"cat":"mate2","rating":770},{"fen":"8/1p4Rp/p1kR4/8/8/2r2nPP/4r3/7K b - - 2 41","line":["c6d6","g7d7","d6d7","g3g4","e2h2"],"n":3,"cat":"mate3","rating":790},{"fen":"3rr2k/4nQ2/p2p4/1p1PP3/1R6/3q3P/6P1/5RK1 w - - 4 58","line":["b4h4","d3h7","h4h7"],"n":2,"cat":"mate2","rating":800},{"fen":"r6k/6pp/7N/8/8/1Q6/8/6K1 w - - 0 1","line":["b3g8","a8g8","h6f7"],"n":2,"cat":"pattern","name":"Philidor's Smothered Mate","tip":"Sacrifice the queen to force a piece onto g8.","rating":960},{"fen":"r1k1r3/pp4pp/1q2p3/2pp1n1P/3n1BQ1/P1PP4/1P3PP1/R2KR3 b - - 0 20","line":["b6b3","d1c1","b3c2"],"n":2,"cat":"mate2","rating":960},{"fen":"r1b2rk1/1ppp1p2/2n1pP2/p5p1/3P2Q1/2PB4/PP3PP1/R4RK1 w - - 0 17","line":["g4g5","g8h8","g5g7"],"n":2,"cat":"mate2","rating":960},{"fen":"5r2/r4p2/p3Np1p/p3k3/4b1P1/PP6/5P1P/3RR1K1 w - - 4 33","line":["f2f4","e5e6","e1e4"],"n":2,"cat":"mate2","rating":980},{"fen":"8/p6R/5R2/3k4/1Kp5/4P3/r1r5/8 b - - 1 39","line":["c2b2","b4c3","b2b3"],"n":2,"cat":"mate2","rating":980},{"fen":"r4r2/ppp2pkp/3n2p1/3p1b2/P7/qPP4P/3P1PP1/3R1KQR b - - 2 21","line":["f5d3","f1e1","a8e8"],"n":2,"cat":"mate2","rating":980},{"fen":"2r3k1/1p1P1ppp/8/pK6/2P5/1R6/1q5P/3R4 b - - 3 67","line":["b2b3","b5a5","c8a8"],"n":2,"cat":"mate2","rating":1010},{"fen":"4Qbk1/rp2n3/p5p1/2P1ppNp/1n2P3/4B3/PPP2PPP/3RR1K1 w - - 1 25","line":["e8f7","g8h8","f7h7"],"n":2,"cat":"mate2","rating":1010},{"fen":"6k1/pp4p1/2p3p1/8/1P3pPK/n7/1N3P2/4q3 b - - 0 38","line":["e1h1","h4g5","h1h6"],"n":2,"cat":"mate2","rating":1010},{"fen":"2b5/1pkpb2Q/1p4p1/4P3/r1BP1n2/1R6/1P3PPP/6KR b - - 0 29","line":["a4a1","c4f1","f4e2"],"n":2,"cat":"mate2","rating":1010},{"fen":"r1b2rk1/ppp2ppp/3b4/3Pq3/1n6/2N5/PP2BPPP/R1BQR1K1 b - - 2 14","line":["e5h2","g1f1","h2h1"],"n":2,"cat":"mate2","rating":1030},{"fen":"r6r/1p2pk2/1qp1b3/p7/P5P1/4bP1P/1PP1K3/4R2R b - - 3 33","line":["e6c4","e2d1","b6d8"],"n":2,"cat":"mate2","rating":1030},{"fen":"1r1r4/p2P2kp/4Qp2/5R2/1P6/P7/5PPP/4R1K1 w - - 3 42","line":["e6f6","g7g8","f5g5"],"n":2,"cat":"mate2","rating":1030},{"fen":"r1brB1k1/1p1p4/p2N1R2/3PP1p1/8/8/PPP1K1P1/5R2 w - - 7 31","line":["f6g6","g8h7","f1h1"],"n":2,"cat":"mate2","rating":1030},{"fen":"r1b2r2/pp2kp1p/3p1n2/2pPp1B1/4P3/3P1QP1/PP3PBP/R4RK1 w - - 2 18","line":["f3f6","e7d7","f6e7"],"n":2,"cat":"mate2","rating":1050},{"fen":"r1b1k1r1/pppp1p1p/2P2p1B/8/1Q1P4/5N2/PP3PPP/R5K1 w - - 3 23","line":["a1e1","e8d8","b4e7"],"n":2,"cat":"mate2","rating":1060},{"fen":"r1bb4/ppN5/1kp5/1B2q1p1/2Q1P3/8/PP3PPP/2KR3R w - - 4 22","line":["c7a8","b6a5","b2b4"],"n":2,"cat":"mate2","rating":1060},{"fen":"6k1/r2b2pp/p7/P1pp1p2/2n5/4P1P1/1r1qP1BP/Q1R1N1KR b - - 3 31","line":["d2e3","g1f1","c4d2"],"n":2,"cat":"mate2","rating":1060},{"fen":"1r1r1k2/2q3p1/1p1NQ3/p1pR4/2P5/P4P2/1P4PP/3R2K1 w - - 2 43","line":["d5f5","c7f7","e6f7"],"n":2,"cat":"mate2","rating":1080},{"fen":"1r6/2pk1r1p/8/1pQ5/3P4/5B2/bPP2KPP/4R2R w - - 0 33","line":["c5c6","d7c8","e1e8"],"n":2,"cat":"mate2","rating":1080},{"fen":"7k/1p1r2p1/4p1Qp/pq1pB3/b2P4/2R4P/1P3PP1/RK6 w - - 2 75","line":["c3c8","d7d8","g6g7"],"n":2,"cat":"mate2","rating":1080},{"fen":"6k1/r5pp/p1b5/P1pp1p2/2R5/4q1P1/1r2P1BP/Q3NK1R b - - 1 33","line":["e3e2","f1g1","e2f2"],"n":2,"cat":"mate2","rating":1080},{"fen":"3r4/1p2k2p/4p1p1/1pP2b2/rP2N3/2p3P1/5P1P/2K4R b - - 1 31","line":["f5e4","c5c6","a4a1"],"n":2,"cat":"mate2","rating":1100},{"fen":"7Q/pp2kp1p/1q4p1/1P1R2P1/2P5/P7/6KP/1R6 w - - 2 42","line":["b1e1","b6e6","h8d8"],"n":2,"cat":"mate2","rating":1110},{"fen":"4k3/2p2p2/4n3/4P1r1/1qbpQ3/5P2/2P5/K7 b - - 5 56","line":["g5g1","e4e1","g1e1"],"n":2,"cat":"mate2","rating":1110},{"fen":"6k1/2p2pp1/p3r2p/3P4/p7/Pp4P1/2r4P/5K1R b - - 0 34","line":["b3b2","d5e6","b2b1q"],"n":2,"cat":"mate2","rating":1130},{"fen":"r1b2rk1/1p1n1pp1/7p/3p4/5b2/1QKNq3/P1P3PP/R4B1R b - - 1 19","line":["f4e5","c3b4","e3b6"],"n":2,"cat":"mate2","rating":1130},{"fen":"6k1/2p2p1p/6r1/5K2/3P4/4qP2/2p5/Q7 b - - 3 64","line":["e3f3","f5e5","g6e6"],"n":2,"cat":"mate2","rating":1130},{"fen":"5k1r/Q2q1ppp/3p4/1p2p3/8/1B6/PPP2PPP/R3R1K1 w - - 1 23","line":["a7d7","d6d5","d7d8"],"n":2,"cat":"mate2","rating":1130},{"fen":"6k1/ppp2ppp/8/3q1b2/2R2KPP/8/PP3P2/6r1 b - - 4 30","line":["g1g4","f4e3","d5d3"],"n":2,"cat":"mate2","rating":1130},{"fen":"r6r/pppk3p/6p1/2Q1R3/5p2/3q4/PP1P1PPP/R1B3K1 w - - 7 29","line":["e5e7","d7c8","c5c7"],"n":2,"cat":"mate2","rating":1130},{"fen":"6r1/1p1r1pp1/4p2p/3p3P/p2P3k/P2P1R2/1P2KP2/6R1 w - - 8 44","line":["f3g3","h4h5","g1h1"],"n":2,"cat":"mate2","rating":1150},{"fen":"2r1r1k1/ppp2pp1/1n6/3P3p/5Q2/PB6/1PPRqPPP/R5K1 b - - 2 20","line":["e2e1","a1e1","e8e1"],"n":2,"cat":"mate2","rating":1150},{"fen":"r1bqrk2/1ppp3p/p4B2/3Pp1p1/7Q/3B4/PP3PPP/R4RK1 w - - 0 17","line":["h4h6","f8g8","h6g7"],"n":2,"cat":"mate2","rating":1160},{"fen":"r3r3/1bp2pk1/p6p/1p1pNQ2/3Pn3/P1N1P3/P2B1PPP/3RR1K1 w - - 4 24","line":["f5f7","g7h8","e5g6"],"n":2,"cat":"mate2","rating":1160},{"fen":"8/8/5Qpk/8/2b1K3/7P/5PP1/8 w - - 16 58","line":["f6h8","h6g5","f2f4"],"n":2,"cat":"mate2","rating":1180},{"fen":"r1b4r/pp1k1ppp/3p1n2/Q2N1q2/8/8/PP2PPPP/2KR1B1R w - - 2 16","line":["a5c7","d7e8","c7e7"],"n":2,"cat":"mate2","rating":1180},{"fen":"r4rk1/pb4p1/7p/1p2p2Q/3pP2P/PPq3P1/7R/n5K1 b - - 1 30","line":["c3e1","g1g2","e1f1"],"n":2,"cat":"mate2","rating":1200},{"fen":"6k1/5p1p/pR6/2pP4/8/1K6/8/2q1r3 b - - 5 46","line":["e1e3","b3a2","e3a3"],"n":2,"cat":"mate2","rating":1250},{"fen":"r1b3r1/ppkpQppp/1p3n2/8/8/2NB1N1P/PP3PP1/R3R1K1 w - - 3 19","line":["c3b5","c7b8","e7d6"],"n":2,"cat":"mate2","rating":1250},{"fen":"rq6/4NpQp/PR2p3/8/5k2/8/P3BPPP/4K2R w K - 1 30","line":["g7g3","f4e4","g3e3"],"n":2,"cat":"mate2","rating":1260},{"fen":"6k1/2p2p2/5QPp/8/1p2p3/6R1/1P3PKP/6q1 w - - 1 32","line":["g2g1","f7g6","g3g6","g8h7","f6g7"],"n":3,"cat":"mate3","rating":1270},{"fen":"r3r1k1/pp3ppp/2p5/2P5/K2p4/2q5/P2N4/R1B2R2 b - - 1 26","line":["b7b5","c5b6","a7b6"],"n":2,"cat":"mate2","rating":1280},{"fen":"r5r1/pp5p/5R2/k7/2QP4/8/PPP3PP/R5K1 w - - 3 26","line":["c4c5","a5a4","b2b3"],"n":2,"cat":"mate2","rating":1300},{"fen":"2r2r2/p1R3pp/8/3kp3/2N5/P4P1P/2B1K2P/1R6 w - - 1 29","line":["b1d1","d5e6","d1d6"],"n":2,"cat":"mate2","rating":1300},{"fen":"rk5r/p1p4p/2Q3p1/3p2P1/3P4/2N5/PbP2P1P/R5K1 w - - 0 26","line":["c3d5","b2a1","c6c7"],"n":2,"cat":"mate2","rating":1350},{"fen":"4Q3/2p5/8/8/Pr1b4/8/K4kr1/8 b - - 12 70","line":["b4b2","a2a3","g2g3","e8e3","g3e3"],"n":3,"cat":"mate3","rating":1370},{"fen":"N1b1r3/pp2kppp/2n4n/4p2P/1b6/8/P1P1PPP1/R2K1BNR b - - 1 13","line":["e8d8","d1c1","b4a3","c1b1","d8d1"],"n":3,"cat":"mate3","rating":1390},{"fen":"6rk/8/3p4/3P1p2/4p3/P2Q4/1Pr3q1/4K3 b - - 1 46","line":["e4d3","b2b4","c2c1"],"n":2,"cat":"mate2","rating":1400},{"fen":"r5k1/2B2p2/3P1Pb1/2b2qP1/8/6K1/8/8 b - - 4 49","line":["a8a3","g3g2","f5h3"],"n":2,"cat":"mate2","rating":1420},{"fen":"4r3/2R2pkp/8/5p1P/5K2/6P1/2pr4/8 b - - 1 46","line":["d2f2","f4g5","h7h6","g5h4","f2h2"],"n":3,"cat":"mate3","rating":1420},{"fen":"4k3/2p2p2/8/6q1/3PP3/3n1K1P/2rN4/8 b - - 5 47","line":["c2d2","h3h4","d2f2"],"n":2,"cat":"mate2","rating":1420},{"fen":"1kr5/pp3ppp/1q6/8/1bQRb3/4p2P/PP2P1P1/2K2B1R b - - 0 22","line":["b6d4","c4c8","b8c8","h1g1","d4d2"],"n":3,"cat":"mate3","rating":1440},{"fen":"5k2/pp3p1p/1q4p1/1P1R2P1/2P5/P1Q5/6KP/1R6 w - - 0 41","line":["c3h8","f8e7","b1e1","b6e6","h8d8"],"n":3,"cat":"mate3","rating":1440},{"fen":"r5k1/pp3p2/6p1/8/3qb1P1/2bn4/P3Q2P/1R1R1K2 b - - 3 32","line":["d4f6","f1g1","c3d4","e2e3","d4e3"],"n":3,"cat":"mate3","rating":1440},{"fen":"8/2p4R/6p1/3Q4/6k1/8/PrP3PP/6K1 w - - 3 39","line":["d5f3","g4g5","h2h4"],"n":2,"cat":"mate2","rating":1450},{"fen":"r4b2/pp2kp1Q/4b1p1/8/4q3/8/PPPK1P1P/R6R b - - 2 18","line":["a8d8","d2c1","e4h1"],"n":2,"cat":"mate2","rating":1450},{"fen":"2k2r2/1p4P1/p1b2B2/2P5/8/P7/1PP3PP/4R1K1 w - - 0 34","line":["g7f8q","c6e8","f8e8","c8c7","e1e7"],"n":3,"cat":"mate3","rating":1470},{"fen":"1rb1kb1r/p2n1pp1/2Bp4/3Pp1Bp/Q7/2q2N2/P1P2PPP/1R2R1K1 w - - 0 20","line":["c6d7","c8d7","b1b8","c3c8","b8c8"],"n":3,"cat":"mate3","rating":1470},{"fen":"1r1r2k1/2q3p1/1p1N4/p1pR1Q2/2P5/P4P2/1P4PP/3R2K1 w - - 0 42","line":["f5e6","c7f7","e6f7","g8h7","d5h5"],"n":3,"cat":"mate3","rating":1470},{"fen":"r2k3r/2p2ppp/8/3bN3/3P4/1P5P/4KPP1/2q4R b - - 1 27","line":["a8a2","e2d3","c1d2"],"n":2,"cat":"mate2","rating":1470},{"fen":"rk3b2/2pnppp1/8/1p5Q/p2P4/6BP/qP3PP1/2R1R1K1 w - - 0 32","line":["h5b5","d7b6","b5b6","b8c8","b6c7"],"n":3,"cat":"mate3","rating":1470},{"fen":"6k1/r5pp/p1b5/P1pp1p2/2R5/4P1P1/1r1qP1BP/Q3N1KR b - - 0 32","line":["d2e3","g1f1","e3e2","f1g1","e2f2"],"n":3,"cat":"mate3","rating":1470},{"fen":"6k1/1p6/p3bB1p/3r4/1P3b2/8/P1KN3q/3R4 b - - 0 31","line":["d5d2","d1d2","h2d2","c2b1","d2a2"],"n":3,"cat":"mate3","rating":1470},{"fen":"2k4r/pp3Ppp/2p5/8/3bP3/P2r4/1P1qN1KP/R4R2 b - - 1 30","line":["d2e2","f1f2","e2f2","g2h1","f2f3"],"n":3,"cat":"mate3","rating":1490},{"fen":"r5k1/1p3p1p/4b1p1/p7/P3p3/5qB1/4RP1P/6K1 b - - 5 36","line":["e6h3","e2e4","f3g2"],"n":2,"cat":"mate2","rating":1490},{"fen":"4k2r/ppp2ppp/8/4p3/4P3/P4P2/1Pnr2PP/5RKR b k - 3 18","line":["c2e3","f1f2","d2d1","f2f1","d1f1"],"n":3,"cat":"mate3","rating":1510},{"fen":"4r1k1/rp1Qn1b1/p5p1/2P1ppNp/1n2P3/4B3/PPP2PPP/3RR1K1 w - - 2 24","line":["d7e8","g7f8","e8f7","g8h8","f7h7"],"n":3,"cat":"mate3","rating":1520},{"fen":"2r3k1/1p1P1ppp/8/pK6/2P5/2R5/q6P/3R4 b - - 1 66","line":["a2b2","c3b3","b2b3","b5a5","c8a8"],"n":3,"cat":"mate3","rating":1540},{"fen":"r1b2rk1/1p1n1pp1/7p/3p4/3q1b2/1Q1NP3/P1PK2PP/R4B1R b - - 0 18","line":["d4e3","d2c3","f4e5","c3b4","e3b6"],"n":3,"cat":"mate3","rating":1540},{"fen":"3r4/1p2k2p/4p1p1/1pP2bN1/rP1p4/2B3P1/5P1P/2K4R b - - 1 30","line":["d4c3","g5e4","f5e4","c5c6","a4a1"],"n":3,"cat":"mate3","rating":1540},{"fen":"3k4/2p5/3bQp2/1q1P2B1/1p6/5B2/1Pp2PPP/4K2R w - - 2 36","line":["g5f6","d6e7","f6e7","d8e8","f3h5"],"n":3,"cat":"mate3","rating":1540},{"fen":"r1br3k/1p1p4/p2N1R2/3PP1p1/8/3B4/PPP1K1P1/5R2 w - - 1 28","line":["f6g6","h8h7","f1h1"],"n":2,"cat":"mate2","rating":1540},{"fen":"8/2pQ1R1p/6pk/8/8/8/PrP3PP/6K1 w - - 0 37","line":["d7h3","h6g5","h3g3","g5h6","g3h4"],"n":3,"cat":"mate3","rating":1560},{"fen":"r2k3r/2p2ppp/8/3bN3/3P4/1P5P/2p2PP1/4K2R b - - 0 26","line":["c2c1q","e1e2","a8a2","e2d3","c1d2"],"n":3,"cat":"mate3","rating":1590},{"fen":"r1bk2r1/pp1p1ppp/1p3n2/4Q3/8/2NB1N1P/PP3PP1/R3R1K1 w - - 1 18","line":["e5e7","d8c7","c3b5","c7b8","e7d6"],"n":3,"cat":"mate3","rating":1590},{"fen":"rk5b/p6p/b1Q1B3/1ppPp3/4P3/P2P4/1P4PP/R5K1 w - - 10 37","line":["d5d6","h8f6","c6c7"],"n":2,"cat":"mate2","rating":1610},{"fen":"6r1/p3kp2/2B5/2p5/8/B1q5/P5P1/1K6 b - - 9 32","line":["g8b8","c6b5","b8b5","a3b2","c3b2"],"n":3,"cat":"mate3","rating":1620},{"fen":"6k1/8/1p5B/1Pr1p3/3pP1P1/P6p/6q1/4K3 b - - 2 51","line":["d4d3","g4g5","g2e2"],"n":2,"cat":"mate2","rating":1640},{"fen":"3rr1k1/4n3/p2p1Q2/1p1PP3/1R6/3q3P/6P1/5RK1 w - - 2 57","line":["f6f7","g8h8","b4h4","d3h7","h4h7"],"n":3,"cat":"mate3","rating":1640},{"fen":"8/8/8/3K4/3P4/4r2k/8/5RQ1 w - - 9 71","line":["g1e3","h3g4","f1g1","g4f5","e3f3"],"n":3,"cat":"mate3","rating":1640},{"fen":"1r1r2k1/p2P3p/5p2/5R2/1P2Q3/P7/5PPP/4R1K1 w - - 1 41","line":["e4e6","g8g7","e6f6","g7g8","f5g5"],"n":3,"cat":"mate3","rating":1640},{"fen":"4k3/2p2p2/b3n3/4P1r1/1q1pQ3/5P2/K1P5/8 b - - 3 55","line":["a6c4","a2a1","g5g1","e4e1","g1e1"],"n":3,"cat":"mate3","rating":1690},{"fen":"rk5b/p3Q2p/b3B3/1ppPp3/4P3/P2P4/1P4PP/R5K1 w - - 6 35","line":["d5d6","h8f6","e7c7"],"n":2,"cat":"mate2","rating":1710},{"fen":"r3k2r/pp2nppp/8/3q4/3b1P2/1P4P1/2PBK2P/3R2R1 b kq - 4 22","line":["d5e4","d2e3","e4e3","e2f1","e3f2"],"n":3,"cat":"mate3","rating":1710},{"fen":"6k1/ppp2ppp/8/3q1b2/2R3PP/6K1/PP3P2/7r b - - 2 29","line":["h1g1","g3f4","g1g4","f4e3","d5d3"],"n":3,"cat":"mate3","rating":1710},{"fen":"r1bb4/ppN2Q2/2p5/1Bk1q1p1/4P3/8/PP3PPP/2KR3R w - - 2 21","line":["f7c4","c5b6","c7a8","b6a5","b2b4"],"n":3,"cat":"mate3","rating":1740},{"fen":"r1b2bk1/pp3p2/3p2p1/2p5/2P1p3/2Pn1qP1/PPQ2P1P/RR4K1 b - - 1 20","line":["c8h3","c2d3","f3g2"],"n":2,"cat":"mate2","rating":1780},{"fen":"r4bk1/pp3p2/3pb1p1/2p5/2P1p3/1PPn1qP1/P1Q2P1P/RR4K1 b - - 0 21","line":["e6h3","c2d3","f3g2"],"n":2,"cat":"mate2","rating":1780},{"fen":"2qk4/p1p3b1/1p1pPp2/1P5Q/2B1P3/P6P/2P3P1/3R2K1 w - - 3 37","line":["h5f7","c8e6","c4e6","d6d5","d1d5"],"n":3,"cat":"mate3","rating":1800},{"fen":"r5k1/pp3pb1/3pb1p1/2p5/2P1p3/1PPn1qP1/P1Q2P1P/R2R2K1 b - - 2 22","line":["e6h3","c2d3","f3g2"],"n":2,"cat":"mate2","rating":1800},{"fen":"r1b1k2r/1pQ5/p1p2p2/8/2P1P3/2N3K1/PPPq1PP1/R4R2 b q - 2 17","line":["d2g5","g3f3","c8g4","f3g3","g4e2"],"n":3,"cat":"mate3","rating":1830},{"fen":"r4b2/pp2kp1Q/4b1p1/8/8/8/PPP1KPqP/R6R b - - 0 17","line":["g2e4","e2d2","a8d8","d2c1","e4h1"],"n":3,"cat":"mate3","rating":1830},{"fen":"6k1/2p2p1p/7r/8/3P2K1/4qP2/2p5/Q7 b - - 1 63","line":["h6g6","g4f5","e3f3","f5e5","g6e6"],"n":3,"cat":"mate3","rating":1830},{"fen":"6k1/2p2pp1/p3r2p/1p6/N2P4/Pp4P1/2r4P/5K1R b - - 0 33","line":["b5a4","g3g4","b3b2","f1g1","b2b1q"],"n":3,"cat":"mate3","rating":1850},{"fen":"2k1r2r/pp3ppp/4p3/2pbQ1P1/3P4/P1B5/1PP3PP/R4RK1 w - - 0 20","line":["f1f7","e8e7","f7e7","c5d4","e5c7"],"n":3,"cat":"mate3","rating":1880},{"fen":"2r2k2/8/3pQ2R/2rP1p2/4p1q1/P7/1PP3P1/4bK2 w - - 2 41","line":["h6f6","f8g7","e6f7","g7h8","f6h6"],"n":3,"cat":"mate3","rating":1880},{"fen":"r3r1k1/ppp2ppp/8/1KP5/3p4/2q5/P2N4/R1B2R2 b - - 0 25","line":["c7c6","b5a4","b7b5","c5b6","a7b6"],"n":3,"cat":"mate3","rating":1880}];
 const CALIB = {"games":390,"method":"ML Elo fit of bot-vs-bot games, linearly anchored Pip=300, Tower=2000","raw":[0,313,826,1137,1421,1795,2286,2756],"ratings":{"1":300,"2":490,"3":810,"4":1000,"5":1180,"6":1410,"7":1710,"8":2000}};</script>
-<script>'use strict';
+<script>// Knight Club original artwork: a line-icon set, bot character avatars and the
+// Professor Hoot mascot. All drawn by hand in SVG for this project (no emoji, no icon fonts).
+'use strict';
+const ICON_PATHS = {
+  play: '<path d="M8 5.5v13l10.5-6.5z" fill="currentColor" stroke="none"/>',
+  friends: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.4c2.2.7 3.5 2.8 3.5 5.6"/>',
+  puzzle: '<path d="M5 8h3a2.2 2.2 0 1 1 4.4 0H16v3.6a2.2 2.2 0 1 1 0 4.4V20h-3.6a2.2 2.2 0 1 0-4.4 0H5v-3.6a2.2 2.2 0 1 0 0-4.4z"/>',
+  learn: '<path d="M2 9.5l10-5 10 5-10 5z"/><path d="M6 11.6v4.6c2.6 2.3 9.4 2.3 12 0v-4.6"/><path d="M22 9.5v5.5"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>',
+  flip: '<path d="M4.5 12a7.5 7.5 0 0 1 13-5.1"/><path d="M19.5 12a7.5 7.5 0 0 1-13 5.1"/><path d="M18 3v4.5h-4.5"/><path d="M6 21v-4.5h4.5"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
+  bulb: '<path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3z"/>',
+  half: '<text x="12" y="16.5" text-anchor="middle" font-size="13" font-weight="900" fill="currentColor" stroke="none" font-family="system-ui,sans-serif">1/2</text>',
+  flag: '<path d="M5 21V4"/><path d="M5 4.5h12l-2.5 4 2.5 4H5"/>',
+  repeat: '<path d="M17 2.5l3.5 3.5-3.5 3.5"/><path d="M3.5 11V9.5A3.5 3.5 0 0 1 7 6h13.5"/><path d="M7 21.5L3.5 18 7 14.5"/><path d="M20.5 13v1.5A3.5 3.5 0 0 1 17 18H3.5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  first: '<path d="M17 18l-6-6 6-6"/><path d="M7 6v12"/>',
+  prev: '<path d="M15 18l-6-6 6-6"/>',
+  next: '<path d="M9 6l6 6-6 6"/>',
+  last: '<path d="M7 6l6 6-6 6"/><path d="M17 6v12"/>',
+  share: '<path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+  link: '<path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/>',
+  check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  star: '<path d="M12 2.8l2.8 5.8 6.4.9-4.6 4.5 1.1 6.3L12 17.3l-5.7 3 1.1-6.3-4.6-4.5 6.4-.9z" fill="currentColor" stroke-linejoin="round"/>',
+  trophy: '<path d="M8 4h8v5.5a4 4 0 0 1-8 0z"/><path d="M8 6H5.5a2.5 2.5 0 0 0 2.6 3.8M16 6h2.5a2.5 2.5 0 0 1-2.6 3.8"/><path d="M12 13.5V17"/><path d="M8.5 20.5h7l-.8-3.5H9.3z"/>',
+  flame: '<path d="M12 2.8c.8 3.8 5.2 5.2 5.2 10.4a5.2 5.2 0 0 1-10.4 0c0-2.4 1.3-4 2.4-5 .3 1.9 1.3 2.8 2.3 2.8 0-2.8-.6-5.3.5-8.2z"/>',
+  soundOn: '<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M15.5 9.5a3.5 3.5 0 0 1 0 5"/><path d="M18 7a7 7 0 0 1 0 10"/>',
+  soundOff: '<path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z"/><path d="M16 9.5l5 5M21 9.5l-5 5"/>',
+  globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c2.6 2.5 3.8 5.8 3.8 9s-1.2 6.5-3.8 9c-2.6-2.5-3.8-5.8-3.8-9S9.4 5.5 12 3z"/>',
+  phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+  clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+  dice: '<rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.2" fill="currentColor"/><circle cx="15" cy="15" r="1.2" fill="currentColor"/><circle cx="15" cy="9" r="1.2" fill="currentColor"/><circle cx="9" cy="15" r="1.2" fill="currentColor"/>',
+  eye: '<path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  save: '<path d="M5 3.5h11l3.5 3.5v13.5H5z"/><path d="M8 3.5v5h7v-5M8 20.5v-6h8v6"/>',
+  bolt: '<path d="M13 2.5L5 13.5h6l-1 8 8-11h-6z"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/>',
+  plug: '<path d="M9 3v5M15 3v5"/><path d="M6.5 8h11v3a5.5 5.5 0 0 1-11 0z"/><path d="M12 16.5v4.5"/>',
+  target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/>',
+  gem: '<path d="M6.5 4h11L21 9l-9 11L3 9z"/><path d="M3 9h18M9.5 4L8 9l4 11M14.5 4L16 9l-4 11"/>',
+  alert: '<path d="M12 3.5L2.5 20h19z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.2" r=".9" fill="currentColor"/>',
+  crown: '<path d="M4 18h16l1-10-5 4-4-6.5L8 12 3 8z"/><path d="M4 21h16"/>',
+  castle: '<path d="M5 21V10h14v11z"/><path d="M5 10V5h3v2.5h2.5V5h3v2.5H16V5h3v5"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/>',
+  arrowUp: '<path d="M12 20V5"/><path d="M6 11l6-6 6 6"/>',
+  arrowRight: '<path d="M4 12h15"/><path d="M13 6l6 6-6 6"/>',
+  board: '<rect x="3.5" y="3.5" width="17" height="17" rx="1.5"/><path d="M3.5 9.2h17M3.5 14.8h17M9.2 3.5v17M14.8 3.5v17"/><path d="M3.5 3.5h5.7v5.7H3.5zM14.8 3.5h5.7v5.7h-5.7zM9.2 9.2h5.6v5.6H9.2zM3.5 14.8h5.7v5.7H3.5zM14.8 14.8h5.7v5.7h-5.7z" fill="currentColor" stroke="none" opacity=".35"/>',
+  book: '<path d="M4 4.5h6a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H4z"/><path d="M20 4.5h-6a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2h6z"/>',
+  sword: '<path d="M14.5 3.5H20v5.5L9.5 19.5l-5-5z"/><path d="M6.5 13.5l4 4M3.5 20.5l3-3"/>',
+  shield: '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>',
+  route: '<circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/>',
+  key: '<circle cx="8" cy="15" r="4.5"/><path d="M11.5 12L20 3.5M16.5 7l3 3M14 9.5l2 2"/>',
+  fork: '<path d="M12 21v-8"/><path d="M12 13L5.5 5M12 13l6.5-8"/><circle cx="5" cy="4.5" r="1.6" fill="currentColor"/><circle cx="19" cy="4.5" r="1.6" fill="currentColor"/>',
+  pin: '<circle cx="12" cy="9" r="5.5"/><path d="M12 14.5V21.5"/>',
+  skewer: '<path d="M3 12h18"/><circle cx="9" cy="12" r="3"/><circle cx="17" cy="12" r="2"/>',
+  chart: '<path d="M4 4v16h16"/><path d="M7.5 15l4-4.5 3 3L20 7"/>',
+  hourglass: '<path d="M6 3h12M6 21h12M7 3c0 5 10 5 10 9s-10 4-10 9M17 3c0 5-10 5-10 9"/>',
+  sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/>',
+  ninja: '<circle cx="12" cy="12" r="8.5"/><path d="M4 11h16v3H4z" fill="currentColor"/><circle cx="9" cy="12.5" r="1" fill="#fff" stroke="none"/><circle cx="15" cy="12.5" r="1" fill="#fff" stroke="none"/>',
+  muscle: '<path d="M5 17c0-5 3-9 6-10l2 2-3 2c3 0 6 1 8 4-2 3-6 4-13 2z"/>',
+  wifi: '<path d="M2.5 9a14 14 0 0 1 19 0M5.5 12.5a9.5 9.5 0 0 1 13 0M8.7 16a5 5 0 0 1 6.6 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/>',
+  cloud: '<path d="M7 18.5a4.5 4.5 0 0 1-.5-9A6 6 0 0 1 18 8.5a4.5 4.5 0 0 1-.5 10z"/>',
+  download: '<path d="M12 3v12M7 10l5 5 5-5M4.5 20h15"/>',
+  upload: '<path d="M12 15V3M7 8l5-5 5 5M4.5 20h15"/>',
+  edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+  trash: '<path d="M4.5 6.5h15M9.5 6.5V4h5v2.5M6.5 6.5l1 14h9l1-14"/>',
+  palette: '<path d="M12 3a9 9 0 0 0 0 18c1.4 0 2-1 1.6-2.2-.5-1.4.4-2.8 1.9-2.8H18a3 3 0 0 0 3-3c0-5.5-4-10-9-10z"/><circle cx="7.5" cy="11" r="1.2" fill="currentColor"/><circle cx="10.5" cy="7" r="1.2" fill="currentColor"/><circle cx="15" cy="7.5" r="1.2" fill="currentColor"/>',
+  home: '<path d="M3.5 11L12 4l8.5 7"/><path d="M6 9.5V20h12V9.5"/>',
+  medal: '<circle cx="12" cy="15" r="5.5"/><path d="M8.5 10.5L6 3h4l2 5 2-5h4l-2.5 7.5"/>',
+  chat: '<path d="M4 5h16v11H9l-5 4z"/>',
+  list: '<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/>',
+};
+function icon(name, size = 22, extraClass = '') {
+  const p = ICON_PATHS[name] || ICON_PATHS.star;
+  const span = document.createElement('span');
+  span.className = 'icn ' + extraClass;
+  span.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+  return span;
+}
+const iconSvg = (name, color = '#fff') => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:${color}">${ICON_PATHS[name]}</svg>`;
+
+// ---------- Characters (64x64) ----------
+const AVATAR_SVG = {
+  // Pip: a newly hatched chick peeking out of its shell
+  pip: `<circle cx="32" cy="32" r="32" fill="#2f4a7a"/><ellipse cx="32" cy="34" rx="15" ry="16" fill="#ffd54a"/><path d="M28 15c2-4 6-4 6 0" stroke="#e8a317" stroke-width="2.5" fill="none" stroke-linecap="round"/><circle cx="26.5" cy="30" r="2.6" fill="#2b2320"/><circle cx="37.5" cy="30" r="2.6" fill="#2b2320"/><circle cx="27.3" cy="29.2" r=".9" fill="#fff"/><circle cx="38.3" cy="29.2" r=".9" fill="#fff"/><path d="M29 35l3 3.5 3-3.5z" fill="#ff8a3c"/><path d="M14 42l5-4 4 5 5-5 4 5 4-5 5 5 4-5 5 4v8a18 18 0 0 1-36 0z" fill="#fbf4e6" stroke="#d9cdb4" stroke-width="1.5"/>`,
+  // Bea: a round bumblebee with clear wings
+  bea: `<circle cx="32" cy="32" r="32" fill="#3d3a6e"/><ellipse cx="23" cy="20" rx="8" ry="11" fill="#cfe9ff" opacity=".85" transform="rotate(-25 23 20)"/><ellipse cx="41" cy="20" rx="8" ry="11" fill="#cfe9ff" opacity=".85" transform="rotate(25 41 20)"/><ellipse cx="32" cy="37" rx="16" ry="14" fill="#ffc83a"/><path d="M22 28.5h20M18.5 36h27M20 43.5h24" stroke="#2b2320" stroke-width="4" stroke-linecap="round"/><circle cx="26" cy="33" r="0" /><path d="M27 18c-1-4-3-6-6-6M37 18c1-4 3-6 6-6" stroke="#2b2320" stroke-width="2" fill="none" stroke-linecap="round"/><circle cx="21" cy="12" r="2" fill="#2b2320"/><circle cx="43" cy="12" r="2" fill="#2b2320"/>`,
+  // Milo: a clever fox
+  milo: `<circle cx="32" cy="32" r="32" fill="#28536b"/><path d="M14 16l8 14M50 16l-8 14" stroke="none"/><path d="M13 14l12 10-6 6zM51 14L39 24l6 6z" fill="#e8742a"/><path d="M15.5 17.5l6 5-3 3zM48.5 17.5l-6 5 3 3z" fill="#3a2418"/><path d="M14 30c0-8 8-12 18-12s18 4 18 12c0 9-8 18-18 22-10-4-18-13-18-22z" fill="#f08a35"/><path d="M14.5 33c6 0 11 4 17.5 19-10-4-17-11-17.5-19zM49.5 33c-6 0-11 4-17.5 19 10-4 17-11 17.5-19z" fill="#fff4e6"/><circle cx="25" cy="30" r="2.6" fill="#2b2320"/><circle cx="39" cy="30" r="2.6" fill="#2b2320"/><path d="M29.5 41h5l-2.5 3z" fill="#2b2320"/>`,
+  // Rosa: a thoughtful owl
+  rosa: `<circle cx="32" cy="32" r="32" fill="#4a3b6b"/><path d="M15 18l7 6M49 18l-7 6" stroke="#7a5233" stroke-width="4" stroke-linecap="round"/><ellipse cx="32" cy="36" rx="18" ry="19" fill="#9a6a44"/><ellipse cx="32" cy="42" rx="11" ry="11" fill="#e9d2b0"/><circle cx="24.5" cy="29" r="7.5" fill="#fff"/><circle cx="39.5" cy="29" r="7.5" fill="#fff"/><circle cx="25" cy="29.5" r="3.6" fill="#2b2320"/><circle cx="39" cy="29.5" r="3.6" fill="#2b2320"/><circle cx="26" cy="28.4" r="1.1" fill="#fff"/><circle cx="40" cy="28.4" r="1.1" fill="#fff"/><path d="M29.5 34.5h5L32 39z" fill="#f2a530"/><path d="M26 45q2 1.5 3 0M31 47q2 1.5 3 0M35 44q2 1.5 3 0" stroke="#b08a63" stroke-width="1.4" fill="none"/>`,
+  // Sir Knight: a knight's helmet with a plume
+  knight: `<circle cx="32" cy="32" r="32" fill="#1f5f5b"/><path d="M33 9c6-2 12 1 13 7-5-1-9 0-12 3z" fill="#e2483d"/><path d="M18 30c0-10 6-17 14-17s14 7 14 17v14c0 4-3 7-7 7H25c-4 0-7-3-7-7z" fill="#c9d1db" stroke="#8d97a3" stroke-width="1.5"/><path d="M19 31h26v6H19z" fill="#2b3340"/><path d="M32 13v18" stroke="#8d97a3" stroke-width="2"/><path d="M24 42h16M26 46h12" stroke="#8d97a3" stroke-width="1.6" stroke-linecap="round"/>`,
+  // Bishop Bo: a wise old wizard-scholar
+  bo: `<circle cx="32" cy="32" r="32" fill="#2c3f6e"/><path d="M32 4L18 27h28z" fill="#6b4fc4"/><circle cx="32" cy="16" r="2.2" fill="#ffd54a"/><path d="M15 27h34" stroke="#8f78e0" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="35" r="10" fill="#f2c9a0"/><circle cx="28" cy="34" r="1.6" fill="#2b2320"/><circle cx="36" cy="34" r="1.6" fill="#2b2320"/><path d="M22 38c2 14 18 14 20 0-3 2-6 3-10 3s-7-1-10-3z" fill="#f4f1ea"/><path d="M27 31.5h3M34 31.5h3" stroke="#f4f1ea" stroke-width="1.8" stroke-linecap="round"/>`,
+  // Queen Vera: a confident queen with a jeweled crown
+  vera: `<circle cx="32" cy="32" r="32" fill="#5b2a5e"/><path d="M18 54c0-10 6-15 14-15s14 5 14 15z" fill="#b8327a"/><path d="M19 30c0-10 5-15 13-15s13 5 13 15c0 3 1 7 3 9-4 1-6-2-7-4l-9-1-9 1c-1 2-3 5-7 4 2-2 3-6 3-9z" fill="#5a3426"/><circle cx="32" cy="31" r="9.5" fill="#e9b48e"/><circle cx="28.5" cy="30.5" r="1.5" fill="#2b2320"/><circle cx="35.5" cy="30.5" r="1.5" fill="#2b2320"/><path d="M29 35q3 2 6 0" stroke="#a5453c" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M22 19l3-9 4 5 3-7 3 7 4-5 3 9z" fill="#ffcf3f" stroke="#d9a21a" stroke-width="1"/><circle cx="32" cy="15" r="1.6" fill="#e2483d"/>`,
+  // The Tower: an ancient stone tower with a glowing window
+  tower: `<circle cx="32" cy="32" r="32" fill="#283244"/><path d="M20 56V24h24v32z" fill="#8a94a6"/><path d="M18 24V13h5v4h4.5v-4h5v4h4.5v-4h5v11z" fill="#a4aec0"/><path d="M28 56V45a4 4 0 0 1 8 0v11z" fill="#3b2a1d"/><path d="M29 30h6v7h-6z" fill="#ffcf5a"/><path d="M20 33h5M39 40h5M22 48h4M38 50h6" stroke="#717b8d" stroke-width="1.5" stroke-linecap="round"/><path d="M44 13l5-3v6z" fill="#e2483d"/><path d="M44 10v14" stroke="#cfd6e0" stroke-width="1.3"/>`,
+  // generic people
+  you: `<circle cx="32" cy="32" r="32" fill="#2f6f4f"/><circle cx="32" cy="26" r="10" fill="#f3d2b3"/><path d="M14 56c1-11 8-17 18-17s17 6 18 17z" fill="#ffb547"/><circle cx="28.5" cy="26" r="1.5" fill="#2b2320"/><circle cx="35.5" cy="26" r="1.5" fill="#2b2320"/><path d="M28.5 30.5q3.5 3 7 0" stroke="#a5453c" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M22 23c1-8 19-9 20 0-3-3-7-4-10-4s-7 1-10 4z" fill="#4a3426"/>`,
+  friend: `<circle cx="32" cy="32" r="32" fill="#6b3b3b"/><circle cx="32" cy="26" r="10" fill="#c98f6a"/><path d="M14 56c1-11 8-17 18-17s17 6 18 17z" fill="#6fb3ff"/><circle cx="28.5" cy="26" r="1.5" fill="#2b2320"/><circle cx="35.5" cy="26" r="1.5" fill="#2b2320"/><path d="M28.5 30.5q3.5 3 7 0" stroke="#7a2e26" stroke-width="1.6" fill="none" stroke-linecap="round"/><path d="M21 26c0-9 4-12 11-12s11 3 11 12c-2-4-6-6-11-6s-9 2-11 6z" fill="#2b2320"/>`,
+  white: `<circle cx="32" cy="32" r="32" fill="#e9e3d6"/><circle cx="32" cy="32" r="14" fill="#fffdf6" stroke="#272320" stroke-width="2.5"/>`,
+  black: `<circle cx="32" cy="32" r="32" fill="#3a3540"/><circle cx="32" cy="32" r="14" fill="#2b2730" stroke="#f4ecdc" stroke-width="2.5"/>`,
+};
+// Professor Hoot: the owl teacher with a mortarboard
+const HOOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><ellipse cx="32" cy="40" rx="20" ry="21" fill="#8a5a36"/><ellipse cx="32" cy="46" rx="12.5" ry="13" fill="#ecd6b4"/><path d="M37 55q2 1.6 3 0M27 52q2 1.6 3 0M32 57q2 1.6 3 0" stroke="#b9936b" stroke-width="1.4" fill="none"/><circle cx="23.5" cy="33" r="8.5" fill="#fff"/><circle cx="40.5" cy="33" r="8.5" fill="#fff"/><circle cx="23.5" cy="33" r="8.5" fill="none" stroke="#3b2a1d" stroke-width="1.6"/><circle cx="40.5" cy="33" r="8.5" fill="none" stroke="#3b2a1d" stroke-width="1.6"/><path d="M32 33h0" stroke="#3b2a1d" stroke-width="1.6"/><circle cx="24" cy="33.5" r="3.8" fill="#2b2320"/><circle cx="40" cy="33.5" r="3.8" fill="#2b2320"/><circle cx="25.2" cy="32.3" r="1.2" fill="#fff"/><circle cx="41.2" cy="32.3" r="1.2" fill="#fff"/><path d="M29.5 39h5L32 43.5z" fill="#f2a530"/><path d="M12 15l20-8 20 8-20 8z" fill="#2b2730"/><path d="M20 18v6c6 4 18 4 24 0v-6" fill="#3a3540"/><path d="M50 15.5v9" stroke="#ffcf3f" stroke-width="1.8"/><circle cx="50" cy="25.5" r="2" fill="#ffcf3f"/></svg>`;
+const AVATAR_URL = {};
+for (const k in AVATAR_SVG) AVATAR_URL[k] = 'data:image/svg+xml;base64,' + btoa(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">${AVATAR_SVG[k]}</svg>`);
+const HOOT_URL = 'data:image/svg+xml;base64,' + btoa(HOOT_SVG);
+function avatar(key, size = 38) {
+  const img = document.createElement('img');
+  img.src = AVATAR_URL[key] || AVATAR_URL.you; img.alt = ''; img.width = size; img.height = size;
+  img.className = 'av-img'; return img;
+}
+function hoot(size = 52) { const img = document.createElement('img'); img.src = HOOT_URL; img.width = size; img.height = size; img.alt = 'Professor Hoot'; img.className = 'hoot'; return img; }
+// tiny piece image for inline text, e.g. pieceImg('wk')
+function pieceImg(key, size = 18) { const img = document.createElement('img'); img.src = PIECE_URL[key]; img.width = size; img.height = size; img.alt = ''; img.style.verticalAlign = '-3px'; return img; }
+
+// Big round badge for result screens, e.g. badge('trophy', 'gold')
+function badge(name, tone = 'gold') { const d = document.createElement('div'); d.className = 'badge ' + tone; d.append(icon(name, 40)); return d; }
+// icon as an HTML string, for places that build innerHTML
+function iconSvgInline(name, size = 22) { return `<span class="icn"><svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON_PATHS[name]}</svg></span>`; }
+
+;
+'use strict';
 const E = ChessEngineFactory();
 const $ = (s, el = document) => el.querySelector(s);
 function h(tag, attrs, ...kids) {
@@ -1166,7 +1323,7 @@ class BoardView {
       if (this.marks[sq]) el.classList.add(this.marks[sq]);
       el.querySelectorAll('.dot,.ring,.star').forEach(c => c.remove());
       if (this.targets.includes(sq)) el.append(h('div', { class: this.board[sq] ? 'ring' : 'dot' }));
-      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, '⭐'));
+      if (this.stars && this.stars.has(sq)) el.append(h('div', { class: 'star' }, icon('star', 34)));
     }
     this.layer.innerHTML = ''; this.pieceEls = {};
     for (let s = 0; s < 128; s++) {
@@ -1218,8 +1375,8 @@ class BoardView {
     this.sel = -1; this.targets = [];
     if (this.opts.onMove) this.opts.onMove(from, to, dragged);
   }
-  burst(emoji) {
-    const b = h('div', { class: 'burst' }, emoji); this.fx.append(b); setTimeout(() => b.remove(), 800);
+  burst(name) {
+    const b = h('div', { class: 'burst' }, icon(name || 'star', 90, 'burst-ic ' + (name || 'star'))); this.fx.append(b); setTimeout(() => b.remove(), 800);
   }
 }
 
@@ -1339,7 +1496,7 @@ function cappedGlicko(cur, opp, score, capProv, capEst) {
   nr.games = (cur.games || 0) + 1;
   return nr;
 }
-const BANDS = [[0, 'Beginner', '🌱'], [600, 'Novice', '🐣'], [1000, 'Intermediate', '🦊'], [1400, 'Club player', '🦉'], [1800, 'Expert', '🧙'], [2200, 'Master level', '👑']];
+const BANDS = [[0, 'Beginner'], [600, 'Novice'], [1000, 'Intermediate'], [1400, 'Club player'], [1800, 'Expert'], [2200, 'Master level']];
 const band = r => { let b = BANDS[0]; for (const x of BANDS) if (r >= x[0]) b = x; return b; };
 const fmtR = rt => Math.round(rt.r) + (rt.rd > 110 ? '?' : '');
 
@@ -1350,7 +1507,7 @@ function loadLocal() { try { const s = localStorage.getItem('kc-profile'); if (s
 function saveProfile() { profile.updated = Date.now(); try { localStorage.setItem('kc-profile', JSON.stringify(profile)); } catch (e) { } refreshChip(); }
 function refreshChip() {
   const c = document.getElementById('rchip'); if (!c) return;
-  c.innerHTML = ''; c.append(leagueIcon(profile.ladder.r), ' ' + profile.ladder.r, h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)));
+  c.innerHTML = ''; c.append(leagueIcon(profile.ladder.r), ' ' + profile.ladder.r, h('small', null, icon('puzzle', 14), ' ' + fmtR(profile.puzzle)));
 }
 
 // ======================= DATA =======================
@@ -1377,8 +1534,8 @@ function render() {
   document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === route));
 }
 function buildTabs() {
-  const items = [['play', '♞', 'Play'], ['friend', '🤝', 'Friends'], ['puzzles', '🧩', 'Puzzles'], ['learn', '🎓', 'Learn'], ['me', '⭐', 'Me']];
-  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => h('button', { 'data-r': r, onclick: () => go(r) }, h('span', { class: 'ic' }, ic), l)));
+  const items = [['play', 'play', 'Play'], ['friend', 'friends', 'Friends'], ['puzzles', 'puzzle', 'Puzzles'], ['learn', 'learn', 'Learn'], ['me', 'user', 'Me']];
+  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => h('button', { 'data-r': r, onclick: () => go(r) }, icon(ic, 24), l)));
   document.body.append(h('nav', { class: 'tabs' }, inner));
 }
 
@@ -1407,7 +1564,7 @@ function gameScreen(main, cfg) {
     const capEl = h('div', { class: 'caps' });
     const turnEl = h('div', { class: 'turnmark hidden' });
     const status = h('div', { class: 'thinking' });
-    const el = h('div', { class: 'pbar' }, h('div', { class: 'avatar' }, who.avatar || '🙂'),
+    const el = h('div', { class: 'pbar' }, h('div', { class: 'avatar' }, avatar(who.avatar || 'you', 38)),
       h('div', { class: 'grow' }, h('div', { class: 'row', style: { gap: '6px' } }, h('span', { class: 'pname' }, who.name), h('span', { class: 'prating' }, who.rating ? '(' + who.rating + ')' : ''), turnEl), capEl), status);
     return { el, capEl, turnEl, status, colorIdx };
   };
@@ -1415,10 +1572,10 @@ function gameScreen(main, cfg) {
   const topBar = bar(cfg.players[bottomColor ? 'w' : 'b'], bottomColor ^ 1), botBar = bar(cfg.players[bottomColor ? 'b' : 'w'], bottomColor);
   const movesEl = h('div', { class: 'moves' });
   const navEl = h('div', { class: 'nav' },
-    h('button', { class: 'btn sm', onclick: () => setView(0) }, '⏮'),
-    h('button', { class: 'btn sm', onclick: () => setView(Math.max(0, (viewPly ?? g.moves.length) - 1)) }, '◀'),
-    h('button', { class: 'btn sm', onclick: () => setView((viewPly ?? g.moves.length) + 1) }, '▶'),
-    h('button', { class: 'btn sm', onclick: () => setView(null) }, '⏭'));
+    h('button', { class: 'btn sm', 'aria-label': 'First move', onclick: () => setView(0) }, icon('first', 20)),
+    h('button', { class: 'btn sm', 'aria-label': 'Previous move', onclick: () => setView(Math.max(0, (viewPly ?? g.moves.length) - 1)) }, icon('prev', 20)),
+    h('button', { class: 'btn sm', 'aria-label': 'Next move', onclick: () => setView((viewPly ?? g.moves.length) + 1) }, icon('next', 20)),
+    h('button', { class: 'btn sm', 'aria-label': 'Last move', onclick: () => setView(null) }, icon('last', 20)));
   const ctrl = h('div', { class: 'controls' });
   main.append(h('div', null, topBar.el, board.el, botBar.el), movesEl, navEl, ctrl);
   function setView(p) { if (p !== null && p >= g.moves.length) p = null; viewPly = p; refresh(); }
@@ -1451,7 +1608,7 @@ function gameScreen(main, cfg) {
   function setButtons(list) {
     ctrl.innerHTML = '';
     ctrl.style.gridTemplateColumns = `repeat(${list.length},1fr)`;
-    for (const b of list) ctrl.append(h('button', { class: 'btn', onclick: b.on, disabled: b.disabled }, h('span', { class: 'ic' }, b.ic), b.label));
+    for (const b of list) ctrl.append(h('button', { class: 'btn', onclick: b.on, disabled: b.disabled }, icon(b.ic, 22), b.label));
   }
   refresh();
   return {
@@ -1482,15 +1639,15 @@ function renderPlay(main) {
     const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
     stakes.textContent = playSel.rated ? `Win ${f(eloDelta(L.r, br, 1, K))} · Draw ${f(eloDelta(L.r, br, .5, K))} · Loss ${f(eloDelta(L.r, br, 0, K))}` + (L.games < PLACEMENT_GAMES ? `  (placement game ${L.games + 1}/${PLACEMENT_GAMES})` : '') : 'Casual: your rating will not change';
   };
-  const drawGrid = () => { playBtn.textContent = '▶  Play ' + BOTS[playSel.bot].name; drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, b.avatar), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, '★ ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
+  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), 'Play ' + BOTS[playSel.bot].name); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']], 'color')),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, '🏆 Rated'], [false, '🧸 Casual (undo + hints)']], 'rated')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
+      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual (undo + hints)']], 'rated')),
       playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated) {
@@ -1503,27 +1660,27 @@ function renderBotGame(main) {
   const g = new Game(START_FEN, cur.moves);
   let thinking = false, alive = true;
   cleanups.push(() => { alive = false; });
-  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: '🙂' };
+  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: 'you' };
   const them = { name: bot.name, rating: bot.rating, avatar: bot.avatar };
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
     canMove: turn => !thinking && !cur.result && turn === cur.color,
     onUserMove: (uci, dragged) => { const res = g.play(uci); if (!res) return; playSound(res); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo); afterMove(); },
   });
-  main.append(h('div', { class: 'center small muted' }, cur.rated ? '🏆 Rated game' : '🧸 Casual game: undo and hints allowed'));
+  main.append(h('div', { class: 'center small muted' }, cur.rated ? 'Rated game' : 'Casual game: undo and hints allowed'));
   function buttons() {
     const over = !!cur.result;
-    const list = [{ ic: '🔄', label: 'Flip', on: () => scr.flip() }];
+    const list = [{ ic: 'flip', label: 'Flip', on: () => scr.flip() }];
     if (!cur.rated) {
-      list.push({ ic: '↩️', label: 'Undo', disabled: over || thinking || g.moves.length < 1, on: () => { g.undo(); if (g.turn() !== cur.color) g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } });
-      list.push({ ic: '💡', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
+      list.push({ ic: 'undo', label: 'Undo', disabled: over || thinking || g.moves.length < 1, on: () => { g.undo(); if (g.turn() !== cur.color) g.undo(); cur.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } });
+      list.push({ ic: 'bulb', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
     }
     if (over) {
-      list.push({ ic: '🔁', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated) });
-      list.push({ ic: '🏠', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
+      list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated) });
+      list.push({ ic: 'plus', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
     } else {
-      list.push({ ic: '🤝', label: 'Draw?', disabled: thinking, on: offerDraw });
-      list.push({ ic: '🏳️', label: 'Resign', on: () => confirmBox('Resign?', cur.rated && g.moves.length >= 2 ? 'This counts as a loss for your rating.' : 'End this game?', 'Resign', () => finish(cur.color === 'w' ? '0-1' : '1-0', 'resignation')) });
+      list.push({ ic: 'half', label: 'Draw?', disabled: thinking, on: offerDraw });
+      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', cur.rated && g.moves.length >= 2 ? 'This counts as a loss for your rating.' : 'End this game?', 'Resign', () => finish(cur.color === 'w' ? '0-1' : '1-0', 'resignation')) });
     }
     scr.setButtons(list);
   }
@@ -1540,7 +1697,7 @@ function renderBotGame(main) {
   function offerDraw() {
     // Bot accepts when it is not better, or the position is dead-even late in the game
     const accept = lastBotScore <= -60 || (g.moves.length > 70 && Math.abs(lastBotScore) < 25);
-    if (accept) { toast(bot.name + ' accepts the draw 🤝'); finish('1/2-1/2', 'agreement'); }
+    if (accept) { toast(bot.name + ' accepts the draw.'); finish('1/2-1/2', 'agreement'); }
     else toast(bot.name + ' wants to keep playing!');
   }
   function afterMove() {
@@ -1583,16 +1740,16 @@ function renderBotGame(main) {
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
-    if (score === 1) { beep('win'); scr.board.burst('🏆'); }
+    if (score === 1) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }
   function showResult(score, reason, counted, before, after, promo) {
     const d = Math.round(after) - Math.round(before);
     modal((box, close) => box.append(
-      h('div', { class: 'big-emoji' }, score === 1 ? '🏆' : score === 0.5 ? '🤝' : '💪'),
+      badge(score === 1 ? 'trophy' : score === 0.5 ? 'half' : 'shield', score === 1 ? 'gold' : score === 0.5 ? 'blue' : 'red'),
       h('h2', { class: 'center' }, score === 1 ? 'You win!' : score === 0.5 ? 'Draw!' : bot.name + ' wins'),
       h('p', { class: 'center muted' }, 'by ' + reason),
-      counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' → ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
+      counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' ', icon('arrowRight', 16), ' ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
       counted && d === 0 && score === 1 ? h('p', { class: 'center small muted' }, 'This bot is far below your level, so wins no longer count. Try a stronger bot!') : null,
       promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
       score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
@@ -1611,32 +1768,32 @@ function renderFriend(main) {
   if (friendView === 'online') return renderOnline(main);
   main.append(
     h('h2', null, 'Play with a friend'),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic' }, '📱'), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic' }, '🌐'), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
-    h('p', { class: 'small muted' }, `Online games count toward your 🌐 Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
+    h('p', { class: 'small muted' }, `Online games count toward your Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
 }
 function renderLocalGame(main) {
   const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true });
   const g = new Game(START_FEN, st.moves);
   const scr = gameScreen(main, {
-    game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: '⚪' }, b: { name: 'Black', avatar: '⚫' } },
+    game: g, orient: st.autoFlip ? g.turn() : 'w', players: { w: { name: 'White', avatar: 'white' }, b: { name: 'Black', avatar: 'black' } },
     canMove: () => !g.status().over,
     onUserMove: (uci, dragged) => {
       const res = g.play(uci); if (!res) return; playSound(res);
       st.moves = g.moves.slice(); saveProfile(); scr.refresh(dragged ? null : g.lastFromTo);
       const s = g.status();
-      if (s.over) { beep('win'); setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, s.result === '1/2-1/2' ? '🤝' : '🏆'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); }
+      if (s.over) { beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); }
       else if (st.autoFlip) setTimeout(() => { if (scr.board.orient !== g.turn()) scr.flip(); }, 450);
       buttons();
     },
   });
   function buttons() {
     scr.setButtons([
-      { ic: '⬅️', label: 'Back', on: () => { friendView = 'menu'; render(); } },
-      { ic: '🔄', label: 'Flip', on: () => scr.flip() },
-      { ic: st.autoFlip ? '🔁' : '⏸️', label: st.autoFlip ? 'Auto-flip' : 'No flip', on: () => { st.autoFlip = !st.autoFlip; saveProfile(); buttons(); toast(st.autoFlip ? 'Board turns after each move' : 'Board stays put'); } },
-      { ic: '↩️', label: 'Undo', disabled: !g.moves.length, on: () => { g.undo(); st.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } },
-      { ic: '🆕', label: 'New', on: () => confirmBox('New game?', 'Start over from the beginning.', 'New game', () => { st.moves = []; saveProfile(); render(); }) },
+      { ic: 'back', label: 'Back', on: () => { friendView = 'menu'; render(); } },
+      { ic: 'flip', label: 'Flip', on: () => scr.flip() },
+      { ic: st.autoFlip ? 'repeat' : 'x', label: st.autoFlip ? 'Auto-flip' : 'No flip', on: () => { st.autoFlip = !st.autoFlip; saveProfile(); buttons(); toast(st.autoFlip ? 'Board turns after each move' : 'Board stays put'); } },
+      { ic: 'undo', label: 'Undo', disabled: !g.moves.length, on: () => { g.undo(); st.moves = g.moves.slice(); saveProfile(); scr.refresh(); buttons(); } },
+      { ic: 'plus', label: 'New', on: () => confirmBox('New game?', 'Start over from the beginning.', 'New game', () => { st.moves = []; saveProfile(); render(); }) },
     ]);
   }
   buttons();
@@ -1760,42 +1917,42 @@ async function guestJoin(inviteCode) {
 let pendingJoin = null;
 function renderOnline(main) {
   if (online && online.state && (online.phase === 'live' || online.phase === 'lost')) return renderOnlineGame(main);
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { leaveOnline(); friendView = 'menu'; render(); } }, '⬅ Back'), h('h2', null, 'Play Online')));
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { leaveOnline(); friendView = 'menu'; render(); } }, icon('back', 18), 'Back'), h('h2', null, 'Play Online')));
   if (!window.RTCPeerConnection) { main.append(h('div', { class: 'card' }, 'This browser does not support peer-to-peer connections. Try Chrome, Safari or Firefox.')); return; }
   const card = h('div', { class: 'card stack' }); main.append(card);
   const ph = online && online.phase;
   if (!online) {
     let color = 'r';
     const seg = h('div', { class: 'seg' });
-    const drawSeg = () => { seg.innerHTML = ''; [['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; drawSeg(); } }, l))); };
+    const drawSeg = () => { seg.innerHTML = ''; [['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; drawSeg(); } }, l))); };
     drawSeg();
     const inp = h('textarea', { class: 'input', rows: 3, placeholder: 'Paste the invite link or code here' });
     if (pendingJoin) { inp.value = pendingJoin; }
     card.append(h('h3', null, '1. Host a game'), h('div', { class: 'small muted' }, 'You play as:'), seg,
-      h('button', { class: 'btn primary block', onclick: () => hostCreate(color) }, '✨ Create invite'));
+      h('button', { class: 'btn primary block', onclick: () => hostCreate(color) }, icon('sparkle', 18), 'Create invite'));
     main.append(h('div', { class: 'card stack' }, h('h3', null, '2. Or join a friend'), inp,
       h('button', { class: 'btn block', onclick: () => { const v = inp.value.trim(); if (!v) return toast('Paste the invite first'); pendingJoin = null; guestJoin(v); } }, 'Join game')),
       h('p', { class: 'small muted' }, 'How it works: the host sends an invite link. The friend opens it and sends back a reply code. Once the host pastes that code in, the two devices connect directly, with no server in between.'));
     return;
   }
-  if (ph === 'making' || ph === 'connecting') { card.append(h('div', { class: 'center' }, '⏳ ', ph === 'making' ? 'Preparing connection…' : 'Connecting to your friend…')); }
+  if (ph === 'making' || ph === 'connecting') { card.append(h('div', { class: 'center' }, icon('hourglass', 18), ' ', ph === 'making' ? 'Preparing connection…' : 'Connecting to your friend…')); }
   else if (ph === 'invite') {
     const link = inviteLink(online.code);
     const ans = h('textarea', { class: 'input', rows: 3, placeholder: "Paste your friend's reply code here" });
     card.append(h('h3', null, 'Step 1: Send this invite'),
       h('div', { class: 'small muted' }, 'Text or message this link to your friend:'),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(link, 'Join my chess game!') }, '📤 Share invite'), h('button', { class: 'btn', onclick: () => copyText(link) }, '📋 Copy')),
+      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(link, 'Join my chess game!') }, icon('share', 18), 'Share invite'), h('button', { class: 'btn', onclick: () => copyText(link) }, icon('copy', 18), 'Copy')),
       h('h3', null, 'Step 2: Paste their reply'), ans,
-      h('button', { class: 'btn block', onclick: () => { const v = ans.value.trim(); if (!v) return toast('Paste the reply code first'); hostAccept(v); } }, '🔗 Connect'),
+      h('button', { class: 'btn block', onclick: () => { const v = ans.value.trim(); if (!v) return toast('Paste the reply code first'); hostAccept(v); } }, icon('link', 18), 'Connect'),
       h('button', { class: 'btn ghost', onclick: () => { leaveOnline(); render(); } }, 'Cancel'));
   } else if (ph === 'answer') {
     card.append(h('h3', null, 'Almost there!'),
       h('div', { class: 'small muted' }, `Send this reply code back to ${online.hostName || 'your friend'}. The game starts as soon as they paste it in.`),
-      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(online.code, 'My chess reply code') }, '📤 Share reply'), h('button', { class: 'btn', onclick: () => copyText(online.code) }, '📋 Copy')),
-      h('div', { class: 'center muted small' }, '⏳ Waiting for the connection…'),
+      h('div', { class: 'row' }, h('button', { class: 'btn primary grow', onclick: () => shareOrCopy(online.code, 'My chess reply code') }, icon('share', 18), 'Share reply'), h('button', { class: 'btn', onclick: () => copyText(online.code) }, icon('copy', 18), 'Copy')),
+      h('div', { class: 'center muted small' }, icon('hourglass', 16), ' Waiting for the connection…'),
       h('button', { class: 'btn ghost', onclick: () => { leaveOnline(); render(); } }, 'Cancel'));
   } else if (ph === 'error' || ph === 'lost') {
-    card.append(h('h3', null, '😕 ' + (ph === 'lost' ? 'Connection lost' : 'Something went wrong')), h('p', { class: 'small muted' }, online.err || 'The connection closed.'),
+    card.append(h('h3', null, (ph === 'lost' ? 'Connection lost' : 'Something went wrong')), h('p', { class: 'small muted' }, online.err || 'The connection closed.'),
       h('button', { class: 'btn primary block', onclick: () => { leaveOnline(); render(); } }, 'Start over'));
   }
 }
@@ -1812,7 +1969,7 @@ function rateOnline(st, opp, score) {
   profile.human = cappedGlicko(profile.human, { r: clamp(opp.r, 100, 3000, 800), rd: clamp(opp.rd, 50, 350, 250) }, score, 50, 30);
   const after = Math.round(profile.human.r);
   profile.hHist.push(after); if (profile.hHist.length > 200) profile.hHist.shift();
-  profile.games.unshift({ t: Date.now(), opp: (opp.name || 'Friend') + ' 🌐', score, reason: st.result.reason, rated: true, before, after, online: true });
+  profile.games.unshift({ t: Date.now(), opp: (opp.name || 'Friend') + ' (online)', score, reason: st.result.reason, rated: true, before, after, online: true });
   profile.games = profile.games.slice(0, 50);
   saveProfile();
   return { before, after };
@@ -1831,7 +1988,7 @@ function renderOnlineGame(main) {
   setLive();
   main.append(h('div', { class: 'row' }, live, h('span', { class: 'grow' })));
   const scr = gameScreen(main, {
-    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: '🧑', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: '🙂', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
+    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: 'friend', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: 'you', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
     canMove: turn => o.connected && !o.state.result && turn === myColor,
     onUserMove: (uci, dragged) => {
       const res = g.play(uci); if (!res) return; playSound(res);
@@ -1847,9 +2004,9 @@ function renderOnlineGame(main) {
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
     const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = rateOnline(o.state, oppInfo, score);
-    if (win) { beep('win'); scr.board.burst('🏆'); }
-    setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, r.result === '1/2-1/2' ? '🤝' : win ? '🏆' : '💪'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
-      rc ? h('p', { class: 'center' }, '🌐 Online rating ', h('b', null, rc.before), ' → ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
+    if (win) { beep('win'); scr.board.burst('trophy'); }
+    setTimeout(() => modal((box, close) => box.append(badge(r.result === '1/2-1/2' ? 'half' : win ? 'trophy' : 'shield', r.result === '1/2-1/2' ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
+      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
       h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
   }
   o.onState = (prevLen) => {
@@ -1861,20 +2018,20 @@ function renderOnlineGame(main) {
     Object.assign(g, new Game(START_FEN, s2.moves));
     if (s2.moves.length > prevLen) { beep(g.pos.inCheck() ? 'check' : 'move'); scr.refresh(g.lastFromTo); } else scr.refresh();
     if (o.role === 'host') { profile.onlineResume = s2.result ? null : s2; saveProfile(); }
-    if (s2.drawOffer && s2.drawOffer !== myId && !s2.result) toast('Your friend offers a draw. Tap 🤝 to accept.', 3500);
-    if (s2.rematch && s2.rematch !== myId && s2.result) toast('Your friend wants a rematch! Tap 🔁', 3500);
+    if (s2.drawOffer && s2.drawOffer !== myId && !s2.result) toast('Your friend offers a draw. Tap Accept to agree.', 3500);
+    if (s2.rematch && s2.rematch !== myId && s2.result) toast('Your friend wants a rematch! Tap Accept.', 3500);
     buttons(); checkOver();
   };
   function buttons() {
     const s = o.state, over = !!s.result;
-    const list = [{ ic: '⬅️', label: 'Leave', on: () => confirmBox('Leave game?', 'This closes the connection to your friend.', 'Leave', () => { leaveOnline(); friendView = 'menu'; render(); }) },
-    { ic: '🔄', label: 'Flip', on: () => scr.flip() }];
-    if (!o.connected) list.push({ ic: '🔌', label: 'Reconnect', on: () => { const keep = o.role === 'host' ? o.state : null; leaveOnline(); if (keep) { profile.onlineResume = keep; saveProfile(); } render(); toast(keep ? 'Create a new invite. The game will continue where you left off.' : 'Ask the host for a new invite link.', 4000); } });
+    const list = [{ ic: 'back', label: 'Leave', on: () => confirmBox('Leave game?', 'This closes the connection to your friend.', 'Leave', () => { leaveOnline(); friendView = 'menu'; render(); }) },
+    { ic: 'flip', label: 'Flip', on: () => scr.flip() }];
+    if (!o.connected) list.push({ ic: 'plug', label: 'Reconnect', on: () => { const keep = o.role === 'host' ? o.state : null; leaveOnline(); if (keep) { profile.onlineResume = keep; saveProfile(); } render(); toast(keep ? 'Create a new invite. The game will continue where you left off.' : 'Ask the host for a new invite link.', 4000); } });
     else if (!over) {
-      list.push({ ic: '🤝', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
-      list.push({ ic: '🏳️', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
+      list.push({ ic: 'half', label: s.drawOffer && s.drawOffer !== myId ? 'Accept' : 'Draw?', disabled: s.drawOffer === myId, on: () => { if (s.drawOffer && s.drawOffer !== myId) { s.result = { result: '1/2-1/2', reason: 'agreement' }; } else { s.drawOffer = myId; toast('Draw offered'); } s.v++; sendState(); buttons(); checkOver(); } });
+      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', 'Your friend wins this game.', 'Resign', () => { s.result = { result: myColor === 'w' ? '0-1' : '1-0', reason: 'resignation' }; s.v++; sendState(); buttons(); checkOver(); }) });
     } else {
-      list.push({ ic: '🔁', label: s.rematch && s.rematch !== myId ? 'Accept' : 'Rematch', disabled: s.rematch === myId, on: () => {
+      list.push({ ic: 'repeat', label: s.rematch && s.rematch !== myId ? 'Accept' : 'Rematch', disabled: s.rematch === myId, on: () => {
         if (s.rematch && s.rematch !== myId) { const w = s.white; s.white = s.black; s.black = w; s.moves = []; s.result = null; s.drawOffer = null; s.rematch = null; s.v++; sendState(); render(); }
         else { s.rematch = myId; s.v++; sendState(); toast('Rematch requested'); buttons(); }
       } });
@@ -1898,9 +2055,9 @@ function pickPuzzle() {
   return top[Math.floor(rand() * top.length)];
 }
 function renderPuzzles(main) {
-  const cats = [['rated', '🎯 For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', '🏛️ Famous mates']];
+  const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']];
   const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} 🔥 · Solved ${solvedCount}/${PUZZLES.length}`))));
+  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} · Solved ${solvedCount}/${PUZZLES.length}`))));
   main.append(h('div', { class: 'cats' }, cats.map(([k, l]) => h('button', { class: puzCat === k ? 'on' : '', onclick: () => { puzCat = k; puzState = null; render(); } }, l))));
   if (!puzState) { const p = pickPuzzle(); puzState = { p, step: 0, failed: false, done: false, rated: !profile.tried[p.id] }; }
   const ps = puzState, p = ps.p;
@@ -1909,7 +2066,7 @@ function renderPuzzles(main) {
   const side = new E.Position(p.fen).turn === 0 ? 'w' : 'b';
   const banner = h('div', { class: 'banner' });
   const setBanner = (cls, html) => { banner.className = 'banner ' + (cls || ''); banner.innerHTML = html; };
-  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>checkmate in ${p.n}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">★ ${p.rating}</span>`;
+  const prompt = () => `<span class="tomove" style="background:${side === 'w' ? '#fff' : '#222'}"></span><span>${side === 'w' ? 'White' : 'Black'} to move: <b>checkmate in ${p.n}</b>${p.name ? ' · ' + p.name : ''}</span><span class="grow"></span><span class="pill">${p.rating}</span>`;
   setBanner('', prompt());
   let busy = false;
   const board = new BoardView({
@@ -1946,7 +2103,7 @@ function renderPuzzles(main) {
       const res = g.play(uci); playSound(res); show(dragged ? null : g.lastFromTo);
       ps.step++;
       if (ps.step >= p.line.length) return solved();
-      msg.className = 'taskmsg good'; msg.textContent = '✓ Good move! Keep going…';
+      msg.className = 'taskmsg good'; msg.textContent = 'Good move! Keep going…';
       busy = true;
       setTimeout(() => { const rr = g.play(p.line[ps.step]); ps.step++; playSound(rr); show(g.lastFromTo); busy = false; msg.textContent = 'Your move'; }, 650);
     } else {
@@ -1954,31 +2111,31 @@ function renderPuzzles(main) {
       if (r) { const tmp = new Game(g.startFen, g.moves); tmp.play(uci); board.set(tmp.viewState(), dragged ? null : tmp.lastFromTo); }
       beep('bad'); ps.failed = true;
       const d = rate(false);
-      msg.className = 'taskmsg bad'; msg.textContent = '✗ Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
+      msg.className = 'taskmsg bad'; msg.textContent = 'Not that one.' + (d !== null ? ` Rating ${d}` : '') + ' Try again!';
       busy = true; setTimeout(() => { busy = false; show(); }, 900);
       buttons();
     }
   }
   function solved() {
-    ps.done = true; beep('win'); board.burst('⭐');
+    ps.done = true; beep('win'); board.burst('star');
     const d = ps.failed ? null : rate(true);
     if (!ps.failed && d === null && !profile.tried[p.id]) { profile.tried[p.id] = 1; saveProfile(); }
-    setBanner('good', `<span style="font-size:22px">🎉</span><span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
+    setBanner('good', `${iconSvgInline('check')}<span><b>Solved!</b> ${p.tip ? p.tip : ''}</span>`);
     msg.className = 'taskmsg good'; msg.textContent = d !== null ? `Puzzle rating ${Math.round(profile.puzzle.r)} (${d >= 0 ? '+' : ''}${d})` : (ps.failed ? 'Solved after a miss. No rating change.' : 'Solved!');
     buttons();
   }
   function buttons() {
     btnRow.innerHTML = '';
     if (!ps.done) {
-      btnRow.append(h('button', { class: 'btn grow', onclick: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'taskmsg bad'; msg.textContent = `Hint used (${d})`; } } }, '💡 Hint'));
-      btnRow.append(h('button', { class: 'btn grow', onclick: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } }, '👀 Solution'));
+      btnRow.append(h('button', { class: 'btn grow', onclick: () => { const exp = p.line[ps.step]; const marks = {}; marks[sqFromName(exp.slice(0, 2))] = 'hint'; board.set(Object.assign(g.viewState(), { marks })); if (ps.rated) { const d = rate(false); ps.failed = true; msg.className = 'taskmsg bad'; msg.textContent = `Hint used (${d})`; } } }, icon('bulb', 18), 'Hint'));
+      btnRow.append(h('button', { class: 'btn grow', onclick: () => { rate(false); ps.failed = true; ps.done = true; showSolution(); } }, icon('eye', 18), 'Solution'));
     }
-    btnRow.append(h('button', { class: 'btn primary grow', onclick: () => { puzState = null; render(); } }, ps.done ? 'Next ▶' : 'Skip'));
+    btnRow.append(h('button', { class: 'btn primary grow', onclick: () => { puzState = null; render(); } }, ps.done ? 'Next' : 'Skip', icon('next', 18)));
   }
   async function showSolution() {
     buttons(); busy = true;
     for (let i = ps.step; i < p.line.length; i++) { await new Promise(r => setTimeout(r, 700)); const rr = g.play(p.line[i]); playSound(rr); show(g.lastFromTo); }
-    setBanner('', `<span>💡</span><span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
+    setBanner('', `${iconSvgInline('bulb')}<span>That's the solution${p.tip ? ': ' + p.tip : '.'}</span>`);
     msg.textContent = '';
   }
   buttons();
@@ -1986,15 +2143,15 @@ function renderPuzzles(main) {
 
 // ======================= LEARN =======================
 let lessonOpen = null, lessonStep = 0;
-function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic' }, l.icon); }
+function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic dark' }, icon(l.icon, 24)); }
 function renderLearn(main) {
   if (lessonOpen) return renderLesson(main);
   const done = LESSONS.filter(l => profile.lessons[l.id]).length;
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, '🦉'), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
+  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   let groupEl = null, lastGroup = null;
   for (const l of LESSONS) {
     if (l.group !== lastGroup) { lastGroup = l.group; groupEl = h('div', { class: 'lgroup' }, h('h3', null, l.group), h('div', { class: 'lessons' })); main.append(groupEl); }
-    $('.lessons', groupEl).append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, lessonIcon(l), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc)), h('span', { class: 'ck' }, profile.lessons[l.id] ? '✅' : '›')));
+    $('.lessons', groupEl).append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, lessonIcon(l), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc)), h('span', { class: 'ck' + (profile.lessons[l.id] ? ' done' : '') }, icon(profile.lessons[l.id] ? 'check' : 'next', 20))));
   }
 }
 function fenToBoard(fen) { return new E.Position(fen.includes(' ') ? fen : fen + ' w - - 0 1').board; }
@@ -2021,19 +2178,19 @@ function lessonTargets(b, sq) {
 }
 function renderLesson(main) {
   const L = lessonOpen, steps = L.steps, step = steps[lessonStep];
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, '⬅ Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { lessonOpen = null; render(); } }, icon('back', 18), 'Lessons'), h('div', { class: 'grow' }, h('h2', null, L.title))));
   main.append(h('div', { class: 'dots' }, steps.map((_, i) => h('i', { class: i < lessonStep ? 'done' : i === lessonStep ? 'on' : '' }))));
   const txt = h('div', { class: 'txt', html: step.text });
-  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, step.mascot || '🦉'), txt));
+  main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), txt));
   const msg = h('div', { class: 'taskmsg' });
   let complete = step.type === 'text';
   const nextBtn = h('button', { class: 'btn primary grow', disabled: !complete, onclick: () => {
     if (lessonStep < steps.length - 1) { lessonStep++; render(); window.scrollTo(0, 0); }
     else { profile.lessons[L.id] = 1; saveProfile(); beep('win'); const idx = LESSONS.indexOf(L); const nxt = LESSONS[idx + 1];
-      modal((box, close) => box.append(h('div', { class: 'big-emoji' }, '🎓'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title + ' ✓'),
+      modal((box, close) => box.append(badge('learn', 'gold'), h('h2', { class: 'center' }, 'Lesson complete!'), h('p', { class: 'center muted' }, L.title),
         h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); lessonOpen = null; render(); } }, 'All lessons'), nxt ? h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = nxt; lessonStep = 0; render(); window.scrollTo(0, 0); } }, 'Next lesson') : h('button', { class: 'btn primary grow', onclick: () => { close(); lessonOpen = null; go('play'); } }, "Let's play!")))); }
-  } }, lessonStep < steps.length - 1 ? 'Next ▶' : 'Finish ✓');
-  const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || '🎉 Great job!'; beep('win'); };
+  } }, lessonStep < steps.length - 1 ? 'Next' : 'Finish', icon(lessonStep < steps.length - 1 ? 'next' : 'check', 18));
+  const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || 'Great job!'; beep('win'); };
 
   if (step.type === 'text' && step.board) {
     const bv = new BoardView({ orient: step.orient || 'w' });
@@ -2057,14 +2214,14 @@ function renderLesson(main) {
         beep(got ? 'star' : cap ? 'capture' : 'move');
         bv.set({ board: b, stars, last: [from, to] }, dragged ? null : [from, to]);
         const left = stars.size + (step.captureAll ? enemiesLeft() : 0);
-        if (!left) { bv.burst('⭐'); finishTask(movesUsed <= (step.par || 99) ? `🎉 Perfect! You did it in ${movesUsed} moves!` : `🎉 You did it in ${movesUsed} moves! (Can you do it in ${step.par}?)`); }
-        else msg.textContent = (stars.size ? `⭐ ${stars.size} left` : '') + (step.captureAll && enemiesLeft() ? `  🎯 ${enemiesLeft()} to capture` : '');
+        if (!left) { bv.burst('star'); finishTask(movesUsed <= (step.par || 99) ? `Perfect! You did it in ${movesUsed} moves!` : `You did it in ${movesUsed} moves! Can you do it in ${step.par}?`); }
+        else msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} left` : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
       }
     });
     bv.set({ board: b, stars });
     main.append(bv.el);
-    msg.textContent = (stars.size ? `⭐ ${stars.size} to collect` : '') + (step.captureAll ? `  🎯 ${enemiesLeft()} to capture` : '');
-    main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, '↺ Restart'));
+    msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
+    main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
   } else if (step.type === 'goal') {
     let g = new Game(step.fen);
     const side = g.turn();
@@ -2083,10 +2240,10 @@ function renderLesson(main) {
         else if (step.goal === 'castle') ok = !!(E.mFlags(m) & E.F_CASTLE);
         else if (step.goal === 'promote') ok = !!E.mPromo(m);
         else if (step.goal === 'move') ok = step.moves.includes(uci.slice(0, 4));
-        if (ok) { bv.burst(step.goal === 'mate' ? '👑' : '⭐'); finishTask(step.success); }
+        if (ok) { bv.burst(step.goal === 'mate' ? 'crown' : 'star'); finishTask(step.success); }
         else {
           const st = g.status();
-          msg.className = 'taskmsg bad'; msg.textContent = st.reason === 'stalemate' ? '😮 Oops, that is stalemate (a draw)! Try again.' : (step.fail || 'Not quite. Try again!');
+          msg.className = 'taskmsg bad'; msg.textContent = st.reason === 'stalemate' ? 'Oops, that is stalemate (a draw)! Try again.' : (step.fail || 'Not quite. Try again!');
           beep('bad');
           setTimeout(() => { g = new Game(step.fen); bv.set(g.viewState()); }, 1100);
         }
@@ -2096,7 +2253,7 @@ function renderLesson(main) {
     main.append(bv.el);
   }
   main.append(msg);
-  main.append(h('div', { class: 'row' }, lessonStep > 0 ? h('button', { class: 'btn', onclick: () => { lessonStep--; render(); } }, '◀ Back') : null, nextBtn));
+  main.append(h('div', { class: 'row' }, lessonStep > 0 ? h('button', { class: 'btn', onclick: () => { lessonStep--; render(); } }, icon('back', 18), 'Back') : null, nextBtn));
 }
 
 // ======================= ME / PROFILE =======================
@@ -2118,28 +2275,28 @@ function renderMe(main) {
   const bar = h('div', { style: { height: '10px', borderRadius: '6px', background: 'var(--bg2)', overflow: 'hidden', margin: '8px 0 4px' } }, h('div', { style: { height: '100%', width: Math.round(lg.pct * 100) + '%', background: 'linear-gradient(90deg,#ffc56b,#ff9f43)' } }));
   main.append(h('div', { class: 'card' },
     h('div', { class: 'row' }, h('img', { src: PIECE_URL['w' + lg.piece], style: { width: '52px', height: '52px', background: 'var(--light)', borderRadius: '14px', padding: '4px' } }),
-      h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, '♞ BOT LEAGUE'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
+      h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'BOT LEAGUE'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
       h('div', { style: { fontSize: '30px', fontWeight: 900 } }, L.r)),
-    bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached! 👑'),
+    bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached!'),
     sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w}W · ${l}L · ${d}D`)));
   main.append(h('div', { class: 'stats' },
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🌐 Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🧩 Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best} 🔥`))));
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
   if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
-  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', null, g.score === 1 ? '🏆' : g.score === 0.5 ? '🤝' : '❌'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
+  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
   main.append(h('div', { class: 'card stack' },
     h('h3', null, 'How ratings work'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '♞ Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
     h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '🌐 Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '🧩 Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
-  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, soundOn ? '🔊 On' : '🔇 Off')));
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
+  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
-  main.append(h('p', { class: 'small muted center' }, '💾 Your progress is saved in this browser on this device.'));
+  main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
 }
 
 // older saves had one Glicko "rating" for bots; move it onto the new ladder
@@ -2167,6 +2324,9 @@ function boot() {
   if (jm) { pendingJoin = jm[1]; route = 'friend'; friendView = 'online'; try { history.replaceState(null, '', '#friend'); } catch (e) { } }
   render();
 }
+
+;
+// Start the app after every module has loaded.
 boot();
 </script>
 </body>

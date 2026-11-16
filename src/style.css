@@ -145,3 +145,32 @@ h1,h2,h3{margin:0;line-height:1.15}
 .hidden{display:none!important}
 .center{text-align:center}
 a{color:var(--blue)}
+/* ---- original icon system ---- */
+.icn{display:inline-flex;align-items:center;justify-content:center;line-height:0;flex:none}
+.icn svg{display:block}
+.btn .icn{margin:0 -1px}
+.controls .btn .icn{margin-bottom:3px}
+.tabs button .icn{margin-bottom:1px}
+.seg button{display:inline-flex;align-items:center;justify-content:center;gap:5px}
+.chip .icn{color:var(--blue)}
+.rt .icn{color:var(--accent);vertical-align:-2px}
+.av-img{display:block;border-radius:50%}
+.avatar{background:none;padding:0}
+.avatar .av-img{border-radius:12px}
+.bot .av .av-img{border-radius:14px}
+.sq .star .icn{color:#ffc93c;filter:drop-shadow(0 2px 2px rgba(0,0,0,.35))}
+.sq .star .icn svg{width:min(8vw,40px);height:min(8vw,40px)}
+.burst-ic{filter:drop-shadow(0 6px 10px rgba(0,0,0,.35))}
+.burst-ic.star,.burst-ic.trophy,.burst-ic.crown{color:#ffc93c}
+.badge{width:76px;height:76px;margin:0 auto 6px;border-radius:24px;display:flex;align-items:center;justify-content:center}
+.badge.gold{background:linear-gradient(160deg,#ffd77a,#ff9f43);color:#4a2a05}
+.badge.blue{background:linear-gradient(160deg,#9ccbff,#4f8fe8);color:#0c2547}
+.badge.red{background:linear-gradient(160deg,#ffa3a3,#e86a6a);color:#4a0c0c}
+.badge.green{background:linear-gradient(160deg,#8ff0bd,#3cbf7c);color:#063019}
+.lesson .ic.dark{background:var(--card2);color:var(--accent)}
+.lesson .ck{color:var(--muted)} .lesson .ck.done{color:var(--good)}
+.bubble .who{flex:none}
+.hoot{display:block}
+.banner .icn{color:var(--accent)} .banner.good .icn{color:var(--good)}
+.tbl td.res{font-weight:800;font-size:13px} .tbl td.res.w{color:var(--good)} .tbl td.res.l{color:var(--bad)} .tbl td.res.d{color:var(--blue)}
+.stat .l .icn{vertical-align:-2px}

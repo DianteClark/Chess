@@ -5,5 +5,14 @@
   "main": "src/index.js",
   "compatibility_date": "2026-11-01",
   "workers_dev": true,     // serve at knightclub-lobby.chesscomplex.workers.dev
-  "preview_urls": false    // only the main version; no per-commit preview links
+  "preview_urls": false,   // only the main version; no per-commit preview links
+  // One global Durable Object holds the lobby. Free plan requires SQLite-backed classes.
+  "durable_objects": {
+    "bindings": [{ "name": "LOBBY", "class_name": "Lobby" }]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["Lobby"] }
+  ]
+  // Test hooks are OFF in production. tools/lobby_test.mjs enables them only for local dev:
+  //   npx wrangler dev --port 8787 --var TEST_HOOKS:1 --var FIRST_MOVE_MS:3000 --var DISCONNECT_MS:4000
 }

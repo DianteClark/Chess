@@ -1,8 +1,8 @@
-# ♞ Knight Club Chess
+# Knight Club Chess
 
 A complete chess game in one HTML file, written from scratch with no game engine, no frameworks and no build dependencies. Play it on a phone or a computer.
 
-## ▶️ [Play now: dianteclark.github.io/Chess](https://dianteclark.github.io/Chess/)
+## [Play now: dianteclark.github.io/Chess](https://dianteclark.github.io/Chess/)
 
 Works on phones and computers. You can also download `index.html` and open it in any browser.
 
@@ -10,10 +10,10 @@ Works on phones and computers. You can also download `index.html` and open it in
 
 | | |
 |---|---|
-| ♞ **Play vs bots** | 8 bots from 🐣 Pip (total beginner) to 🏰 The Tower (full strength). Rated or casual (casual allows undo and hints). |
-| 🤝 **Friends** | **Pass & Play** on one device, or **Online**: true peer-to-peer over WebRTC. The two browsers connect directly, with no game server. |
-| 🧩 **Puzzles** | Checkmate puzzles (mate in 1, 2 and 3) plus famous named mates. Every puzzle's solution is proven by an exhaustive solver. |
-| 🎓 **Learn** | 16 interactive lessons for kids with Professor Hoot 🦉: the board, each piece ("collect the stars"), capturing, check, checkmate, castling, promotion, en passant, draws and tips. |
+| **Play vs bots** | 8 bots from Pip (total beginner) to The Tower (full strength). Rated or casual (casual allows undo and hints). |
+| **Friends** | **Pass & Play** on one device, or **Online**: true peer-to-peer over WebRTC. The two browsers connect directly, with no game server. |
+| **Puzzles** | Checkmate puzzles (mate in 1, 2 and 3) plus famous named mates. Every puzzle's solution is proven by an exhaustive solver. |
+| **Learn** | 16 interactive lessons for kids with Professor Hoot: the board, each piece ("collect the stars"), capturing, check, checkmate, castling, promotion, en passant, draws and tips. |
 | ⭐ **Ratings** | Glicko-2 ratings for games and puzzles, with history graphs. |
 
 ## How online play works
@@ -69,3 +69,7 @@ Regenerating data (slow): `node tools/calibrate.js 30` → `node tools/fit_elo.j
 ### Engine verification
 
 The move generator matches the published perft node counts for six standard test positions (16.5 million positions in total). The positions include castling, en passant, promotion and discovered-check edge cases.
+
+## Design
+
+Knight Club uses no emoji. Every icon, the bot characters, Professor Hoot and the chess pieces are original SVG artwork drawn for this project (`src/icons.js`, `src/app.js`).
