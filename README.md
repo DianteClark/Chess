@@ -14,7 +14,7 @@ Works on phones and computers. You can also download `index.html` and open it in
 | **Friends** | **Pass & Play** on one device, or **Online**: true peer-to-peer over WebRTC. The two browsers connect directly, with no game server. |
 | **Puzzles** | Checkmate puzzles (mate in 1, 2 and 3) plus famous named mates. Every puzzle's solution is proven by an exhaustive solver. |
 | **Learn** | 16 interactive lessons for kids with Professor Hoot: the board, each piece ("collect the stars"), capturing, check, checkmate, castling, promotion, en passant, draws and tips. |
-| ⭐ **Ratings** | Glicko-2 ratings for games and puzzles, with history graphs. |
+| **Ratings** | Glicko-2 ratings for games and puzzles, with history graphs. |
 
 ## How online play works
 
