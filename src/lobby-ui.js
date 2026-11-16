@@ -81,7 +81,7 @@ function renderLobbyGame(main, lb) {
   };
   const players = { [myColor]: { name: 'You', avatar: myAvatar(), rating: Math.round(mine.r) }, [myColor === 'w' ? 'b' : 'w']: { name: opp.name, avatar: 'friend', rating: Math.round(opp.r) } };
   let pending = false;
-  main.append(h('div', { class: 'row' }, h('span', { class: 'pill live' }, `${tcLabel(gm.tc.base, gm.tc.inc)} · ${gm.rated ? 'Rated' : 'Casual'}`), h('span', { class: 'grow' }), gm.disconnected && gm.disconnected[myColor === 'w' ? 'b' : 'w'] ? h('span', { class: 'pill' }, 'opponent disconnected') : null));
+  main.append(h('div', { class: 'row' }, h('span', { class: 'pill live' }, tcLabel(gm.tc.base, gm.tc.inc)), h('span', { class: 'pill' }, gm.rated ? 'Rated' : 'Casual'), h('span', { class: 'grow' }), gm.disconnected && gm.disconnected[myColor === 'w' ? 'b' : 'w'] ? h('span', { class: 'pill' }, 'opponent disconnected') : null));
   const scr = gameScreen(main, {
     game: g, orient: myColor, players,
     canMove: turn => !gm.status.over && turn === myColor && !pending,

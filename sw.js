@@ -1,8 +1,9 @@
 // Knight Club service worker: makes the app installable and playable offline.
 // The page itself is fetched network-first (so updates arrive right away);
 // the engine files and icons are cache-first (they rarely change).
-const CACHE = 'knightclub-v10';
+const CACHE = 'knightclub-v11';
 const CORE = ['./', './index.html', './icon.svg', './icon-192.png', './icon-512.png', './manifest.webmanifest',
+  './fonts/lilita-one-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-700-normal.woff2',
   './vendor/stockfish/stockfish-19-lite-single.js', './vendor/stockfish/stockfish-19-lite-single.wasm'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => Promise.all(CORE.map(u => c.add(u).catch(() => null)))).then(() => self.skipWaiting()));

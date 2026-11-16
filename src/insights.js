@@ -49,7 +49,7 @@ function renderInsights(main) {
   const rate = a => { const n = a[0] + a[1] + a[2]; return n ? (a[0] + a[1] * .5) / n * 100 : null; };
   main.append(h('div', { class: 'card stack' }, h('b', null, 'Score by color'),
     bar('As White', rate(byColor.w), 100, '#f3efe4'), bar('As Black', rate(byColor.b), 100, '#8a8496'),
-    h('div', { class: 'small muted' }, `White: ${byColor.w[0]}W ${byColor.w[1]}D ${byColor.w[2]}L · Black: ${byColor.b[0]}W ${byColor.b[1]}D ${byColor.b[2]}L`)));
+    h('div', { class: 'small muted' }, `White: ${byColor.w[0]}W ${byColor.w[1]}D ${byColor.w[2]}L. Black: ${byColor.b[0]}W ${byColor.b[1]}D ${byColor.b[2]}L`)));
   const ops = Object.entries(byOpening).sort((a, b) => (b[1][0] + b[1][1] + b[1][2]) - (a[1][0] + a[1][1] + a[1][2])).slice(0, 6);
   if (ops.length) main.append(h('div', { class: 'card stack' }, h('b', null, 'Your openings'), ops.map(([n, a]) => bar(`${n} (${a[0] + a[1] + a[2]})`, rate(a), 100, 'var(--blue)'))));
 }

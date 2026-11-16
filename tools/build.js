@@ -3,7 +3,7 @@ const fs = require('fs'), path = require('path');
 const root = path.join(__dirname, '..'), rd = f => fs.readFileSync(path.join(root, f), 'utf8');
 const strip = s => s.replace(/^if \(typeof module.*$/gm, '');
 // UI modules, in load order. boot.js must stay last.
-const APP_FILES = ['src/icons.js', 'src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.js', 'src/lobby-client.js', 'src/lobby-ui.js', 'src/sf.js', 'src/review.js', 'src/analysis.js', 'src/boot.js'];
+const APP_FILES = ['src/icons.js', 'src/art.js', 'src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.js', 'src/lobby-client.js', 'src/lobby-ui.js', 'src/sf.js', 'src/review.js', 'src/analysis.js', 'src/home.js', 'src/boot.js'];
 // checkmate puzzles first, themed tactics appended after them (keeps saved puzzle ids stable)
 const puzzles = JSON.parse(rd('data/puzzles.json')).concat(fs.existsSync(path.join(root, 'data/tactics.json')) ? JSON.parse(rd('data/tactics.json')) : []);
 const calib = JSON.parse(rd('data/calibration.json'));

@@ -82,7 +82,7 @@ function renderAnalysis(main) {
       if (l.pv[0]) arrows.push([sqFromName(l.pv[0].slice(0, 2)), sqFromName(l.pv[0].slice(2, 4)), k === 0 ? '#7cc04a' : '#6fb3ffaa']);
     });
     bv.set(Object.assign(st, { arrows }));
-    if (depth) linesEl.append(h('div', { class: 'small muted' }, `${engineName()} · depth ${depth}`));
+    if (depth) linesEl.append(h('div', { class: 'small muted' }, `${engineName()}, depth ${depth}`));
   };
   bv.set(st);
   if (A.engine && !g.status().over) {

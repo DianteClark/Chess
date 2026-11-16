@@ -15,7 +15,8 @@ function inc(k, n = 1) { const s = stats(); s[k] = (s[k] || 0) + n; return s[k];
 // ---------- unlockables ----------
 // board themes: light, dark, last-move highlight
 const BOARD_THEMES = [
-  { id: 'wood', name: 'Classic Wood', light: '#f0e2c6', dark: '#b5875a', req: null },
+  { id: 'wood', name: 'Club Walnut', light: '#ecd9b4', dark: '#a9744a', req: null },
+  { id: 'felt', name: 'Tournament', light: '#eeeed2', dark: '#6f9a63', req: null },
   { id: 'meadow', name: 'Meadow', light: '#eef0d8', dark: '#7d9a5c', req: { level: 2 } },
   { id: 'ocean', name: 'Ocean', light: '#dfeaf2', dark: '#5f87a8', req: { level: 3 } },
   { id: 'rose', name: 'Rose Garden', light: '#f6e4e4', dark: '#c27d8a', req: { ach: 'lessons5' } },
@@ -30,6 +31,7 @@ const BOARD_THEMES = [
 ];
 // piece sets: colors, outline weight and an optional gradient sheen
 const PIECE_SETS = [
+  { id: 'club', name: 'Club', w: ['#fffaf0', '#3a2a1a'], b: ['#4a404a', '#f3e6cc'], sw: 1.5, grad: true, shine: true, req: null },
   { id: 'classic', name: 'Classic', w: ['#fffdf6', '#272320'], b: ['#2b2730', '#f4ecdc'], sw: 1.6, req: null },
   { id: 'bold', name: 'Bold', w: ['#ffffff', '#111111'], b: ['#111111', '#ffffff'], sw: 2.4, req: { level: 2 } },
   { id: 'ivory', name: 'Ivory & Ebony', w: ['#f6ecd6', '#6d5332'], b: ['#3a2a1e', '#e8d4ae'], sw: 1.6, grad: true, req: { level: 4 } },
@@ -203,7 +205,7 @@ function flushRewards() {
   const showNext = () => {
     const r = rewardQueue.shift(); if (!r) { rewardShowing = false; return; }
     rewardShowing = true;
-    if (r.kind === 'level') { rewardToast(icon('arrowUp', 18), `Level ${r.lvl}!`, levelInfo(profile.xp).title, 'gold'); confetti(1300); }
+    if (r.kind === 'level') celebrateLevel(r.lvl);
     else if (r.kind === 'ach') rewardToast(icon(r.a.icon, 18), `${TIER_NAME[r.a.tier]} achievement: ${r.a.name}`, r.a.desc, ['', 'bronze', 'silver', 'gold'][r.a.tier]);
     else if (r.kind === 'unlock') rewardToast(icon('sparkle', 18), `Unlocked: ${r.item.name}`, 'Try it in Me > Style', 'gold');
     else if (r.kind === 'avatar') rewardToast(avatar(r.item.id, 22), `New avatar: ${r.item.name}`, 'Pick it in Me > Style', 'gold');
@@ -236,7 +238,8 @@ function applyStyle() {
 function buildPieceSet(ps, target = PIECE_URL) {
   for (const c of ['w', 'b']) for (const t in PIECE_SVG) {
     const [fill, stroke] = ps[c];
-    const grad = ps.grad ? `<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${fill}"/><stop offset="1" stop-color="${shade(fill, c === 'w' ? -0.18 : 0.18)}"/></linearGradient></defs>` : '';
+    const g2 = ps.shine ? shade(fill, c === 'w' ? -0.22 : -0.45) : shade(fill, c === 'w' ? -0.18 : 0.18);
+    const grad = ps.grad ? `<defs><linearGradient id="g" x1="0.2" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="${ps.shine && c === 'b' ? shade(fill, 0.18) : fill}"/><stop offset="${ps.shine ? '.55' : '1'}" stop-color="${ps.shine ? fill : g2}"/><stop offset="1" stop-color="${g2}"/></linearGradient></defs>` : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">${grad}<g fill="${ps.grad ? 'url(#g)' : fill}" stroke="${stroke}" stroke-width="${ps.sw}" stroke-linejoin="round" stroke-linecap="round">${PIECE_SVG[t].replace('class="eye"', `fill="${stroke}" stroke="none"`)}</g></svg>`;
     target[c + t] = 'data:image/svg+xml;base64,' + btoa(svg);
   }
@@ -252,7 +255,7 @@ function shade(hex, amt) {
 function levelCard() {
   const li = levelInfo(profile.xp || 0);
   return h('div', { class: 'card levelcard' },
-    h('div', { class: 'row' }, h('div', { class: 'lvlnum' }, li.lvl), h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'LEVEL'), h('div', { style: { fontSize: '19px', fontWeight: 900 } }, li.title), h('div', { class: 'small muted' }, `${li.into} / ${li.need} XP to level ${li.lvl + 1}`)),
+    h('div', { class: 'row' }, h('div', { class: 'lvlnum' }, li.lvl), h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Level'), h('div', { style: { fontSize: '19px', fontWeight: 900 } }, li.title), h('div', { class: 'small muted' }, `${li.into} / ${li.need} XP to level ${li.lvl + 1}`)),
       h('button', { class: 'btn sm', onclick: () => { meView = 'style'; render(); } }, icon('palette', 18), 'Style')),
     h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(li.into / li.need * 100) + '%' } })));
 }
@@ -356,4 +359,21 @@ function confetti(ms = 1600) {
     if (k < 1) requestAnimationFrame(step); else c.remove();
   };
   requestAnimationFrame(step);
+}
+
+// ---------- celebrations ----------
+function countUp(el, from, to, ms = 900, fmt = v => String(v)) {
+  if (document.body.classList.contains('no-anim') || from === to) { el.textContent = fmt(to); return; }
+  const t0 = performance.now();
+  const step = t => { const k = Math.min(1, (t - t0) / ms), e = 1 - Math.pow(1 - k, 3); el.textContent = fmt(Math.round(from + (to - from) * e)); if (k < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+function celebrateLevel(lvl) {
+  const li = levelInfo(profile.xp || 0);
+  const unlocks = BOARD_THEMES.concat(PIECE_SETS).filter(t => t.req && t.req.level === lvl).map(t => t.name);
+  const ov = h('div', { class: 'celebrate', role: 'dialog', 'aria-label': 'Level up' }, h('div', { class: 'rays' }), h('div', { class: 'medal' }, String(lvl)), h('div', { class: 'big' }, 'Level up!'), h('div', { class: 'sub' }, li.title),
+    unlocks.length ? h('div', { class: 'sub', style: { color: 'var(--brass-light)' } }, 'Unlocked: ' + unlocks.join(', ')) : null, h('div', { class: 'small muted', style: { position: 'relative', marginTop: '10px' } }, 'Tap to continue'));
+  const close = () => { if (!ov.isConnected) return; ov.style.opacity = '0'; ov.style.transition = 'opacity .25s'; setTimeout(() => ov.remove(), 260); };
+  ov.addEventListener('click', close); setTimeout(close, 4500);
+  document.body.append(ov); beep('win'); confetti(1800); haptic(30);
 }

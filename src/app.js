@@ -150,12 +150,31 @@ class BoardView {
   setOrient(o) { if (o !== this.orient) { this.orient = o; this.layout(); this.draw(); } }
   // state: {board:Int8Array, last:[from,to], check:sq, stars:Set, marks:{sq:cls}}
   set(state, animate) {
+    const prev = this.board;
     if (state.board) this.board = Int8Array.from(state.board);
+    // juice: when a new move appears, the piece lands with a bounce, captures puff, phones buzz
+    const lk = state.last ? state.last.join('-') + ':' + this.board[state.last[1]] : null;
+    const isNewMove = lk && lk !== this.lastKey && this.lastKey !== undefined;
+    this.lastKey = lk;
     this.last = state.last || null; this.check = state.check ?? -1;
     this.stars = state.stars || null; this.marks = state.marks || {};
     this.arrows = state.arrows || []; this.badge = state.badge || null;
     this.sel = -1; this.targets = [];
     this.draw(animate);
+    if (isNewMove) {
+      const to = state.last[1], moved = this.board[to], was = prev[to];
+      const captured = was && moved && ((was & 8) !== (moved & 8));
+      const el = this.pieceEls[to];
+      setTimeout(() => { if (el && el.isConnected) { el.classList.remove('land'); void el.offsetWidth; el.classList.add('land'); } if (captured) this.puff(to); }, animate ? 190 : 0);
+      haptic(captured ? 18 : 7);
+    }
+  }
+  puff(sq) {
+    if (document.body.classList.contains('no-anim')) return;
+    const [x, y] = this.pos(sq), p = h('div', { class: 'puff' });
+    p.style.left = x * 12.5 + '%'; p.style.top = y * 12.5 + '%';
+    for (let k = 0; k < 7; k++) { const a = k / 7 * Math.PI * 2 + Math.random() * .5, d = 18 + Math.random() * 14; const i = h('i'); i.style.setProperty('--dx', Math.cos(a) * d + 'px'); i.style.setProperty('--dy', Math.sin(a) * d + 'px'); i.style.animationDelay = (Math.random() * 60) + 'ms'; p.append(i); }
+    this.layer.append(p); setTimeout(() => p.remove(), 650);
   }
   sqAt(e) {
     const r = this.el.getBoundingClientRect();
@@ -389,29 +408,38 @@ const BOTS = BOT_LEVELS.map(b => Object.assign({}, b, { rating: CALIB.ratings[b.
 const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
 
 // ======================= APP SHELL =======================
-let route = 'play';
+let route = 'home';
 const appEl = () => $('#app');
-const ROUTES = { play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m) };
-function go(r) { if (!ROUTES[r]) r = 'play'; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
+const ROUTES = { home: m => renderHome(m), play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m) };
+let navDir = '';
+function go(r) { if (!ROUTES[r]) r = 'home'; navDir = ''; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];
 function cleanup() { cleanups.forEach(f => { try { f(); } catch (e) { } }); cleanups = []; }
+let lastRoute = null;
 function render() {
   cleanup();
   const app = appEl(); app.innerHTML = '';
-  const logo = h('img', { src: PIECE_URL.wn, alt: '' });
+  const logo = h('img', { src: 'icon.svg', alt: '', onerror: e => { e.target.src = PIECE_URL.wn; } });
   app.append(h('div', { class: 'topbar' },
-    h('div', { class: 'logo' }, logo, 'Knight Club'),
+    h('button', { class: 'logo', onclick: () => go('home'), 'aria-label': 'Clubhouse' }, logo, 'Knight Club'),
     h('button', { class: 'chip', id: 'rchip', onclick: () => go('me') })));
   refreshChip();
-  const main = h('div', { class: 'stack' }); app.append(main);
+  // a fresh view animates in when you move between screens (not on in-place refreshes)
+  const changed = lastRoute !== route + '|' + subView();
+  const main = h('div', { class: 'stack' + (changed ? ' view' + (navDir === 'back' ? ' back' : '') : '') }); app.append(main);
+  lastRoute = route + '|' + subView(); navDir = '';
   ROUTES[route](main);
-  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === route));
+  const tabFor = { friend: 'home', review: 'me', analysis: 'play' }[route] || route;
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.r === tabFor));
 }
+function subView() { return [typeof friendView !== 'undefined' ? friendView : '', typeof puzMode !== 'undefined' ? puzMode : '', typeof lessonOpen !== 'undefined' && lessonOpen ? lessonOpen.id + lessonStep : '', typeof courseOpen !== 'undefined' && courseOpen ? courseOpen.id : '', typeof meView !== 'undefined' ? meView : '', profile.current ? 'g' : ''].join('/'); }
 function buildTabs() {
-  const items = [['play', 'play', 'Play'], ['friend', 'friends', 'Friends'], ['puzzles', 'puzzle', 'Puzzles'], ['learn', 'learn', 'Learn'], ['me', 'user', 'Me']];
-  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => h('button', { 'data-r': r, onclick: () => go(r) }, icon(ic, 24), l)));
+  const items = [['home', 'home', 'Club'], ['puzzles', 'puzzle', 'Puzzles'], ['play', null, 'Play'], ['learn', 'learn', 'Learn'], ['me', 'user', 'Me']];
+  const inner = h('div', { class: 'inner' }, items.map(([r, ic, l]) => ic ? h('button', { 'data-r': r, onclick: () => { haptic(6); go(r); } }, icon(ic, 25), l)
+    : h('button', { 'data-r': r, class: 'medal', 'aria-label': 'Play', onclick: () => { haptic(10); go(r); } }, h('div', { class: 'disc' }, h('img', { src: PIECE_URL.bn, alt: '' })), h('span', { class: 'lab' }, l))));
   document.body.append(h('nav', { class: 'tabs' }, inner));
 }
+function haptic(ms) { try { if (navigator.vibrate && !(profile.style && profile.style.haptics === false)) navigator.vibrate(ms); } catch (e) { } }
 
 // ======================= CLOCKS =======================
 // A clock is a plain object so it can be saved and sent: {base, inc, w, b, running:'w'|'b'|null, since}
@@ -572,25 +600,24 @@ function renderPlay(main) {
   if (playSel.bot === null || playSel.auto !== true) { let best = 0; BOTS.forEach((b, i) => { if (Math.abs(b.rating - r.r) < Math.abs(BOTS[best].rating - r.r)) best = i; }); playSel.bot = best; playSel.auto = true; }
   const grid = h('div', { class: 'bots scroller' });
   const playBtn = h('button', { class: 'btn primary block', onclick: () => startBotGame() });
-  const stakes = h('div', { class: 'small muted center' });
+  const stakes = h('div', { class: 'row stakes', style: { justifyContent: 'center', flexWrap: 'wrap', gap: '6px' } });
   const drawStakes = () => {
     const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
-    stakes.textContent = playSel.rated ? `Win ${f(eloDelta(L.r, br, 1, K))} · Draw ${f(eloDelta(L.r, br, .5, K))} · Loss ${f(eloDelta(L.r, br, 0, K))}` + (L.games < PLACEMENT_GAMES ? `  (placement game ${L.games + 1}/${PLACEMENT_GAMES})` : '') : 'Casual: your rating will not change';
+    stakes.innerHTML = ''; if (playSel.rated) { stakes.append(h('span', { class: 'pill live' }, 'Win ' + f(eloDelta(L.r, br, 1, K))), h('span', { class: 'pill' }, 'Draw ' + f(eloDelta(L.r, br, .5, K))), h('span', { class: 'pill', style: { color: 'var(--bad)' } }, 'Loss ' + f(eloDelta(L.r, br, 0, K)))); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'pill' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); } else stakes.append(h('span', { class: 'pill' }, 'Casual: your rating stays the same'));
   };
   const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), 'Play ' + BOTS[playSel.bot].name); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
   setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollTo({ left: on.offsetLeft - grid.clientWidth / 2 + on.clientWidth / 2, behavior: 'auto' }); }, 0);
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
-    h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { puzMode = 'daily'; go('puzzles'); } }, icon('calendar', 22), h('b', null, 'Daily Puzzle'))),
-    questCard(),
-    h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
+    h('div', { class: 'stage' }, roomArt('arena'), h('div', { class: 'stage-lab' }, h('h2', null, 'The Arena'), h('small', null, 'Pick an opponent and make your move')), h('button', { class: 'btn sm stage-btn', onclick: () => openAnalysis() }, icon('search', 16), 'Analysis board')),
+    h('div', null, h('h3', { class: 'sect', style: { margin: '2px 2px 0' } }, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name}, rating ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack setup' },
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'TIME'), tcPicker(playSel)),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'VARIANT'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant')),
-      h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual + Coach']], 'rated')),
+      h('div', null, h('div', { class: 'lbl' }, 'Play as'), seg([['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]], 'color')),
+      h('div', null, h('div', { class: 'lbl' }, 'Time control'), tcPicker(playSel)),
+      h('div', null, h('div', { class: 'lbl' }, 'Starting position'), seg([['std', 'Standard'], ['960', [icon('dice', 16), ' Chess960']]], 'variant')),
+      h('div', null, h('div', { class: 'lbl' }, 'Game type'), seg([[true, [icon('trophy', 16), ' Rated']], [false, 'Casual + Coach']], 'rated')),
       playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated, tc = playSel.tc) {
@@ -620,7 +647,7 @@ function renderBotGame(main) {
     getClock: cur.clock ? () => cur.clock : null,
     onTick: () => { if (cur.result) return; const f = clk.flagged(cur.clock); if (f) { const r = timeoutResult(g.pos, f); finish(r.result, r.reason); } },
   });
-  main.append(h('div', { class: 'center small muted' }, (is960 ? `Chess960 #${cur.sp} · ` : '') + (cur.rated ? 'Rated game' : cur.coach ? 'Casual game with Live Coach' : 'Casual game: undo and hints allowed')));
+  main.append(h('div', { class: 'center small muted' }, (is960 ? `Chess960 position ${cur.sp}. ` : '') + (cur.rated ? 'Rated game' : cur.coach ? 'Casual game with Live Coach' : 'Casual game: undo and hints allowed')));
   // ----- live coach -----
   const coachTxt = h('div', { class: 'txt' }), coachHead = h('div', { class: 'revhead' }), coachBtns = h('div', { class: 'row' });
   const coachBox = h('div', { class: 'card coachbox' + (cur.coach ? '' : ' hidden') }, coachHead, h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(44)), coachTxt), coachBtns);
@@ -744,7 +771,7 @@ function renderBotGame(main) {
       badge(score === 1 ? 'trophy' : score === 0.5 ? 'half' : 'shield', score === 1 ? 'gold' : score === 0.5 ? 'blue' : 'red'),
       h('h2', { class: 'center' }, score === 1 ? 'You win!' : score === 0.5 ? 'Draw!' : bot.name + ' wins'),
       h('p', { class: 'center muted' }, 'by ' + reason),
-      counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' ', icon('arrowRight', 16), ' ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
+      counted ? (() => { const num = h('b', { class: 'delta', style: { color: 'var(--ivory)' } }, Math.round(before)), dl = h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, '+0'); setTimeout(() => { countUp(num, Math.round(before), Math.round(after)); countUp(dl, 0, d, 900, v => (v >= 0 ? '+' : '') + v); }, 350); return h('p', { class: 'center', style: { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' } }, leagueIcon(after, 26), num, dl); })() : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
       counted && d === 0 && score === 1 ? h('p', { class: 'center small muted' }, 'This bot is far below your level, so wins no longer count. Try a stronger bot!') : null,
       promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
       score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap Review and the coach will show you the turning point.') : null,
@@ -1086,7 +1113,7 @@ function renderPuzzles(main) {
   const cats = [['rated', 'For you'], ['m1', 'Mate in 1'], ['m2', 'Mate in 2'], ['m3', 'Mate in 3'], ['pattern', 'Famous mates']]
     .concat(Object.keys(THEME_NAMES).filter(t => (themeCounts[t] || 0) >= 8).map(t => ['t:' + t, THEME_NAMES[t]]));
   const solvedCount = Object.values(profile.tried).filter(x => x === 1).length;
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'small muted' }, `Rating ${fmtR(profile.puzzle)} · Streak ${profile.streak} · Solved ${solvedCount}/${PUZZLES.length}`))));
+  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('h2', null, 'Puzzles'), h('div', { class: 'row', style: { gap: '6px', marginTop: '6px', flexWrap: 'wrap' } }, h('span', { class: 'pill' }, 'Rating ' + fmtR(profile.puzzle)), h('span', { class: 'pill' }, `Streak ${profile.streak}`), h('span', { class: 'pill' }, `${solvedCount} of ${PUZZLES.length} solved`)))));
   main.append(h('div', { class: 'modes' },
     h('button', { class: 'mode-card', onclick: () => { puzMode = 'daily'; render(); } }, icon('calendar', 26), h('b', null, 'Daily'), h('small', null, dDone ? 'Done today' : `Streak ${dState.streak}`)),
     h('button', { class: 'mode-card', onclick: () => { puzMode = 'rush'; rush = { phase: 'menu' }; render(); } }, icon('bolt', 26), h('b', null, 'Rush'), h('small', null, 'Best ' + Math.max(rushBest('3min'), rushBest('5min'), rushBest('survival'))))));
@@ -1183,7 +1210,7 @@ function courseIcon(c) { return ['pawn', 'king', 'rook', 'queen', 'knight', 'bis
 function renderCourse(main) {
   const C = courseOpen, done = C.lessons.filter(l => profile.lessons[lessonKey(l)]).length;
   main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { courseOpen = null; render(); } }, icon('back', 18), 'Learn'), h('h2', { class: 'grow' }, C.title)));
-  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done · ${C.level}`)));
+  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done, ${C.level}`)));
   const list = h('div', { class: 'lessons' });
   C.lessons.forEach((l, k) => { l.course = C; list.append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, h('div', { class: 'ic dark' }, h('b', null, String(k + 1))), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc || '')), h('span', { class: 'ck' + (profile.lessons[lessonKey(l)] ? ' done' : '') }, icon(profile.lessons[lessonKey(l)] ? 'check' : 'next', 20)))); });
   main.append(list);
@@ -1194,7 +1221,7 @@ function renderLearn(main) {
   const done = LESSONS.filter(l => profile.lessons[l.id]).length;
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   if (typeof COURSES !== 'undefined' && COURSES.length) {
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons · ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
+    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
     main.append(h('h3', { class: 'sect', style: { marginTop: '6px' } }, 'Beginner course'));
   }
   let groupEl = null, lastGroup = null;
@@ -1264,12 +1291,12 @@ function renderLesson(main) {
         bv.set({ board: b, stars, last: [from, to] }, dragged ? null : [from, to]);
         const left = stars.size + (step.captureAll ? enemiesLeft() : 0);
         if (!left) { bv.burst('star'); finishTask(movesUsed <= (step.par || 99) ? `Perfect! You did it in ${movesUsed} moves!` : `You did it in ${movesUsed} moves! Can you do it in ${step.par}?`); }
-        else msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} left` : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
+        else msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} left` : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
       }
     });
     bv.set({ board: b, stars });
     main.append(bv.el);
-    msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(' · ');
+    msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
     main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
   } else if (step.type === 'line') {
     let g = new Game(step.fen), k = 0;
@@ -1351,15 +1378,15 @@ function renderMe(main) {
   const nameInp = h('input', { class: 'input', placeholder: 'Your name', value: profile.name, maxlength: 20, onchange: e => { profile.name = e.target.value.trim(); saveProfile(); } });
   const botGames = profile.games.filter(g => !g.online);
   const w = botGames.filter(g => g.score === 1).length, l = botGames.filter(g => g.score === 0).length, d = botGames.filter(g => g.score === 0.5).length;
-  main.append(h('div', { class: 'card stack' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'YOUR NAME'), nameInp));
+  main.append(h('div', { class: 'card stack' }, h('div', { class: 'lbl' }, 'Your name'), nameInp));
   // Bot League card with progress to the next league
   const bar = h('div', { style: { height: '10px', borderRadius: '6px', background: 'var(--bg2)', overflow: 'hidden', margin: '8px 0 4px' } }, h('div', { style: { height: '100%', width: Math.round(lg.pct * 100) + '%', background: 'linear-gradient(90deg,#ffc56b,#ff9f43)' } }));
   main.append(h('div', { class: 'card' },
     h('div', { class: 'row' }, h('img', { src: PIECE_URL['w' + lg.piece], style: { width: '52px', height: '52px', background: 'var(--light)', borderRadius: '14px', padding: '4px' } }),
-      h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'BOT LEAGUE'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
+      h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Bot League'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
       h('div', { style: { fontSize: '30px', fontWeight: 900 } }, L.r)),
     bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached!'),
-    sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w}W · ${l}L · ${d}D`)));
+    sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w} won, ${l} lost, ${d} drawn`)));
   main.append(h('div', { class: 'stats' },
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, profile.server ? Math.round(profile.server.r) + (profile.server.provisional ? '?' : '') : '800?'), h('div', { class: 'l' }, profile.server && profile.server.games ? `${profile.server.games} lobby games` : 'Play the World to start')),
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
@@ -1382,7 +1409,7 @@ function renderMe(main) {
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
-  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), ' · free and open source (GPL-3.0) · Stockfish 19'));
+  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), '. Free and open source (GPL-3.0), with Stockfish 19.'));
 }
 
 // older saves had one Glicko "rating" for bots; move it onto the new ladder

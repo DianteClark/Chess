@@ -130,7 +130,7 @@ function renderRush(main) {
   const { side, goal } = puzzlePrompt(p);
   const timer = h('div', { class: 'clock on' });
   const strikes = h('div', { class: 'strikes' }, [0, 1, 2].map(k => icon('x', 18, k < rush.strikes ? 'hit' : '')));
-  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('div', { class: 'small muted' }, 'SCORE'), h('div', { style: { fontSize: '30px', fontWeight: 900, lineHeight: 1 } }, rush.score)), strikes, rush.limit ? timer : null));
+  main.append(h('div', { class: 'row' }, h('div', { class: 'grow' }, h('div', { class: 'lbl', style: { marginBottom: 0 } }, 'Score'), h('div', { style: { fontSize: '30px', fontWeight: 900, lineHeight: 1 } }, rush.score)), strikes, rush.limit ? timer : null));
   main.append(h('div', { class: 'banner' }, h('span', { class: 'tomove', style: { background: side === 'White' ? '#fff' : '#222' } }), h('span', null, `${side} to move: `, h('b', null, goal))));
   const next = ok => {
     rush.log.push({ rating: p.rating, ok });
