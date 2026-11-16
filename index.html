@@ -6,6 +6,7 @@
 <meta name="theme-color" content="#141a2e">
 <meta name="description" content="Knight Club: play chess against bots, solve puzzles, learn to play, and challenge friends peer-to-peer.">
 <title>Knight Club Chess</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
@@ -233,6 +234,47 @@ a{color:var(--blue)}
 .pset img{width:30px;height:30px}
 .no-coords .sq .co{display:none}
 .no-anim .piece{transition:none!important}
+/* lobby */
+.lesson.hero{background:linear-gradient(160deg,#33406f,#26305a);border-color:#4a5a92}
+.lesson .ic.gold{background:linear-gradient(160deg,#ffd77a,#ff9f43);color:#3a2205}
+details.card summary{cursor:pointer;list-style:none} details.card summary::-webkit-details-marker{display:none}
+.chatbar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.chatbar::-webkit-scrollbar{display:none}
+.chatbar button{white-space:nowrap;padding:7px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-weight:800;font-size:13px}
+.chatlog{display:flex;flex-direction:column;gap:4px;min-height:0}
+.chatmsg{align-self:flex-start;background:var(--card);border-radius:12px;padding:5px 10px;font-size:13px}
+.chatmsg.me{align-self:flex-end;background:#2e3150}
+.tbl tr.me td{color:var(--accent)}
+/* review */
+.arrows{position:absolute;inset:0;width:100%;height:100%;z-index:20;pointer-events:none}
+.cbadge{display:inline-flex;align-items:center;justify-content:center;border-radius:50%;color:#fff;font-weight:900;line-height:1;vertical-align:-3px;flex:none;letter-spacing:-.5px}
+.cbadge .icn{color:#fff}
+.sqbadge{position:absolute;z-index:30;box-shadow:0 2px 4px rgba(0,0,0,.4)}
+.accbox{text-align:center;padding:8px 14px;border-radius:14px;background:var(--bg2)} .accbox.mine{outline:2px solid var(--accent)}
+.accv{font-size:28px;font-weight:900}
+.ctbl td{padding:4px} .ctbl td:first-child{text-align:left;font-weight:800;width:30px} .ctbl td:nth-child(2){font-weight:700} .ctbl td:last-child{width:30px}
+.tips{margin:0;padding-left:18px;font-size:14px;line-height:1.45} .tips li+li{margin-top:6px}
+.evalgraph{border-radius:10px;overflow:hidden;height:70px;cursor:pointer;border:1px solid var(--line)} .evalgraph svg{width:100%;height:100%;display:block}
+.revhead{display:flex;align-items:center;gap:8px;min-height:30px}
+.revmoves .m{display:inline-flex;align-items:center;gap:3px}
+.bubble .txt{font-size:16px}
+.tbl tr.tap{cursor:pointer}
+/* analysis */
+.mode-card.slim{flex:1;flex-direction:row;align-items:center;gap:8px;padding:10px 12px}
+.mode-card.slim .icn{margin:0}
+.anaboard{display:flex;gap:6px;align-items:stretch}
+.evalbar{width:18px;border-radius:6px;background:#f3efe4;position:relative;overflow:hidden;flex:none}
+.evalbar .fill{position:absolute;top:0;left:0;right:0;background:#2b2730;height:50%;transition:height .4s}
+.evalbar span{position:absolute;left:0;right:0;bottom:4px;font-size:8px;font-weight:900;text-align:center;color:#2b2730;writing-mode:vertical-rl;transform:rotate(180deg)}
+.evalbar.off{opacity:.3}
+.lines{display:flex;flex-direction:column;gap:6px}
+.lines .line{display:flex;gap:8px;align-items:center;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:7px 10px;font-size:13.5px;font-weight:700}
+.lines .line .pill{flex:none;min-width:48px;text-align:center}
+.palette{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.palette button{aspect-ratio:1;border-radius:10px;background:var(--light);background-size:84%;background-position:center;background-repeat:no-repeat;border:2px solid transparent}
+.palette button.on{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.palette button.erase{background:var(--card2);color:var(--muted);display:flex;align-items:center;justify-content:center}
+.pgn{white-space:pre-wrap;font-size:12px;background:var(--bg2);border-radius:10px;padding:10px;max-height:180px;overflow:auto}
 </style>
 </head>
 <body>
@@ -1352,6 +1394,7 @@ class BoardView {
     if (state.board) this.board = Int8Array.from(state.board);
     this.last = state.last || null; this.check = state.check ?? -1;
     this.stars = state.stars || null; this.marks = state.marks || {};
+    this.arrows = state.arrows || []; this.badge = state.badge || null;
     this.sel = -1; this.targets = [];
     this.draw(animate);
   }
@@ -1386,6 +1429,30 @@ class BoardView {
         requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.remove('noanim'); el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }));
       } else { el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }
       this.layer.append(el); this.pieceEls[s] = el;
+    }
+    // arrows (e.g. best move in Game Review) and a grade badge on a square
+    if (this.arrows && this.arrows.length) {
+      const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 8 8'); svg.setAttribute('class', 'arrows');
+      for (const [a, b, col] of this.arrows) {
+        const [x1, y1] = this.pos(a), [x2, y2] = this.pos(b);
+        const ax = x1 + .5, ay = y1 + .5, bx = x2 + .5, by = y2 + .5, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+        const ex = bx - ux * .32, ey = by - uy * .32;
+        const line = document.createElementNS(NS, 'line');
+        Object.entries({ x1: ax, y1: ay, x2: ex, y2: ey, stroke: col || '#7cc04a', 'stroke-width': .17, 'stroke-linecap': 'round', opacity: .85 }).forEach(([k, v]) => line.setAttribute(k, v));
+        const head = document.createElementNS(NS, 'polygon');
+        const px = -uy, py = ux;
+        head.setAttribute('points', `${bx - ux * .05},${by - uy * .05} ${ex + px * .25},${ey + py * .25} ${ex - px * .25},${ey - py * .25}`);
+        head.setAttribute('fill', col || '#7cc04a'); head.setAttribute('opacity', .85);
+        svg.append(line, head);
+      }
+      this.layer.append(svg);
+    }
+    if (this.badge && typeof CLASSES !== 'undefined' && CLASSES[this.badge.cls]) {
+      const [x, y] = this.pos(this.badge.sq);
+      const b = classBadge(this.badge.cls, 20); b.classList.add('sqbadge');
+      b.style.left = `calc(${(x + 1) * 12.5}% - 14px)`; b.style.top = `calc(${y * 12.5}% - 6px)`;
+      this.layer.append(b);
     }
   }
   select(sq, targets) { this.sel = sq; this.targets = targets; this.draw(); }
@@ -1565,7 +1632,7 @@ const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
 // ======================= APP SHELL =======================
 let route = 'play';
 const appEl = () => $('#app');
-const ROUTES = { play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe };
+const ROUTES = { play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m) };
 function go(r) { if (!ROUTES[r]) r = 'play'; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];
 function cleanup() { cleanups.forEach(f => { try { f(); } catch (e) { } }); cleanups = []; }
@@ -1754,6 +1821,7 @@ function renderPlay(main) {
   drawGrid();
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
+    h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { route = 'learn'; lessonOpen = null; render(); } }, icon('learn', 22), h('b', null, 'Learn & courses'))),
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
@@ -1791,6 +1859,7 @@ function renderBotGame(main) {
       list.push({ ic: 'bulb', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
     }
     if (over) {
+      list.push({ ic: 'search', label: 'Review', on: () => openReview({ moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }) });
       list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc) });
       list.push({ ic: 'plus', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
     } else {
@@ -1856,7 +1925,7 @@ function renderBotGame(main) {
       if (nl.i !== oldLeague.i) promo = { up: nl.i > oldLeague.i, name: nl.name, piece: nl.piece };
       profile.rHist.push(L.r); if (profile.rHist.length > 200) profile.rHist.shift();
     }
-    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves() });
+    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves(), moves: g.moves.slice(), tc: cur.tc });
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
@@ -1873,9 +1942,9 @@ function renderBotGame(main) {
       counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' ', icon('arrowRight', 16), ' ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
       counted && d === 0 && score === 1 ? h('p', { class: 'center small muted' }, 'This bot is far below your level, so wins no longer count. Try a stronger bot!') : null,
       promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
-      score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
+      score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap Review and the coach will show you the turning point.') : null,
       h('div', { class: 'row', style: { marginTop: '12px' } },
-        h('button', { class: 'btn grow', onclick: close }, 'Review'),
+        h('button', { class: 'btn grow', onclick: () => { close(); openReview({ moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }); } }, icon('search', 18), 'Review'),
         h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc); } }, 'Rematch'))));
   }
   buttons();
@@ -1887,11 +1956,13 @@ let friendView = 'menu';
 function renderFriend(main) {
   if (friendView === 'local') return renderLocalGame(main);
   if (friendView === 'online') return renderOnline(main);
+  if (friendView === 'world') return renderWorld(main);
   main.append(
     h('h2', null, 'Play with a friend'),
+    h('button', { class: 'card lesson hero', onclick: () => { friendView = 'world'; lobbyView = 'home'; render(); } }, h('div', { class: 'ic gold' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play the World'), h('div', { class: 'd' }, 'Quick match with players near your rating. Rated and checked by the server.')), h('span', { class: 'ck' }, icon('next', 20))),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
-    h('p', { class: 'small muted' }, `Online games count toward your Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('link', 24)), h('div', null, h('div', { class: 't' }, 'Invite a Friend'), h('div', { class: 'd' }, 'Send a link. Your devices connect directly (peer-to-peer).')), h('span', { class: 'ck' }, icon('next', 20))),
+    h('p', { class: 'small muted' }, 'Play the World games count toward your Online rating, which is separate from your Bot League rating. Friend invites and Pass & Play are just for fun.'));
 }
 function newLocalGame() {
   const st = profile.localGame || {}; const sel = { tc: st.tc || '0+0' };
@@ -2096,6 +2167,7 @@ function renderOnline(main) {
 // Online (human) rating: Glicko-2, capped at ±50 per game while provisional, ±30 after.
 // Each game is rated once, and only if at least 4 moves were played.
 function rateOnline(st, opp, score) {
+  return null; // friend invite games are friendly; the Online rating comes from the lobby server
   if (!opp || st.moves.length < 4) return null;
   const key = [st.white.id, st.black.id, st.moves.join('')].join('|');
   profile.ratedKeys = profile.ratedKeys || [];
@@ -2148,10 +2220,10 @@ function renderOnlineGame(main) {
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
     const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = rateOnline(o.state, oppInfo, score);
-    if (rc) setTimeout(() => rewardEvent('onlineGame', { score, moves: o.state.moves.slice(), color: myColor }), 1800);
+    if (o.state.moves.length >= 4) setTimeout(() => rewardEvent('localGame', { moves: o.state.moves.slice(), reason: o.state.result.reason }), 1800);
     if (win) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => modal((box, close) => box.append(badge(r.result === '1/2-1/2' ? 'half' : win ? 'trophy' : 'shield', r.result === '1/2-1/2' ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
-      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
+      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Friendly game: no rating change.'),
       h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
   }
   o.onState = (prevLen) => {
@@ -2436,12 +2508,12 @@ function renderMe(main) {
     bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached!'),
     sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w}W · ${l}L · ${d}D`)));
   main.append(h('div', { class: 'stats' },
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, profile.server ? Math.round(profile.server.r) + (profile.server.provisional ? '?' : '') : '800?'), h('div', { class: 'l' }, profile.server && profile.server.games ? `${profile.server.games} lobby games` : 'Play the World to start')),
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
   main.append(trophyCard());
   if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
-  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
+  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', { class: g.moves ? 'tap' : '', onclick: () => g.moves && openReview({ moves: g.moves, color: g.color || null, white: g.color === 'b' ? g.opp : (profile.name || 'You'), black: g.color === 'b' ? (profile.name || 'You') : g.opp }) }, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
   main.append(h('div', { class: 'card stack' },
     h('h3', null, 'How ratings work'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),
@@ -2449,7 +2521,7 @@ function renderMe(main) {
     h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for rated games in Play the World. The server checks every move and keeps the rating, so nobody can fake a result. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
@@ -2906,6 +2978,1114 @@ function renderStyle(main) {
   main.append(h('h3', { class: 'sect' }, 'Board options'));
   const toggle = (label, key) => h('div', { class: 'card row' }, h('b', { class: 'grow' }, label), h('button', { class: 'btn sm', onclick: () => { st[key] = st[key] === false; saveProfile(); applyStyle(); render(); } }, st[key] === false ? 'Off' : 'On'));
   main.append(toggle('Show coordinates', 'coords'), toggle('Animate moves', 'anim'), toggle('Show legal move dots', 'dots'));
+}
+
+;
+// Knight Club online lobby client (browser, classic script, no dependencies).
+// Talks to the lobby Worker (lobby/ folder, protocol in lobby/PROTOCOL.md).
+// Identity: an ECDSA P-256 keypair kept in localStorage; the server derives the player id
+// from the public key, so the same browser keeps the same rating without an account.
+//
+//   const lobby = new LobbyClient('https://knightclub-lobby.chesscomplex.workers.dev');
+//   lobby.on('welcome', me => ...); lobby.on('game', g => ...); lobby.on('seeks', list => ...);
+//   lobby.connect('MyName');
+class LobbyClient {
+  constructor(url) {
+    let u = String(url || '').trim().replace(/\/+$/, '');
+    if (/^http/i.test(u)) u = u.replace(/^http/i, 'ws');
+    if (!/\/ws$/.test(u)) u += '/ws';
+    this.url = u;
+    this.httpUrl = u.replace(/^ws/i, 'http').replace(/\/ws$/, '');
+    this.name = null;
+    this.me = null;            // {id, name, r, rd, games, provisional, ...}
+    this.games = {};           // id -> latest game state
+    this.mySeek = null;
+    this.seeks = [];
+    this.state = 'offline';    // offline | connecting | online
+    this.offset = 0;           // server clock minus local clock, ms
+    this._ws = null;
+    this._handlers = {};
+    this._want = false;
+    this._retry = 0;
+    this._timer = null;
+    this._ping = null;
+    this._keys = null;
+    this._subs = {};
+  }
+
+  // ---------------------------------------------------------------- events
+  on(type, fn) {
+    (this._handlers[type] || (this._handlers[type] = [])).push(fn);
+    return () => { this._handlers[type] = (this._handlers[type] || []).filter(f => f !== fn); };
+  }
+  _emit(type, data) {
+    for (const fn of (this._handlers[type] || []).slice()) {
+      try { fn(data); } catch (e) { if (typeof console !== 'undefined') console.error(e); }
+    }
+  }
+  _setState(s) { if (this.state !== s) { this.state = s; this._emit('status', s); } }
+
+  // ---------------------------------------------------------------- keys
+  static _b64u(buf) {
+    const bytes = new Uint8Array(buf);
+    let s = '';
+    for (let i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+    return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  async _getKeys() {
+    if (this._keys) return this._keys;
+    const subtle = typeof crypto !== 'undefined' && crypto.subtle;
+    if (!subtle) throw new Error('WebCrypto is not available');
+    const KEY = 'kc.lobby.key.v1';
+    const alg = { name: 'ECDSA', namedCurve: 'P-256' };
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { stored = null; }
+    if (stored && stored.pub && stored.priv) {
+      try {
+        const priv = await subtle.importKey('jwk', stored.priv, alg, false, ['sign']);
+        this._keys = { priv, pub: { kty: 'EC', crv: 'P-256', x: stored.pub.x, y: stored.pub.y } };
+        return this._keys;
+      } catch (e) { /* corrupted: make a new one */ }
+    }
+    const pair = await subtle.generateKey(alg, true, ['sign', 'verify']);
+    const pubJwk = await subtle.exportKey('jwk', pair.publicKey);
+    const privJwk = await subtle.exportKey('jwk', pair.privateKey);
+    try { localStorage.setItem(KEY, JSON.stringify({ pub: pubJwk, priv: privJwk })); } catch (e) { /* private mode: key lasts this session */ }
+    this._keys = { priv: pair.privateKey, pub: { kty: 'EC', crv: 'P-256', x: pubJwk.x, y: pubJwk.y } };
+    return this._keys;
+  }
+
+  // ---------------------------------------------------------------- connection
+  connect(name) {
+    if (name != null) this.name = name;
+    this._want = true;
+    if (this._ws && (this._ws.readyState === 0 || this._ws.readyState === 1)) return;
+    this._open();
+  }
+  disconnect() {
+    this._want = false;
+    clearTimeout(this._timer);
+    clearInterval(this._ping);
+    if (this._ws) try { this._ws.close(1000); } catch (e) { /* ignore */ }
+    this._ws = null;
+    this._setState('offline');
+  }
+  setName(name) { this.name = name; if (this._ws) try { this._ws.close(1000); } catch (e) { /* reconnects with the new name */ } }
+
+  _open() {
+    clearTimeout(this._timer);
+    this._setState('connecting');
+    let ws;
+    try { ws = new WebSocket(this.url); } catch (e) { this._scheduleReconnect(); return; }
+    this._ws = ws;
+    ws.onmessage = ev => { if (ws === this._ws) this._onMessage(ev.data); };
+    ws.onclose = () => {
+      if (ws !== this._ws) return;
+      clearInterval(this._ping);
+      this._ws = null;
+      this._setState('offline');
+      this._emit('close', null);
+      if (this._want) this._scheduleReconnect();
+    };
+    ws.onerror = () => { /* onclose follows */ };
+  }
+  _scheduleReconnect() {
+    clearTimeout(this._timer);
+    const delay = Math.min(30000, 1000 * Math.pow(2, this._retry++)) * (0.75 + Math.random() * 0.5);
+    this._timer = setTimeout(() => { if (this._want) this._open(); }, delay);
+  }
+  _send(obj) {
+    if (!this._ws || this._ws.readyState !== 1 || (this.state !== 'online' && obj.t !== 'auth')) return false;
+    try { this._ws.send(JSON.stringify(obj)); return true; } catch (e) { return false; }
+  }
+
+  async _onMessage(data) {
+    let m;
+    try { m = JSON.parse(data); } catch (e) { return; }
+    if (!m || typeof m.t !== 'string') return;
+    switch (m.t) {
+      case 'challenge': {
+        try {
+          const keys = await this._getKeys();
+          const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, keys.priv,
+            new TextEncoder().encode((m.prefix || 'knightclub-auth:') + m.nonce));
+          this._send({ t: 'auth', pub: keys.pub, sig: LobbyClient._b64u(sig), name: this.name });
+        } catch (e) {
+          this._emit('error', { code: 'noCrypto', message: String(e && e.message || e) });
+          this.disconnect();
+        }
+        return;
+      }
+      case 'welcome':
+        this._retry = 0;
+        this.me = m;
+        if (m.now) this.offset = m.now - Date.now();
+        this._setState('online');
+        clearInterval(this._ping);
+        this._ping = setInterval(() => { try { this._ws && this._ws.readyState === 1 && this._ws.send('{"t":"ping"}'); } catch (e) { /* ignore */ } }, 45000);
+        if (this._subs.seeks) this._send({ t: 'subscribe', what: 'seeks' });
+        break;
+      case 'me': this.me = Object.assign({}, this.me, m); break;
+      case 'game':
+        if (m.now) this.offset = m.now - Date.now();
+        this.games[m.id] = m;
+        break;
+      case 'seeks': this.seeks = m.list || []; break;
+      case 'mySeek': this.mySeek = m.seek; break;
+    }
+    this._emit(m.t, m.t === 'seeks' ? m.list : m.t === 'leaderboard' ? m.players : m);
+    this._emit('message', m);
+  }
+
+  // remaining clock (ms) for side 'w' or 'b' of a game state, as of now
+  clockFor(game, side) {
+    if (!game || !game.clocks) return 0;
+    let ms = game.clocks[side];
+    const toMove = game.moves.length % 2 === 0 ? 'w' : 'b';
+    if (game.clockRunning && side === toMove) ms -= (Date.now() + this.offset) - game.turnStartedAt;
+    return Math.max(0, ms);
+  }
+  // 'w', 'b' or null for the signed-in player in a game state
+  myColor(game) {
+    if (!game || !this.me) return null;
+    return game.white.id === this.me.id ? 'w' : game.black.id === this.me.id ? 'b' : null;
+  }
+
+  // ---------------------------------------------------------------- actions
+  // tc: {base: seconds, inc: seconds}; color: 'w' | 'b' | 'r'
+  seek(tc, color, rated) { return this._send({ t: 'seek', tc, color: color || 'r', rated: rated !== false }); }
+  cancelSeek() { return this._send({ t: 'cancelSeek' }); }
+  accept(seekId) { return this._send({ t: 'accept', seekId }); }
+  quick(tc, rated) { return this._send({ t: 'quick', tc, rated: rated !== false }); }
+  move(gameId, uci, ply) { return this._send({ t: 'move', gameId, uci, ply }); }
+  resign(gameId) { return this._send({ t: 'resign', gameId }); }
+  offerDraw(gameId) { return this._send({ t: 'drawOffer', gameId }); }
+  acceptDraw(gameId) { return this._send({ t: 'drawAccept', gameId }); }
+  declineDraw(gameId) { return this._send({ t: 'drawDecline', gameId }); }
+  abort(gameId) { return this._send({ t: 'abort', gameId }); }
+  rematch(gameId) { return this._send({ t: 'rematch', gameId }); }
+  // code: 'hi' | 'gl' | 'gg' | 'wp' | 'ty' | 'oops' | 'thinking' | 'rematch?'
+  chat(gameId, code) { return this._send({ t: 'chat', gameId, code }); }
+  subscribeSeeks() { this._subs.seeks = true; return this._send({ t: 'subscribe', what: 'seeks' }); }
+  unsubscribeSeeks() { this._subs.seeks = false; return this._send({ t: 'unsubscribe', what: 'seeks' }); }
+  leaderboard() { return this._send({ t: 'leaderboard' }); }
+  stats() { return this._send({ t: 'stats' }); }
+  // HTTP versions (work without a socket)
+  fetchLeaderboard() { return fetch(this.httpUrl + '/leaderboard').then(r => r.json()).then(j => j.players || []); }
+  fetchStats() { return fetch(this.httpUrl + '/stats').then(r => r.json()); }
+}
+LobbyClient.TIME_CONTROLS = [[60, 0], [180, 0], [180, 2], [300, 0], [600, 0], [600, 5], [900, 10], [1800, 0]];
+LobbyClient.CHAT_CODES = ['hi', 'gl', 'gg', 'wp', 'ty', 'oops', 'thinking', 'rematch?'];
+if (typeof module !== 'undefined' && module.exports) module.exports = LobbyClient;
+
+;
+// "Play the World": the online lobby (Cloudflare server). Matchmaking, server-checked games,
+// verified ratings, leaderboard and preset-only chat (safe for kids).
+'use strict';
+const LOBBY_URL = 'https://knightclub-lobby.chesscomplex.workers.dev';
+const CHAT_TEXT = { hi: 'Hello!', gl: 'Good luck!', gg: 'Good game!', wp: 'Well played!', ty: 'Thank you!', oops: 'Oops!', thinking: 'Let me think...', 'rematch?': 'Rematch?' };
+let lobby = null, lobbyView = 'home', lobbyChat = {}, lobbyLb = null, lobbyStats = null, lobbySel = { tc: '300+0', color: 'r', rated: true };
+function getLobby() {
+  if (lobby) return lobby;
+  if (typeof LobbyClient === 'undefined' || typeof WebSocket === 'undefined') return null;
+  lobby = new LobbyClient(LOBBY_URL);
+  const rerender = () => { if (route === 'friend' && friendView === 'world') render(); };
+  lobby.on('status', rerender);
+  lobby.on('welcome', me => { profile.server = { r: me.r, rd: me.rd, games: me.games, provisional: me.provisional, id: me.id }; saveProfile(); rerender(); });
+  lobby.on('me', me => { profile.server = { r: me.r, rd: me.rd, games: me.games, provisional: me.provisional, id: me.id }; saveProfile(); });
+  lobby.on('seeks', rerender);
+  lobby.on('mySeek', rerender);
+  lobby.on('stats', st => { lobbyStats = st; });
+  lobby.on('leaderboard', pl => { lobbyLb = pl; rerender(); });
+  lobby.on('chat', c => { (lobbyChat[c.gameId] = lobbyChat[c.gameId] || []).push(c); if (lobbyGameHook) lobbyGameHook('chat', c); });
+  lobby.on('error', e => { const msg = { inGame: 'Finish your current game first.', seekGone: 'That game was already taken.', badName: 'That name is not allowed, so a default name is used.', rateLimit: 'Slow down a little!', noCrypto: 'This browser cannot create a secure player key.', illegal: 'That move is not legal.', notYourTurn: 'Not your turn.' }[e.code]; if (msg) toast(msg); });
+  lobby.on('game', gm => {
+    const mine = lobby.myColor(gm);
+    if (!mine) return;
+    if (lobbyGameHook) lobbyGameHook('game', gm);
+    else if (!gm.status.over) { lobbyView = 'game'; lobbyCurrent = gm.id; friendView = 'world'; if (route !== 'friend') go('friend'); else render(); }
+  });
+  return lobby;
+}
+let lobbyGameHook = null, lobbyCurrent = null;
+function lobbyName() { return (profile.name || '').replace(/[^A-Za-z0-9 _-]/g, '').slice(0, 20) || null; }
+function renderWorld(main) {
+  const lb = getLobby();
+  if (lobbyView === 'game' && lb && lb.games[lobbyCurrent]) return renderLobbyGame(main, lb);
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { friendView = 'menu'; render(); } }, icon('back', 18), 'Back'), h('h2', { class: 'grow' }, 'Play the World'), lb && lb.state === 'online' ? h('span', { class: 'pill live' }, 'online') : h('span', { class: 'pill' }, lb ? lb.state : 'offline')));
+  if (!lb) { main.append(h('div', { class: 'card' }, 'This browser cannot connect to the lobby.')); return; }
+  if (lb.state === 'offline') lb.connect(lobbyName());
+  if (lobbyView === 'leaderboard') return renderLeaderboard(main, lb);
+  const me = lb.me;
+  main.append(h('div', { class: 'card row' }, avatar(myAvatar(), 44), h('div', { class: 'grow' }, h('b', null, me ? me.name : 'Connecting…'), h('div', { class: 'small muted' }, me ? `Online rating ${Math.round(me.r)}${me.provisional ? '?' : ''} · ${me.games} games` : 'Setting up your secure player key')),
+    h('button', { class: 'btn sm', onclick: () => { lobbyView = 'leaderboard'; lb.leaderboard(); render(); } }, icon('medal', 18), 'Top 50')));
+  if (lb.state !== 'online') { main.append(h('div', { class: 'card center muted' }, icon('hourglass', 18), ' Connecting to the lobby…')); return; }
+  if (!profile.name) main.append(h('p', { class: 'small muted' }, 'Tip: set your name in the Me tab so opponents know who you are.'));
+  // my open seek
+  if (lb.mySeek) {
+    const s = lb.mySeek;
+    main.append(h('div', { class: 'card stack center' }, icon('hourglass', 26), h('b', null, s.quick ? 'Finding an opponent…' : 'Waiting for someone to accept your game…'), h('div', { class: 'muted small' }, `${tcLabel(s.tc.base, s.tc.inc)} · ${s.rated ? 'Rated' : 'Casual'}`), h('button', { class: 'btn', onclick: () => lb.cancelSeek() }, 'Cancel')));
+  } else {
+    main.append(h('h3', { class: 'sect' }, 'Quick play'));
+    main.append(h('div', { class: 'tcs' }, LobbyClient.TIME_CONTROLS.map(([b, i]) => h('button', { onclick: () => lb.quick({ base: b, inc: i }, true) }, h('b', null, tcLabel(b, i)), h('small', null, TIME_CONTROLS.find(t => t[0] === b && t[1] === i)[2])))));
+    main.append(h('p', { class: 'small muted' }, 'Quick play pairs you with someone near your rating. All lobby games are checked by the server, so the ratings can be trusted.'));
+    const sel = lobbySel;
+    const colorSeg = h('div', { class: 'seg' }); const drawC = () => { colorSeg.innerHTML = ''; [['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]].forEach(([v, l]) => colorSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; drawC(); } }, l))); }; drawC();
+    const ratedSeg = h('div', { class: 'seg' }); const drawR = () => { ratedSeg.innerHTML = ''; [[true, 'Rated'], [false, 'Casual']].forEach(([v, l]) => ratedSeg.append(h('button', { class: sel.rated === v ? 'on' : '', onclick: () => { sel.rated = v; drawR(); } }, l))); }; drawR();
+    const tcSel = { tc: sel.tc }; const tcs = tcPicker(tcSel, () => { sel.tc = tcSel.tc; });
+    tcs.firstChild && tcs.firstChild.remove(); // no untimed games in the lobby
+    main.append(h('details', { class: 'card' }, h('summary', null, h('b', null, 'Create a custom game')), h('div', { class: 'stack', style: { marginTop: '10px' } }, tcs, colorSeg, ratedSeg,
+      h('button', { class: 'btn primary block', onclick: () => { const [b, i] = parseTc(sel.tc === '0+0' ? '300+0' : sel.tc); lb.seek({ base: b, inc: i }, sel.color, sel.rated); } }, icon('plus', 18), 'Post game'))));
+  }
+  main.append(h('h3', { class: 'sect' }, 'Open games'));
+  lb.subscribeSeeks();
+  const list = (lb.seeks || []).filter(s => !me || s.pid !== me.id);
+  if (!list.length) main.append(h('div', { class: 'card muted small center' }, 'No open games right now. Use Quick play or post your own!'));
+  else main.append(h('div', { class: 'card' }, h('table', { class: 'tbl' }, list.map(s => h('tr', null, h('td', null, h('b', null, s.name), h('div', { class: 'small muted' }, `${Math.round(s.r)}${s.provisional ? '?' : ''}`)), h('td', null, tcLabel(s.tc.base, s.tc.inc), h('div', { class: 'small muted' }, s.rated ? 'Rated' : 'Casual')), h('td', null, h('button', { class: 'btn sm primary', onclick: () => lb.accept(s.id) }, 'Play')))))));
+}
+function renderLeaderboard(main, lb) {
+  main.append(h('button', { class: 'btn sm', onclick: () => { lobbyView = 'home'; render(); } }, icon('back', 18), 'Lobby'));
+  main.append(h('h3', { class: 'sect' }, 'Top 50 players'));
+  if (!lobbyLb) { main.append(h('div', { class: 'card muted center' }, 'Loading…')); lb.fetchLeaderboard().then(p => { lobbyLb = p; render(); }).catch(() => { }); return; }
+  if (!lobbyLb.length) { main.append(h('div', { class: 'card muted center small' }, 'No ranked players yet. Play 5 rated lobby games to appear here!')); return; }
+  main.append(h('div', { class: 'card' }, h('table', { class: 'tbl' }, lobbyLb.map((p, i) => h('tr', { class: lb.me && p.id === lb.me.id ? 'me' : '' }, h('td', null, h('b', null, (i + 1) + '.')), h('td', null, p.name, h('div', { class: 'small muted' }, `${p.wins}W ${p.losses}L ${p.draws}D`)), h('td', null, Math.round(p.r)))))));
+}
+function renderLobbyGame(main, lb) {
+  let gm = lb.games[lobbyCurrent];
+  const myColor = lb.myColor(gm);
+  const g = new Game(START_FEN, gm.moves);
+  const opp = myColor === 'w' ? gm.black : gm.white, mine = myColor === 'w' ? gm.white : gm.black;
+  // a clock view object compatible with clk.rem()
+  const clockView = () => {
+    const toMove = gm.moves.length % 2 === 0 ? 'w' : 'b';
+    return { base: gm.tc.base * 1000, inc: gm.tc.inc * 1000, w: gm.clocks.w, b: gm.clocks.b, running: gm.clockRunning && !gm.status.over ? toMove : null, since: gm.turnStartedAt - lb.offset };
+  };
+  const players = { [myColor]: { name: 'You', avatar: myAvatar(), rating: Math.round(mine.r) }, [myColor === 'w' ? 'b' : 'w']: { name: opp.name, avatar: 'friend', rating: Math.round(opp.r) } };
+  let pending = false;
+  main.append(h('div', { class: 'row' }, h('span', { class: 'pill live' }, `${tcLabel(gm.tc.base, gm.tc.inc)} · ${gm.rated ? 'Rated' : 'Casual'}`), h('span', { class: 'grow' }), gm.disconnected && gm.disconnected[myColor === 'w' ? 'b' : 'w'] ? h('span', { class: 'pill' }, 'opponent disconnected') : null));
+  const scr = gameScreen(main, {
+    game: g, orient: myColor, players,
+    canMove: turn => !gm.status.over && turn === myColor && !pending,
+    getClock: () => clockView(),
+    onUserMove: (uci, dragged) => {
+      const ply = g.moves.length; const res = g.play(uci); if (!res) return; playSound(res);
+      pending = true; lb.move(gm.id, uci, ply); scr.refresh(dragged ? null : g.lastFromTo); setTimeout(() => { pending = false; }, 3000);
+    },
+  });
+  const chatEl = h('div', { class: 'chatlog' });
+  const drawChat = () => { chatEl.innerHTML = ''; (lobbyChat[gm.id] || []).slice(-4).forEach(c => chatEl.append(h('div', { class: 'chatmsg ' + (c.from === myColor ? 'me' : '') }, h('b', null, c.from === myColor ? 'You' : c.name), ' ', CHAT_TEXT[c.code] || ''))); };
+  main.append(chatEl, h('div', { class: 'chatbar' }, LobbyClient.CHAT_CODES.map(code => h('button', { onclick: () => lb.chat(gm.id, code) }, CHAT_TEXT[code]))));
+  drawChat();
+  let shownOver = gm.status.over;
+  function buttons() {
+    const over = gm.status.over, oc = myColor === 'w' ? 'b' : 'w';
+    const list = [{ ic: 'back', label: 'Lobby', on: () => { if (!over) return confirmBox('Leave this game?', 'Your clock keeps running. Come back from the lobby to continue.', 'Leave', () => { lobbyView = 'home'; render(); }); lobbyView = 'home'; render(); } }, { ic: 'flip', label: 'Flip', on: () => scr.flip() }];
+    if (!over) {
+      if (gm.moves.length < 2) list.push({ ic: 'x', label: 'Abort', on: () => lb.abort(gm.id) });
+      list.push({ ic: 'half', label: gm.drawOfferBy === oc ? 'Accept' : 'Draw?', disabled: gm.drawOfferBy === myColor, on: () => gm.drawOfferBy === oc ? lb.acceptDraw(gm.id) : (lb.offerDraw(gm.id), toast('Draw offered')) });
+      list.push({ ic: 'flag', label: 'Resign', on: () => confirmBox('Resign?', 'Your opponent wins this game.', 'Resign', () => lb.resign(gm.id)) });
+    } else {
+      list.push({ ic: 'repeat', label: gm.rematchBy === oc ? 'Accept' : 'Rematch', disabled: gm.rematchBy === myColor || gm.rematchBy === 'both', on: () => lb.rematch(gm.id) });
+      list.push({ ic: 'search', label: 'Review', on: () => openReview({ moves: gm.moves.slice(), color: myColor, white: gm.white.name, black: gm.black.name }) });
+    }
+    scr.setButtons(list);
+  }
+  function showOver() {
+    const st = gm.status; if (!st.over || shownOver) return; shownOver = true;
+    if (st.result === '*') { toast('Game aborted.'); return; }
+    const win = (st.result === '1-0' && myColor === 'w') || (st.result === '0-1' && myColor === 'b');
+    const score = st.result === '1/2-1/2' ? .5 : win ? 1 : 0;
+    const rc = gm.ratingChange ? gm.ratingChange[myColor] : null;
+    if (win) { beep('win'); scr.board.burst('trophy'); }
+    setTimeout(() => modal((box, close) => box.append(badge(score === .5 ? 'half' : win ? 'trophy' : 'shield', score === .5 ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, score === .5 ? 'Draw!' : win ? 'You win!' : `${opp.name} wins`), h('p', { class: 'center muted' }, 'by ' + st.reason),
+      rc != null ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('span', { class: 'delta ' + (rc >= 0 ? 'up' : 'down') }, (rc >= 0 ? '+' : '') + Math.round(rc))) : null,
+      h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { close(); openReview({ moves: gm.moves.slice(), color: myColor, white: gm.white.name, black: gm.black.name }); } }, icon('search', 18), 'Review'), h('button', { class: 'btn primary grow', onclick: () => { close(); lb.rematch(gm.id); } }, icon('repeat', 18), 'Rematch')))), 500);
+    if (gm.moves.length >= 4) setTimeout(() => rewardEvent('onlineGame', { score, moves: gm.moves.slice(), color: myColor }), 1800);
+  }
+  lobbyGameHook = (kind, data) => {
+    if (kind === 'chat') { if (data.gameId === gm.id) { drawChat(); if (data.from !== myColor) beep('move'); } return; }
+    if (data.id !== gm.id) { if (!data.status.over && lb.myColor(data)) { lobbyCurrent = data.id; render(); } return; } // rematch started
+    const prevLen = g.moves.length; gm = data; pending = false;
+    if (gm.moves.join() !== g.moves.join()) { Object.assign(g, new Game(START_FEN, gm.moves)); if (gm.moves.length > prevLen) beep(g.pos.inCheck() ? 'check' : 'move'); scr.refresh(gm.moves.length > prevLen ? g.lastFromTo : null); }
+    if (gm.drawOfferBy && gm.drawOfferBy !== myColor && !gm.status.over) toast(`${opp.name} offers a draw. Tap Accept to agree.`, 3000);
+    buttons(); showOver();
+  };
+  cleanups.push(() => { lobbyGameHook = null; });
+  buttons();
+}
+
+;
+// Stockfish bridge: a small promise API over the UCI protocol, talking to the
+// single-threaded Stockfish 19 Lite WASM build in a classic Web Worker.
+// Classic script (no modules). Defines the global `SF`.
+//
+//   SF.ready()                         -> Promise<true>  (rejects if the engine cannot load)
+//   SF.analyze(fen, {depth, movetime, multipv, moves, timeout})
+//                                      -> Promise<{lines:[{multipv, depth, scoreCp?, mate?, pv:[uci]}], bestmove, depth, fen}>
+//                                         scores are from the SIDE TO MOVE's point of view
+//                                         (after `moves` are applied, if given)
+//   SF.bestMove(fen, opts)             -> Promise<uci|null>
+//   SF.stop()                          stops the running search (it resolves with what it has)
+//                                      and rejects every queued, not-yet-started request
+//   SF.newGame()                       -> Promise (ucinewgame + isready)
+//   SF.setSkill(0..20)                 -> Promise (Stockfish "Skill Level")
+//   SF.setOption(name, value)          -> Promise
+//   SF.available                       null = not tried yet, true = loaded, false = failed
+//   SF.terminate()                     kills the worker (next call reloads it)
+// All requests go through one serialized queue: only one search runs at a time.
+(function (global) {
+  'use strict';
+  var DEFAULT_PATH = 'vendor/stockfish/stockfish-19-lite-single.js';
+  var LOAD_TIMEOUT = 20000;     // ms to get "uciok"+"readyok" after creating the worker
+  var DEFAULT_TIMEOUT = 60000;  // ms safety cap for one depth-limited search
+
+  var worker = null, loading = null, listener = null;
+  var queue = [], busy = false, current = null;
+  var curMultiPV = 1;
+
+  function post(cmd) { if (worker) worker.postMessage(cmd); }
+
+  function fail(err) {
+    SF.available = false;
+    SF.lastError = String(err && err.message || err);
+    if (worker) { try { worker.terminate(); } catch (e) {} }
+    worker = null; loading = null; listener = null;
+    var q = queue; queue = []; busy = false;
+    if (current) { var c = current; current = null; c.done(null, new Error('Stockfish unavailable: ' + SF.lastError)); }
+    q.forEach(function (j) { j.reject(new Error('Stockfish unavailable: ' + SF.lastError)); });
+  }
+
+  function load() {
+    if (loading) return loading;
+    loading = new Promise(function (resolve, reject) {
+      var settled = false;
+      function bad(e) { if (settled) return; settled = true; clearTimeout(t); fail(e); reject(new Error('Stockfish failed to load: ' + SF.lastError)); }
+      if (typeof Worker === 'undefined') return bad('Web Workers not supported');
+      if (typeof location !== 'undefined' && location.protocol === 'file:') return bad('workers cannot load from file://');
+      if (typeof WebAssembly !== 'object') return bad('WebAssembly not supported');
+      try { worker = new Worker(SF.path); } catch (e) { return bad(e); }
+      var t = setTimeout(function () { bad('timeout while loading engine'); }, LOAD_TIMEOUT);
+      var gotUci = false;
+      worker.onerror = function (e) {
+        var msg = (e && e.message) || 'worker error';
+        if (e && e.preventDefault) e.preventDefault();
+        if (!settled) bad(msg); else fail(msg);
+      };
+      worker.onmessage = function (e) {
+        var line = typeof e.data === 'string' ? e.data : '';
+        if (!line) return;
+        if (SF.debug) console.log('[sf] ' + line);
+        if (!settled) {
+          if (line === 'uciok') { gotUci = true; post('setoption name Hash value ' + SF.hashMB); post('isready'); }
+          else if (line === 'readyok' && gotUci) {
+            settled = true; clearTimeout(t); SF.available = true;
+            resolve(true);
+          } else if (/^id name /.test(line)) SF.name = line.slice(8);
+          return;
+        }
+        if (listener) listener(line);
+      };
+      post('uci');
+    });
+    return loading;
+  }
+
+  // ---- queue ----
+  function enqueue(run) {
+    return new Promise(function (resolve, reject) {
+      queue.push({ run: run, resolve: resolve, reject: reject });
+      pump();
+    });
+  }
+  function pump() {
+    if (busy || !queue.length) return;
+    busy = true;
+    var job = queue.shift();
+    load().then(function () {
+      var finished = false;
+      current = {
+        done: function (val, err) {
+          if (finished) return; finished = true;
+          current = null; listener = null; busy = false;
+          if (err) job.reject(err); else job.resolve(val);
+          pump();
+        }
+      };
+      try { job.run(current); } catch (e) { current.done(null, e); }
+    }, function (e) { busy = false; job.reject(e); });
+  }
+  function waitReady(cur) {
+    listener = function (line) { if (line === 'readyok') cur.done(true); };
+    post('isready');
+  }
+
+  function parseInfo(line) {
+    // info depth 12 seldepth 14 multipv 1 score cp 31 [lowerbound] nodes ... pv e2e4 ...
+    if (line.indexOf(' pv ') < 0 || line.indexOf(' score ') < 0) return null;
+    var tok = line.split(' '), r = { multipv: 1, depth: 0, pv: [] };
+    for (var i = 1; i < tok.length; i++) {
+      var k = tok[i];
+      if (k === 'depth') r.depth = +tok[++i];
+      else if (k === 'multipv') r.multipv = +tok[++i];
+      else if (k === 'score') {
+        var kind = tok[++i], v = +tok[++i];
+        if (kind === 'cp') r.scoreCp = v; else if (kind === 'mate') r.mate = v;
+        if (tok[i + 1] === 'lowerbound' || tok[i + 1] === 'upperbound') { r.bound = tok[i + 1]; i++; }
+      } else if (k === 'pv') { r.pv = tok.slice(i + 1); break; }
+    }
+    return r;
+  }
+
+  var SF = {
+    path: DEFAULT_PATH,
+    hashMB: 16,
+    available: null,
+    name: null,
+    lastError: null,
+    debug: false,
+
+    ready: function () { return enqueue(function (cur) { waitReady(cur); }); },
+
+    analyze: function (fen, opts) {
+      opts = opts || {};
+      var multipv = Math.max(1, Math.min(10, opts.multipv | 0 || 1));
+      var go = 'go';
+      if (opts.depth) go += ' depth ' + (opts.depth | 0);
+      if (opts.movetime) go += ' movetime ' + (opts.movetime | 0);
+      if (opts.nodes) go += ' nodes ' + (opts.nodes | 0);
+      if (go === 'go') go += ' depth 12';
+      var limit = opts.timeout || (opts.movetime ? opts.movetime + 10000 : DEFAULT_TIMEOUT);
+      return enqueue(function (cur) {
+        var lines = {}, timer = null, hard = null;
+        listener = function (line) {
+          if (line.lastIndexOf('info ', 0) === 0) {
+            var info = parseInfo(line);
+            if (!info || info.bound) return;
+            var prev = lines[info.multipv];
+            if (!prev || info.depth >= prev.depth) lines[info.multipv] = info;
+          } else if (line.lastIndexOf('bestmove', 0) === 0) {
+            clearTimeout(timer); clearTimeout(hard);
+            var bm = line.split(' ')[1];
+            var out = [];
+            Object.keys(lines).forEach(function (k) {
+              var l = lines[k], o = { multipv: l.multipv, depth: l.depth, pv: l.pv };
+              if (l.mate !== undefined) o.mate = l.mate; else o.scoreCp = l.scoreCp;
+              out.push(o);
+            });
+            out.sort(function (a, b) { return a.multipv - b.multipv; });
+            cur.done({ fen: fen, lines: out, bestmove: (bm && bm !== '(none)') ? bm : null,
+              depth: out.length ? out[0].depth : 0 });
+          }
+        };
+        if (multipv !== curMultiPV) { post('setoption name MultiPV value ' + multipv); curMultiPV = multipv; }
+        var moves = opts.moves && opts.moves.length ? ' moves ' + opts.moves.join(' ') : '';
+        post('position fen ' + fen + moves);
+        post(go);
+        // safety: ask the engine to stop; if it still does not answer, restart it
+        timer = setTimeout(function () {
+          post('stop');
+          hard = setTimeout(function () {
+            var err = new Error('Stockfish search timed out');
+            if (worker) { try { worker.terminate(); } catch (e) {} }
+            worker = null; loading = null; curMultiPV = 1;
+            cur.done(null, err);
+          }, 3000);
+        }, limit);
+      });
+    },
+
+    bestMove: function (fen, opts) { return SF.analyze(fen, opts).then(function (r) { return r.bestmove; }); },
+
+    stop: function () {
+      var q = queue; queue = [];
+      q.forEach(function (j) { j.reject(new Error('cancelled')); });
+      if (current) post('stop');
+    },
+
+    newGame: function () {
+      return enqueue(function (cur) { post('ucinewgame'); waitReady(cur); });
+    },
+
+    setOption: function (name, value) {
+      return enqueue(function (cur) {
+        post('setoption name ' + name + (value === undefined ? '' : ' value ' + value));
+        if (name === 'MultiPV') curMultiPV = +value;
+        waitReady(cur);
+      });
+    },
+
+    setSkill: function (level) {
+      level = Math.max(0, Math.min(20, Math.round(level)));
+      return SF.setOption('Skill Level', level);
+    },
+
+    terminate: function () {
+      SF.stop();
+      if (worker) { try { worker.terminate(); } catch (e) {} }
+      worker = null; loading = null; busy = false; current = null; listener = null; curMultiPV = 1;
+      SF.available = null;
+    }
+  };
+
+  global.SF = SF;
+})(typeof window !== 'undefined' ? window : this);
+
+;
+// Game Review + Coach. Stockfish (vendor/stockfish) grades every move; when Stockfish can't load
+// (e.g. the page was opened as a local file) the built-in engine is used instead.
+// The coach turns engine numbers into plain-language advice a kid or adult can act on.
+'use strict';
+const PNAME = { 1: 'pawn', 2: 'knight', 3: 'bishop', 4: 'rook', 5: 'queen', 6: 'king' };
+const PVAL = { 1: 1, 2: 3, 3: 3, 4: 5, 5: 9, 6: 0 };
+const CLASSES = {
+  brilliant: { label: 'Brilliant', sym: '!!', color: '#22c3c3' },
+  great: { label: 'Great', sym: '!', color: '#5b8def' },
+  best: { label: 'Best', sym: '', color: '#7cc04a', icon: 'star' },
+  excellent: { label: 'Excellent', sym: '', color: '#93c45a', icon: 'check' },
+  good: { label: 'Good', sym: '', color: '#a0b77c', icon: 'check' },
+  book: { label: 'Book', sym: '', color: '#b08a63', icon: 'book' },
+  inaccuracy: { label: 'Inaccuracy', sym: '?!', color: '#f2c94c' },
+  mistake: { label: 'Mistake', sym: '?', color: '#f2994a' },
+  miss: { label: 'Miss', sym: 'x', color: '#ef7d6b' },
+  blunder: { label: 'Blunder', sym: '??', color: '#e5484d' },
+};
+const CLASS_ORDER = ['brilliant', 'great', 'best', 'excellent', 'good', 'book', 'inaccuracy', 'mistake', 'miss', 'blunder'];
+const winPct = cp => 100 / (1 + Math.exp(-0.00368208 * cp));
+const moveAccuracy = (before, after) => Math.max(0, Math.min(100, 103.1668 * Math.exp(-0.04354 * Math.max(0, before - after)) - 3.1669));
+const scoreToCp = l => l.mate != null ? (l.mate > 0 ? 10000 - l.mate * 10 : -10000 - l.mate * 10) : l.scoreCp;
+
+// ---------- engine access ----------
+let sfState = null; // null untried, true ok, false failed
+async function analyzePos(fen, multipv, depth) {
+  if (sfState !== false && typeof SF !== 'undefined') {
+    try {
+      if (sfState === null) { await SF.ready(); sfState = true; }
+      const r = await SF.analyze(fen, { depth, multipv, timeout: 15000 });
+      if (r && r.lines && r.lines.length) return r.lines.map(l => ({ cp: scoreToCp(l), mate: l.mate, pv: l.pv || [] }));
+    } catch (e) { sfState = false; }
+  }
+  // fallback: built-in engine, single best line
+  const r = await engineRequest({ kind: 'best', fen, moves: [], nodes: 60000 });
+  if (!r.uci) return [];
+  const mate = Math.abs(r.score) > E.MATE - 500 ? Math.sign(r.score) * Math.ceil((E.MATE - Math.abs(r.score)) / 2) : null;
+  return [{ cp: mate != null ? (mate > 0 ? 10000 - mate * 10 : -10000 - mate * 10) : r.score, mate, pv: [r.uci] }];
+}
+const engineName = () => sfState === true ? 'Stockfish 19' : sfState === false ? 'Knight Club engine' : 'engine';
+
+// ---------- small board helpers for the coach ----------
+function posWith(fen, moves) { const p = new E.Position(fen); for (const u of moves || []) { const m = p.moveFromUci(u); if (!m) break; p.make(m); } return p; }
+function material(pos, side) { let v = 0; for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } const p = pos.board[s]; if (p && ((p & 8) ? 1 : 0) === side) v += PVAL[p & 7]; } return v; }
+function balance(pos, side) { return material(pos, side) - material(pos, side ^ 1); }
+// pseudo moves for any side (switch side to move through FEN)
+function movesFor(pos, side) { const f = pos.fen().split(' '); f[1] = side ? 'b' : 'w'; f[3] = '-'; try { const q = new E.Position(f.join(' ')); return q.genMoves().map(m => ({ from: E.mFrom(m), to: E.mTo(m), m })); } catch (e) { return []; } }
+function attackersOf(pos, sq, side) {
+  // pieces of `side` that can capture on sq (put a dummy enemy piece there if needed)
+  const f = pos.fen().split(' '); const q = new E.Position(f.join(' '));
+  const orig = q.board[sq];
+  if (!orig || (((orig & 8) ? 1 : 0) === side)) q.board[sq] = side ? 1 : 9;
+  const arr = movesFor(q, side).filter(x => x.to === sq).map(x => PVAL[q.board[x.from] & 7] || 100);
+  return arr.sort((a, b) => a - b);
+}
+function hanging(pos, sq) {
+  // is the piece on sq losing material to a capture? returns piece value lost or 0
+  const p = pos.board[sq]; if (!p) return 0; const side = (p & 8) ? 1 : 0, val = PVAL[p & 7];
+  if (!val) return 0;
+  const att = attackersOf(pos, sq, side ^ 1); if (!att.length) return 0;
+  const def = attackersOf(pos, sq, side);
+  if (!def.length) return val;
+  if (att[0] < val) return val - att[0];
+  return 0;
+}
+function sanAt(fen, moves, uci) { const p = posWith(fen, moves); const m = p.moveFromUci(uci); return m ? p.san(m) : uci; }
+function pvSan(fen, moves, pv, n) { const p = posWith(fen, moves), out = []; for (const u of pv.slice(0, n)) { const m = p.moveFromUci(u); if (!m) break; out.push(p.san(m)); p.make(m); } return out; }
+// material swing for `side` after playing the first n plies of pv
+function pvGain(fen, moves, pv, side, n = 4) {
+  const p = posWith(fen, moves), b0 = balance(p, side); let best = b0, last = b0;
+  for (const u of pv.slice(0, n)) { const m = p.moveFromUci(u); if (!m) break; p.make(m); last = balance(p, side); }
+  return last - b0;
+}
+function moveFacts(fen, moves, uci) {
+  const p = posWith(fen, moves), m = p.moveFromUci(uci); if (!m) return {};
+  const side = p.turn, from = E.mFrom(m), to = E.mTo(m), piece = p.board[from] & 7, capt = (E.mFlags(m) & E.F_EP) ? 1 : (p.board[to] & 7);
+  p.make(m);
+  const check = p.inCheck(), mate = p.status().reason === 'checkmate';
+  // fork: the moved piece now attacks 2+ enemy pieces worth more than it, or the king plus something loose
+  const targets = [];
+  for (const x of movesFor(p, side)) if (x.from === to) { const t = p.board[x.to]; if (t && ((t & 8) ? 1 : 0) !== side) targets.push(t & 7); }
+  const valuable = targets.filter(t => t === 6 || PVAL[t] > PVAL[piece] || hanging(p, 0) >= 0 && PVAL[t] >= 3);
+  const fork = valuable.length >= 2;
+  const leavesHanging = hanging(p, to);
+  return { piece, capt, check, mate, fork, targets, leavesHanging, to, from, side };
+}
+const sqLabel = sq => E.sqName(sq);
+function wpWords(wp) {
+  if (wp >= 97) return 'completely winning'; if (wp >= 85) return 'winning'; if (wp >= 68) return 'clearly better'; if (wp >= 57) return 'a little better';
+  if (wp > 43) return 'about equal'; if (wp > 32) return 'a little worse'; if (wp > 15) return 'clearly worse'; if (wp > 3) return 'losing'; return 'completely lost';
+}
+const pieceWithArticle = t => (t === 1 ? 'a ' : t === 2 ? 'a ' : t === 3 ? 'a ' : t === 4 ? 'a ' : t === 5 ? 'the ' : 'the ') + PNAME[t];
+
+// ---------- the coach ----------
+function coachExplain(R, i) {
+  const mv = R.moves[i], fen = R.startFen, before = R.uciMoves.slice(0, i), side = mv.side;
+  const you = R.color ? (side === R.color ? 'you' : R.oppName) : (side === 'w' ? 'White' : 'Black');
+  const You = you.charAt(0).toUpperCase() + you.slice(1), them = side === 'w' ? 'Black' : 'White';
+  const lines = [];
+  const bestSan = mv.best ? sanAt(fen, before, mv.best) : null;
+  const facts = moveFacts(fen, before, mv.uci);
+  const nextLine = R.pos[i + 1] && R.pos[i + 1].lines[0];
+  const cls = mv.cls;
+  if (cls === 'book') return `${mv.san} is a well-known opening move. ${openingName(R.uciMoves.slice(0, i + 1)) ? 'This is the ' + openingName(R.uciMoves.slice(0, i + 1)) + '.' : 'Good players have played it many times.'}`;
+  if (facts.mate) return `${mv.san} is checkmate. Game over!`;
+  if (cls === 'brilliant') lines.push(`${mv.san} is brilliant! ${You} gave up material on purpose, and it works: the engine agrees it is the best move.`);
+  else if (cls === 'great') lines.push(`${mv.san} is a great find. It was the only good move here; everything else would have been ${wpWords(100 - R.pos[i].second || 50)} at best.`);
+  else if (cls === 'best') lines.push(`${mv.san} is the best move here.${facts.fork ? ' It attacks two pieces at once, a fork!' : facts.check ? ' It also gives check, keeping the initiative.' : ''}`);
+  else if (cls === 'excellent' || cls === 'good') lines.push(`${mv.san} is ${cls === 'excellent' ? 'an excellent' : 'a good'} move. ${bestSan && bestSan !== mv.san ? `The engine slightly preferred ${bestSan}.` : ''}`);
+  if (['inaccuracy', 'mistake', 'blunder', 'miss'].includes(cls)) {
+    const art = cls === 'inaccuracy' ? 'an inaccuracy' : cls === 'miss' ? 'a missed chance' : 'a ' + cls;
+    lines.push(`${mv.san} is ${art}.`);
+    const after = R.uciMoves.slice(0, i + 1), mySide = side === 'w' ? 0 : 1;
+    // 1. what does the move allow?
+    if (nextLine && nextLine.mate != null && nextLine.mate > 0) {
+      const seq = pvSan(fen, after, nextLine.pv, Math.min(nextLine.mate * 2 - 1, 5));
+      lines.push(`It allows checkmate in ${nextLine.mate}: ${seq.join(' ')}.`);
+    } else if (facts.leavesHanging >= 2 && nextLine) {
+      lines.push(`It leaves the ${PNAME[facts.piece]} on ${sqLabel(facts.to)} ${facts.leavesHanging >= PVAL[facts.piece] ? 'undefended' : 'open to a cheaper attacker'}, so ${them} can win it.`);
+    } else if (nextLine && nextLine.pv.length) {
+      const loss = -pvGain(fen, after, nextLine.pv, mySide, 4);
+      const reply = pvSan(fen, after, nextLine.pv, 1)[0];
+      if (loss >= 1) lines.push(`After it, ${them} can play ${reply}, winning ${loss >= 9 ? 'the queen' : loss >= 5 ? 'a rook\'s worth of material' : loss >= 3 ? 'a piece' : loss >= 2 ? 'material' : 'a pawn'}.`);
+      else if (mv.wpAfter < 43 && mv.wpBest >= 43) lines.push(`It hands ${them} the better position. Their best reply is ${reply}.`);
+      else if (cls === 'inaccuracy') lines.push(mv.wpBest >= 57 ? `It is playable, but it gives away part of ${you === 'you' ? 'your' : 'the'} advantage.` : 'It is playable, but there was a more useful move.');
+      else if (reply) lines.push(`${them}'s strongest reply is ${reply}.`);
+    }
+    // 2. what was better, and why?
+    if (mv.best && mv.best !== mv.uci) {
+      const bf = moveFacts(fen, before, mv.best);
+      const bestLine = R.pos[i].lines[0];
+      let guards = null;
+      if (nextLine && nextLine.pv[0]) {
+        const target = sqFromName(nextLine.pv[0].slice(2, 4));
+        const d0 = attackersOf(posWith(fen, before), target, mySide).length;
+        const d1 = attackersOf(posWith(fen, before.concat([mv.best])), target, mySide).length;
+        if (d1 > d0 || bf.to === target) guards = E.sqName(target);
+      }
+      const gain = bestLine ? pvGain(fen, before, bestLine.pv, mySide, 4) : 0;
+      const capTxt = bf.capt ? `captures the ${PNAME[bf.capt]} on ${sqLabel(bf.to)}${bf.check ? ' with check' : ''}` : '';
+      let why;
+      if (bestLine && bestLine.mate != null && bestLine.mate > 0) why = `It leads to checkmate in ${bestLine.mate}: ${pvSan(fen, before, bestLine.pv, Math.min(bestLine.mate * 2 - 1, 5)).join(' ')}.`;
+      else if (guards && mv.allowedMate) why = `It protects ${guards}, so the checkmate is no longer possible.`;
+      else if (bf.capt && gain >= 2) why = `It ${capTxt} and wins material.`;
+      else if (bf.capt) why = `It ${capTxt}, keeping the material balance.`;
+      else if (bf.fork) why = `It is a fork: the ${PNAME[bf.piece]} attacks two targets at once.`;
+      else if (gain >= 2) why = `It wins material by force: ${pvSan(fen, before, bestLine.pv, 4).join(' ')}.`;
+      else if (bf.check) why = 'It gives check and keeps the initiative.';
+      else if (facts.leavesHanging >= 2) why = `It keeps your pieces protected.`;
+      else if (guards && bf.to === sqFromName(guards)) why = `It grabs the ${guards} square before ${them} can use it.`;
+      else if (guards) why = `It covers ${guards}, the square ${them} wanted to use.`;
+      else { const cont = bestLine ? pvSan(fen, before, bestLine.pv, 3).join(' ') : ''; why = cont ? `The engine's plan was ${cont}.` : ''; }
+      lines.push(`Better was ${bestSan}. ${why}`);
+    }
+    if (cls === 'miss') lines.push(`${them === 'White' || them === 'Black' ? them : 'Your opponent'} had just made a mistake, and this was the moment to punish it.`);
+    const w0 = wpWords(mv.wpBest), w1 = wpWords(mv.wpAfter);
+    if (w0 !== w1) lines.push(`The position went from ${w0} to ${w1} for ${you}.`);
+  }
+  return lines.filter(Boolean).join(' ');
+}
+function coachSummary(R) {
+  const side = R.color || 'w';
+  const mine = R.moves.filter(m => m.side === side);
+  const cnt = k => mine.filter(m => m.cls === k).length;
+  const acc = R.acc[side];
+  const tips = [];
+  const hangs = mine.filter(m => m.leftHanging && ['mistake', 'blunder'].includes(m.cls)).length;
+  const missedWins = mine.filter(m => m.cls === 'miss' || (['mistake', 'blunder', 'inaccuracy'].includes(m.cls) && m.bestWasCapture)).length;
+  const allowedMates = mine.filter(m => m.allowedMate).length;
+  const opening = R.phaseAcc[side].opening, middle = R.phaseAcc[side].middlegame, end = R.phaseAcc[side].endgame;
+  let headline;
+  if (acc >= 90) headline = 'Outstanding game! You played like a strong club player.';
+  else if (acc >= 80 && !cnt('blunder')) headline = 'Very solid game with only a few slips.';
+  else if (acc >= 80) headline = 'Mostly strong play, but one big moment changed the game.';
+  else if (acc >= 65) headline = 'A decent game. A few moments decided it, and they are easy to learn from.';
+  else headline = 'A tough game, but every mistake here is a lesson you can use next time.';
+  if (hangs) tips.push(`You left a piece unprotected ${hangs} time${hangs > 1 ? 's' : ''}. Before each move, check that the piece you move is safe on its new square.`);
+  if (allowedMates) tips.push(`You allowed a checkmate. When your king is near open lines, look at every check your opponent could give.`);
+  if (missedWins) tips.push(`You missed ${missedWins} chance${missedWins > 1 ? 's' : ''} to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".`);
+  const phases = [['opening', opening], ['middlegame', middle], ['endgame', end]].filter(x => x[1] != null).sort((a, b) => a[1] - b[1]);
+  if (phases.length > 1 && phases[0][1] < phases[phases.length - 1][1] - 10) tips.push(`Your weakest phase was the ${phases[0][0]} (${Math.round(phases[0][1])}% accuracy). ${phases[0][0] === 'opening' ? 'The Openings course in Learn can help.' : phases[0][0] === 'endgame' ? 'The Endgame course in Learn can help.' : 'Try Puzzle Rush to sharpen your tactics.'}`);
+  if (!tips.length) tips.push('Keep playing like this, and try a stronger opponent!');
+  return { headline, tips, best: cnt('best') + cnt('great') + cnt('brilliant'), blunders: cnt('blunder') };
+}
+
+// ---------- openings (names for book moves) ----------
+const OPENING_NAMES = [
+  ['e2e4 e7e5 g1f3 b8c6 f1b5', 'Ruy Lopez'], ['e2e4 e7e5 g1f3 b8c6 f1c4', 'Italian Game'], ['e2e4 e7e5 g1f3 b8c6 d2d4', 'Scotch Game'], ['e2e4 e7e5 g1f3 g8f6', 'Petrov Defense'],
+  ['e2e4 e7e5 f2f4', "King's Gambit"], ['e2e4 e7e5 b1c3', 'Vienna Game'], ['e2e4 e7e5 g1f3 d7d6', 'Philidor Defense'], ['e2e4 c7c5', 'Sicilian Defense'], ['e2e4 e7e6', 'French Defense'],
+  ['e2e4 c7c6', 'Caro-Kann Defense'], ['e2e4 d7d5', 'Scandinavian Defense'], ['e2e4 g8f6', "Alekhine's Defense"], ['e2e4 d7d6', 'Pirc Defense'], ['e2e4 g7g6', 'Modern Defense'],
+  ['d2d4 d7d5 c2c4 e7e6', "Queen's Gambit Declined"], ['d2d4 d7d5 c2c4 d5c4', "Queen's Gambit Accepted"], ['d2d4 d7d5 c2c4 c7c6', 'Slav Defense'], ['d2d4 d7d5 c2c4', "Queen's Gambit"],
+  ['d2d4 g8f6 c2c4 g7g6', "King's Indian Defense"], ['d2d4 g8f6 c2c4 e7e6 b1c3 f8b4', 'Nimzo-Indian Defense'], ['d2d4 g8f6 c2c4 e7e6 g1f3 b7b6', "Queen's Indian Defense"],
+  ['d2d4 d7d5 g1f3 g8f6 c1f4', 'London System'], ['d2d4 g8f6 g1f3 e7e6 c1f4', 'London System'], ['d2d4 f7f5', 'Dutch Defense'], ['c2c4', 'English Opening'], ['g1f3', 'Reti Opening'],
+  ['e2e4 e7e5', "King's Pawn Game"], ['d2d4 d7d5', "Queen's Pawn Game"], ['d2d4 g8f6', 'Indian Defense'],
+];
+function openingName(ucis) {
+  const s = ucis.join(' '); let best = null, bl = 0;
+  for (const [seq, name] of OPENING_NAMES) if ((s + ' ').startsWith(seq + ' ') && seq.length > bl) { best = name; bl = seq.length; }
+  return best;
+}
+// book: the first moves that follow a line in our opening book
+let BOOK_SET = null;
+function isBookMove(ucis, i) {
+  if (i >= 12) return false;
+  if (!BOOK_SET) {
+    BOOK_SET = new Set();
+    for (const line of OPENINGS) { const p = new E.Position(); const acc = []; for (const san of line) { const m = p.moveFromSan(san); if (!m) break; acc.push(p.uci(m)); BOOK_SET.add(acc.join(' ')); p.make(m); } }
+    for (const [seq] of OPENING_NAMES) { const parts = seq.split(' '); for (let k = 1; k <= parts.length; k++) BOOK_SET.add(parts.slice(0, k).join(' ')); }
+  }
+  return BOOK_SET.has(ucis.slice(0, i + 1).join(' '));
+}
+
+// ---------- running a review ----------
+let REV = null; // current review
+function openReview(src) {
+  // src: {moves, color, white, black, startFen?, title?}
+  REV = { src, startFen: src.startFen || START_FEN, uciMoves: src.moves.slice(), color: src.color || null, oppName: (src.color === 'w' ? src.black : src.white) || 'your opponent', pos: [], moves: [], done: false, i: 0, progress: 0 };
+  const prevRoute = route; REV.back = prevRoute;
+  route = 'review'; render(); window.scrollTo(0, 0);
+  runReview(REV);
+}
+async function runReview(R) {
+  const fens = [], p = new E.Position(R.startFen);
+  fens.push(p.fen());
+  for (const u of R.uciMoves) { const m = p.moveFromUci(u); if (!m) break; p.make(m); fens.push(p.fen()); }
+  const depth = 13;
+  for (let k = 0; k < fens.length; k++) {
+    if (REV !== R) return; // review closed
+    const pos = new E.Position(fens[k]);
+    let lines;
+    if (pos.status().over) lines = [];
+    else lines = await analyzePos(fens[k], 2, depth);
+    R.pos[k] = { fen: fens[k], lines, turn: pos.turn === 0 ? 'w' : 'b', over: pos.status() };
+    R.progress = (k + 1) / fens.length;
+    if (reviewProgressHook) reviewProgressHook();
+  }
+  finalizeReview(R);
+}
+function evalWhite(P) {
+  // eval of a position from White's view, in cp
+  if (!P.lines.length) { if (P.over.reason === 'checkmate') return P.turn === 'w' ? -10000 : 10000; return 0; }
+  const cp = P.lines[0].cp; return P.turn === 'w' ? cp : -cp;
+}
+function finalizeReview(R) {
+  const N = R.uciMoves.length;
+  R.evals = R.pos.map(evalWhite);
+  R.moves = [];
+  const accs = { w: [], b: [] }, phaseAccs = { w: { opening: [], middlegame: [], endgame: [] }, b: { opening: [], middlegame: [], endgame: [] } };
+  for (let i = 0; i < N; i++) {
+    const P = R.pos[i], side = P.turn, sgn = side === 'w' ? 1 : -1;
+    const uci = R.uciMoves[i];
+    const before = R.evals[i] * sgn, after = R.evals[i + 1] * sgn;
+    const wpBefore = winPct(before), wpAfter = winPct(after);
+    const best = P.lines[0] ? P.lines[0].pv[0] : null;
+    const second = P.lines[1] ? winPct(P.lines[1].cp) : null;
+    const wpBest = P.lines[0] ? winPct(P.lines[0].cp) : wpBefore;
+    let loss = Math.max(0, wpBest - wpAfter);
+    if (uci === best) loss = 0;
+    const acc = moveAccuracy(wpBest, uci === best ? wpBest : wpAfter);
+    accs[side].push(acc);
+    const pos = new E.Position(P.fen);
+    const nonPawn = (() => { let n = 0; for (let s = 0; s < 128; s++) { if (s & 0x88) { s += 7; continue; } const t = pos.board[s] & 7; if (t >= 2 && t <= 5) n += PVAL[t]; } return n; })();
+    const phase = i < 20 && nonPawn > 50 ? 'opening' : nonPawn <= 26 ? 'endgame' : 'middlegame';
+    phaseAccs[side][phase].push(acc);
+    const facts = moveFacts(R.startFen, R.uciMoves.slice(0, i), uci);
+    let cls;
+    if (isBookMove(R.uciMoves, i) && loss < 3) cls = 'book';
+    else if (loss <= 0.5) cls = 'best'; else if (loss < 2) cls = 'excellent'; else if (loss < 5) cls = 'good'; else if (loss < 10) cls = 'inaccuracy'; else if (loss < 20) cls = 'mistake'; else cls = 'blunder';
+    // great: the only good move
+    if ((cls === 'best') && second != null && wpBest - second >= 15 && wpBefore < 92) cls = 'great';
+    // brilliant: a correct sacrifice in a position that wasn't already won
+    const material0 = balance(pos, side === 'w' ? 0 : 1);
+    const sacrificed = facts.leavesHanging >= 2 && (!facts.capt || PVAL[facts.capt] < PVAL[facts.piece]);
+    if ((cls === 'best' || cls === 'great' || cls === 'excellent') && sacrificed && wpBefore < 85 && wpAfter >= 45 && facts.piece !== 1) cls = 'brilliant';
+    // miss: the opponent just erred and you failed to punish
+    const prev = R.moves[i - 1];
+    if (prev && ['mistake', 'blunder'].includes(prev.cls) && (cls === 'mistake' || cls === 'blunder' || cls === 'inaccuracy') && wpBest >= 65) cls = 'miss';
+    const nextLine = R.pos[i + 1] && R.pos[i + 1].lines[0];
+    R.moves.push({ i, uci, side, san: new E.Position(P.fen).san(new E.Position(P.fen).moveFromUci(uci)), best, cls, loss, wpBefore: wpBest, wpAfter, wpBest, acc, phase,
+      leftHanging: facts.leavesHanging >= 2, allowedMate: !!(nextLine && nextLine.mate > 0), bestWasCapture: best && best !== uci && moveFacts(R.startFen, R.uciMoves.slice(0, i), best).capt >= 2, material0 });
+  }
+  // game accuracy: blend of mean and harmonic mean (punishes big blunders, like most sites)
+  const gameAcc = a => { if (!a.length) return null; const mean = a.reduce((x, y) => x + y, 0) / a.length; const harm = a.length / a.reduce((x, y) => x + 1 / Math.max(5, y), 0); return Math.round((mean + harm) / 2 * 10) / 10; };
+  R.acc = { w: gameAcc(accs.w), b: gameAcc(accs.b) };
+  R.phaseAcc = { w: {}, b: {} };
+  for (const s of ['w', 'b']) for (const ph of ['opening', 'middlegame', 'endgame']) R.phaseAcc[s][ph] = phaseAccs[s][ph].length >= 2 ? Math.round(phaseAccs[s][ph].reduce((x, y) => x + y, 0) / phaseAccs[s][ph].length) : null;
+  // key moments: the biggest swings
+  R.key = R.moves.map((m, i) => [i, Math.abs(winPct(R.evals[i + 1]) - winPct(R.evals[i]))]).filter(x => x[1] >= 12).sort((a, b) => b[1] - a[1]).slice(0, 5).map(x => x[0]).sort((a, b) => a - b);
+  R.summary = coachSummary(R);
+  R.opening = openingName(R.uciMoves);
+  R.done = true;
+  // save for insights + rewards
+  const side = R.color || 'w';
+  profile.reviews = profile.reviews || [];
+  const key = R.uciMoves.join('');
+  if (!profile.reviews.some(r => r.key === key)) {
+    const cnt = {}; R.moves.filter(m => m.side === side).forEach(m => cnt[m.cls] = (cnt[m.cls] || 0) + 1);
+    profile.reviews.unshift({ key, t: Date.now(), color: side, acc: R.acc[side], phase: R.phaseAcc[side], cnt, opening: R.opening, hangs: R.moves.filter(m => m.side === side && m.leftHanging && ['mistake', 'blunder'].includes(m.cls)).length, missed: R.moves.filter(m => m.side === side && (m.cls === 'miss' || m.bestWasCapture)).length, moves: R.uciMoves.length, opp: R.oppName, result: R.src.result || null });
+    profile.reviews = profile.reviews.slice(0, 60);
+    saveProfile();
+    setTimeout(() => rewardEvent('review', { acc: R.acc[side] || 0, moves: Math.ceil(R.uciMoves.length / 2), brilliants: R.moves.filter(m => m.side === side && m.cls === 'brilliant').length }), 800);
+  }
+  if (reviewProgressHook) reviewProgressHook(true);
+}
+
+// ---------- review screen ----------
+let reviewProgressHook = null;
+function classBadge(cls, size = 18) {
+  const c = CLASSES[cls]; const el = h('span', { class: 'cbadge', style: { background: c.color, width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.55) + 'px' } });
+  if (c.icon) el.append(icon(c.icon, Math.round(size * 0.7))); else el.textContent = c.sym;
+  return el;
+}
+function evalGraph(R, onPick) {
+  const W = 340, H = 70, n = R.evals.length;
+  const y = cp => H - winPct(cp) / 100 * H;
+  let d = `M0 ${H / 2}`;
+  R.evals.forEach((e, k) => { d += ` L${(k / Math.max(1, n - 1) * W).toFixed(1)} ${y(e).toFixed(1)}`; });
+  const marks = R.moves.filter(m => ['blunder', 'mistake', 'brilliant', 'great', 'miss'].includes(m.cls)).map(m => `<circle cx="${((m.i + 1) / Math.max(1, n - 1) * W).toFixed(1)}" cy="${y(R.evals[m.i + 1]).toFixed(1)}" r="3.5" fill="${CLASSES[m.cls].color}" stroke="#141a2e" stroke-width="1"/>`).join('');
+  const el = h('div', { class: 'evalgraph' });
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"><rect width="${W}" height="${H}" fill="#2b2730"/><path d="${d} L${W} ${H} L0 ${H} Z" fill="#f3efe4"/><line x1="0" x2="${W}" y1="${H / 2}" y2="${H / 2}" stroke="#888" stroke-width=".6" stroke-dasharray="3 3"/>${marks}<line class="cur" x1="0" x2="0" y1="0" y2="${H}" stroke="#ffb547" stroke-width="2"/></svg>`;
+  el.addEventListener('click', e => { const r = el.getBoundingClientRect(); const k = Math.round((e.clientX - r.left) / r.width * (n - 1)); onPick(Math.max(0, Math.min(n - 1, k))); });
+  el.setCursor = k => { const line = el.querySelector('.cur'); const x = (k / Math.max(1, n - 1) * W).toFixed(1); line.setAttribute('x1', x); line.setAttribute('x2', x); };
+  return el;
+}
+function renderReview(main) {
+  const R = REV;
+  if (!R) { route = 'play'; return render(); }
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { REV = null; route = R.back || 'play'; render(); } }, icon('back', 18), 'Done'), h('h2', { class: 'grow' }, 'Game Review'), h('span', { class: 'pill' }, R.done ? engineName() : 'analyzing')));
+  if (!R.done) {
+    const bar = h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(R.progress * 100) + '%' } }));
+    const txt = h('div', { class: 'small muted center' }, 'Professor Hoot is studying your game…');
+    main.append(h('div', { class: 'card stack center' }, hoot(64), txt, bar));
+    reviewProgressHook = (doneNow) => { if (doneNow) { reviewProgressHook = null; render(); return; } bar.firstChild.style.width = Math.round(R.progress * 100) + '%'; txt.textContent = `Professor Hoot is studying your game… ${Math.round(R.progress * 100)}%`; };
+    cleanups.push(() => { reviewProgressHook = (d) => { if (d && route === 'review') render(); }; });
+    return;
+  }
+  const side = R.color || 'w';
+  // summary card
+  const accBox = (s, label) => h('div', { class: 'accbox' + (s === side ? ' mine' : '') }, h('div', { class: 'accv' }, R.acc[s] != null ? Math.round(R.acc[s]) + '%' : '-'), h('div', { class: 'small muted' }, label));
+  const counts = h('table', { class: 'tbl ctbl' }, CLASS_ORDER.map(k => { const cw = R.moves.filter(m => m.side === 'w' && m.cls === k).length, cb = R.moves.filter(m => m.side === 'b' && m.cls === k).length; return h('tr', null, h('td', null, cw), h('td', null, classBadge(k), ' ', CLASSES[k].label), h('td', null, cb)); }));
+  main.append(h('div', { class: 'card stack' },
+    h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(52)), h('div', { class: 'txt' }, h('b', null, R.summary.headline), ' ', R.opening ? `Opening: ${R.opening}.` : '')),
+    h('div', { class: 'row', style: { justifyContent: 'space-around' } }, accBox('w', R.color === 'w' ? 'Your accuracy' : (R.src.white || 'White') + ' accuracy'), accBox('b', R.color === 'b' ? 'Your accuracy' : (R.src.black || 'Black') + ' accuracy')),
+    counts));
+  main.append(h('div', { class: 'card stack' }, h('b', null, "Coach's advice"), h('ul', { class: 'tips' }, R.summary.tips.map(t => h('li', null, t))),
+    R.key.length ? h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '6px' } }, h('span', { class: 'small muted' }, 'Key moments:'), R.key.map(k => h('button', { class: 'btn sm', onclick: () => go2(k + 1) }, `${Math.floor(k / 2) + 1}${k % 2 ? '...' : '.'} ${R.moves[k].san}`))) : null));
+  // board + coach
+  let ply = 0;
+  const graph = evalGraph(R, k => go2(k));
+  const board = new BoardView({ orient: side });
+  const coach = h('div', { class: 'txt' });
+  const head = h('div', { class: 'revhead' });
+  const actions = h('div', { class: 'row' });
+  const movesEl = h('div', { class: 'moves revmoves' });
+  main.append(graph, board.el, head, h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(48)), coach), actions,
+    h('div', { class: 'nav' }, h('button', { class: 'btn sm', onclick: () => go2(0) }, icon('first', 20)), h('button', { class: 'btn sm', onclick: () => go2(ply - 1) }, icon('prev', 20)), h('button', { class: 'btn sm', onclick: () => go2(ply + 1) }, icon('next', 20)), h('button', { class: 'btn sm', onclick: () => go2(R.uciMoves.length) }, icon('last', 20))),
+    movesEl);
+  R.moves.forEach((m, i) => { if (i % 2 === 0) movesEl.append(h('span', { class: 'n' }, (i / 2 + 1) + '.')); movesEl.append(h('span', { class: 'm', 'data-i': i + 1, onclick: () => go2(i + 1) }, m.san, ' ', classBadge(m.cls, 14))); });
+  function go2(k) {
+    ply = Math.max(0, Math.min(R.uciMoves.length, k));
+    const g = new Game(R.startFen, R.uciMoves.slice(0, ply));
+    const st = g.viewState(); const arrows = [];
+    const mv = ply > 0 ? R.moves[ply - 1] : null;
+    if (mv && mv.best && mv.best !== mv.uci && !['best', 'book', 'great', 'brilliant'].includes(mv.cls)) arrows.push([sqFromName(mv.best.slice(0, 2)), sqFromName(mv.best.slice(2, 4)), '#7cc04a']);
+    st.arrows = arrows; st.badge = mv ? { sq: sqFromName(mv.uci.slice(2, 4)), cls: mv.cls } : null;
+    board.set(st);
+    graph.setCursor(ply);
+    head.innerHTML = '';
+    if (mv) head.append(classBadge(mv.cls, 22), h('b', null, `${Math.floor((ply - 1) / 2) + 1}${(ply - 1) % 2 ? '...' : '.'} ${mv.san}`), h('span', { class: 'muted' }, ' ' + clsPhrase(mv.cls)), h('span', { class: 'grow' }), h('span', { class: 'pill' }, fmtEval(R.evals[ply])));
+    else head.append(h('b', null, 'Starting position'), h('span', { class: 'grow' }), h('span', { class: 'pill' }, fmtEval(R.evals[0])));
+    coach.textContent = mv ? coachExplain(R, ply - 1) : `Use the arrows or tap the graph to walk through the game. Green arrows show what the engine would have played.`;
+    actions.innerHTML = '';
+    if (mv && ['inaccuracy', 'mistake', 'blunder', 'miss'].includes(mv.cls)) actions.append(h('button', { class: 'btn primary grow', onclick: () => retryMoment(R, ply - 1) }, icon('repeat', 18), 'Retry this moment'));
+    actions.append(h('button', { class: 'btn grow', onclick: () => openAnalysis({ fen: R.startFen, moves: R.uciMoves, ply }) }, icon('search', 18), 'Analyze'));
+    const nextBad = R.moves.findIndex((m, i) => i >= ply && m.side === side && ['mistake', 'blunder', 'miss'].includes(m.cls));
+    if (nextBad >= 0) actions.append(h('button', { class: 'btn grow', onclick: () => go2(nextBad + 1) }, 'Next mistake', icon('next', 18)));
+    movesEl.querySelectorAll('.m').forEach(e => e.classList.toggle('cur', +e.dataset.i === ply));
+    const cur = movesEl.querySelector('.cur'); if (cur) cur.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }
+  go2(R.key.length ? R.key[0] + 1 : 0);
+}
+function clsPhrase(c) { return { brilliant: 'is brilliant', great: 'is a great move', best: 'is the best move', excellent: 'is excellent', good: 'is good', book: 'is a book move', inaccuracy: 'is an inaccuracy', mistake: 'is a mistake', miss: 'is a missed chance', blunder: 'is a blunder' }[c]; }
+function fmtEval(cp) { if (Math.abs(cp) >= 9000) { const n = Math.round((10000 - Math.abs(cp)) / 10); return (cp > 0 ? '' : '-') + 'M' + Math.max(1, Math.ceil(n / 2)); } return (cp > 0 ? '+' : '') + (cp / 100).toFixed(1); }
+// practice the position before a mistake: find a move as good as the engine's
+function retryMoment(R, i) {
+  const P = R.pos[i], mv = R.moves[i];
+  const good = new Set([mv.best]);
+  if (P.lines[1] && P.lines[0] && winPct(P.lines[0].cp) - winPct(P.lines[1].cp) < 3) good.add(P.lines[1].pv[0]);
+  modal((box, close) => {
+    const g = new Game(P.fen);
+    const msg = h('div', { class: 'taskmsg' }, 'Find a better move!');
+    let solved = false;
+    const bv = new BoardView({
+      orient: g.turn(),
+      getTargets: sq => solved ? null : g.targetsFrom(sq),
+      onMove: (from, to) => {
+        const uci = sqName(from) + sqName(to) + (g.needsPromo(from, to) ? 'q' : '');
+        const t = new Game(P.fen); t.play(uci); bv.set(t.viewState(), [from, to]);
+        if (good.has(uci) || good.has(uci.slice(0, 4))) { solved = true; beep('win'); bv.burst('star'); msg.className = 'taskmsg good'; msg.textContent = `Yes! ${sanAt(P.fen, [], uci)} is the move.`; inc('retries'); saveProfile(); }
+        else { beep('bad'); msg.className = 'taskmsg bad'; msg.textContent = uci === mv.uci ? 'That is the move from the game. Look for something better!' : 'Not quite. Try again!'; setTimeout(() => { if (!solved) bv.set(g.viewState()); }, 800); }
+      },
+    });
+    bv.set(g.viewState());
+    box.append(h('h2', null, 'Retry this moment'), h('p', { class: 'muted small' }, `${g.turn() === 'w' ? 'White' : 'Black'} to move.`), bv.el, msg,
+      h('div', { class: 'row' }, h('button', { class: 'btn grow', onclick: () => { const b = mv.best; bv.set(Object.assign(g.viewState(), { arrows: [[sqFromName(b.slice(0, 2)), sqFromName(b.slice(2, 4)), '#7cc04a']] })); msg.textContent = 'The engine plays ' + sanAt(P.fen, [], b) + '.'; } }, icon('eye', 18), 'Show'), h('button', { class: 'btn primary grow', onclick: close }, 'Done')));
+  });
+}
+
+;
+// Analysis board: explore any position with live engine lines, an eval bar and opening names.
+// Includes a position editor and FEN / PGN import and export.
+'use strict';
+let ANA = null;
+function openAnalysis(src = {}) {
+  ANA = { startFen: src.fen || START_FEN, moves: (src.moves || []).slice(), ply: src.ply != null ? src.ply : (src.moves || []).length, engine: true, editing: false, back: route === 'analysis' ? 'play' : route, lines: null, req: 0 };
+  route = 'analysis'; render(); window.scrollTo(0, 0);
+}
+function parsePgn(text) {
+  // returns {fen, moves} or throws
+  let fen = START_FEN;
+  const fm = text.match(/\[FEN\s+"([^"]+)"\]/); if (fm) fen = fm[1];
+  let body = text.replace(/\[[^\]]*\]/g, ' ').replace(/\{[^}]*\}/g, ' ').replace(/;[^\n]*/g, ' ');
+  while (/\([^()]*\)/.test(body)) body = body.replace(/\([^()]*\)/g, ' '); // drop variations
+  body = body.replace(/\$\d+/g, ' ').replace(/\d+\.(\.\.)?/g, ' ').replace(/(1-0|0-1|1\/2-1\/2|\*)\s*$/, ' ');
+  const pos = new E.Position(fen), moves = [];
+  for (const tok of body.split(/\s+/).filter(Boolean)) {
+    const clean = tok.replace(/[!?]+$/, '').replace(/^0-0-0/, 'O-O-O').replace(/^0-0/, 'O-O');
+    const m = pos.moveFromSan(clean) || (/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(clean) ? pos.moveFromUci(clean) : 0);
+    if (!m) throw new Error('Could not read move "' + tok + '"');
+    moves.push(pos.uci(m)); pos.make(m);
+  }
+  return { fen, moves };
+}
+function toPgn(fen, moves) {
+  const g = new Game(fen, moves); const head = [`[Event "Knight Club analysis"]`, `[Date "${new Date().toISOString().slice(0, 10).replace(/-/g, '.')}"]`];
+  if (fen !== START_FEN) head.push(`[SetUp "1"]`, `[FEN "${fen}"]`);
+  const st = g.status(); const res = st.over ? st.result : '*';
+  head.push(`[Result "${res}"]`);
+  let body = ''; const startBlack = new E.Position(fen).turn === 1; let num = +fen.split(' ')[5] || 1;
+  g.sans.forEach((s, i) => { const white = startBlack ? i % 2 === 1 : i % 2 === 0; if (white) body += num + '. '; else if (i === 0) body += num + '... '; body += s + ' '; if (!white) num++; });
+  return head.join('\n') + '\n\n' + body + res;
+}
+function renderAnalysis(main) {
+  const A = ANA; if (!A) { route = 'play'; return render(); }
+  if (A.editing) return renderEditor(main);
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { ANA = null; route = A.back || 'play'; render(); } }, icon('back', 18), 'Done'), h('h2', { class: 'grow' }, 'Analysis')));
+  const g = new Game(A.startFen, A.moves.slice(0, A.ply));
+  const evalBar = h('div', { class: 'evalbar' }, h('div', { class: 'fill' }), h('span', null, ''));
+  const bv = new BoardView({
+    orient: A.orient || 'w',
+    getTargets: sq => g.targetsFrom(sq),
+    onMove: (from, to) => {
+      const play = uci => { const res = g.play(uci); if (!res) return; playSound(res); A.moves = A.moves.slice(0, A.ply).concat([uci]); A.ply++; render(); };
+      if (g.needsPromo(from, to)) return modal((box, close) => { const c = g.turn(); box.append(h('h2', null, 'Promote to'), h('div', { class: 'promo' }, ['q', 'r', 'b', 'n'].map(t => h('button', { style: { backgroundImage: `url(${PIECE_URL[c + t]})` }, onclick: () => { close(); play(sqName(from) + sqName(to) + t); } })))); });
+      play(sqName(from) + sqName(to));
+    },
+  });
+  main.append(h('div', { class: 'anaboard' }, evalBar, h('div', { class: 'grow' }, bv.el)));
+  const st = g.viewState();
+  const op = openingName(A.moves.slice(0, A.ply).concat()) && A.startFen === START_FEN ? openingName(A.moves.slice(0, A.ply)) : null;
+  const linesEl = h('div', { class: 'lines' });
+  main.append(h('div', { class: 'row' }, h('span', { class: 'pill' }, op || (A.ply ? 'Custom line' : 'Start')), h('span', { class: 'grow' }), h('button', { class: 'btn sm', onclick: () => { A.engine = !A.engine; render(); } }, icon('cpu' in ICON_PATHS ? 'cpu' : 'bolt', 16), A.engine ? 'Engine on' : 'Engine off')));
+  main.append(linesEl);
+  // move list
+  const movesEl = h('div', { class: 'moves' });
+  const full = new Game(A.startFen, A.moves);
+  full.sans.forEach((s, i) => { if (i % 2 === 0) movesEl.append(h('span', { class: 'n' }, (i / 2 + 1) + '.')); movesEl.append(h('span', { class: 'm' + (i + 1 === A.ply ? ' cur' : ''), onclick: () => { A.ply = i + 1; render(); } }, s)); });
+  if (!full.sans.length) movesEl.append(h('span', { class: 'muted small' }, 'Make moves for either side to explore.'));
+  main.append(movesEl, h('div', { class: 'nav' },
+    h('button', { class: 'btn sm', onclick: () => { A.ply = 0; render(); } }, icon('first', 20)), h('button', { class: 'btn sm', onclick: () => { A.ply = Math.max(0, A.ply - 1); render(); } }, icon('prev', 20)),
+    h('button', { class: 'btn sm', onclick: () => { A.ply = Math.min(A.moves.length, A.ply + 1); render(); } }, icon('next', 20)), h('button', { class: 'btn sm', onclick: () => { A.ply = A.moves.length; render(); } }, icon('last', 20))));
+  main.append(h('div', { class: 'controls', style: { gridTemplateColumns: 'repeat(5,1fr)' } },
+    h('button', { class: 'btn', onclick: () => { A.orient = (A.orient || 'w') === 'w' ? 'b' : 'w'; render(); } }, icon('flip', 22), 'Flip'),
+    h('button', { class: 'btn', onclick: () => { A.editing = true; A.edit = Array.from(new E.Position(g.pos.fen()).board); A.editTurn = g.turn(); render(); } }, icon('edit', 22), 'Edit'),
+    h('button', { class: 'btn', onclick: importDialog }, icon('download', 22), 'Import'),
+    h('button', { class: 'btn', onclick: () => modal((box, close) => box.append(h('h2', null, 'Export'), h('button', { class: 'btn block', onclick: () => copyText(g.pos.fen()) }, icon('copy', 18), 'Copy FEN'), h('div', { style: { height: '8px' } }), h('button', { class: 'btn block', onclick: () => copyText(toPgn(A.startFen, A.moves)) }, icon('copy', 18), 'Copy PGN'), h('pre', { class: 'pgn' }, toPgn(A.startFen, A.moves)), h('button', { class: 'btn primary block', onclick: close }, 'Done'))) }, icon('upload', 22), 'Export'),
+    h('button', { class: 'btn', onclick: () => { A.moves = A.moves.slice(0, A.ply); render(); } }, icon('trash', 22), 'Cut')));
+  // engine lines
+  const drawLines = (lines, depth) => {
+    linesEl.innerHTML = '';
+    if (!A.engine) { linesEl.append(h('div', { class: 'small muted' }, 'Engine is off.')); evalBar.classList.add('off'); return; }
+    if (!lines) { linesEl.append(h('div', { class: 'small muted' }, 'Thinking…')); return; }
+    if (!lines.length) { const s = g.status(); linesEl.append(h('div', { class: 'small muted' }, s.over ? `Game over: ${s.reason}.` : 'No lines.')); return; }
+    const sgn = g.turn() === 'w' ? 1 : -1;
+    const top = lines[0].cp * sgn;
+    evalBar.querySelector('.fill').style.height = (100 - winPct(top)) + '%'; evalBar.querySelector('span').textContent = fmtEval(top);
+    const arrows = [];
+    lines.forEach((l, k) => {
+      const san = pvSan(g.pos.fen(), [], l.pv, 8);
+      linesEl.append(h('button', { class: 'line', onclick: () => { if (!l.pv[0]) return; A.moves = A.moves.slice(0, A.ply).concat([l.pv[0]]); A.ply++; render(); } }, h('span', { class: 'pill' }, fmtEval(l.cp * sgn)), h('span', null, san.join(' '))));
+      if (l.pv[0]) arrows.push([sqFromName(l.pv[0].slice(0, 2)), sqFromName(l.pv[0].slice(2, 4)), k === 0 ? '#7cc04a' : '#6fb3ffaa']);
+    });
+    bv.set(Object.assign(st, { arrows }));
+    if (depth) linesEl.append(h('div', { class: 'small muted' }, `${engineName()} · depth ${depth}`));
+  };
+  bv.set(st);
+  if (A.engine && !g.status().over) {
+    const myReq = ++A.req;
+    drawLines(null);
+    (async () => {
+      for (const d of [8, 12, 16]) {
+        const lines = await analyzePos(g.pos.fen(), 3, d);
+        if (ANA !== A || A.req !== myReq || route !== 'analysis') return;
+        drawLines(lines, sfState === true ? d : null);
+        if (sfState !== true) break;
+      }
+    })();
+  } else drawLines(g.status().over ? [] : null);
+}
+function importDialog() {
+  modal((box, close) => {
+    const ta = h('textarea', { class: 'input', rows: 6, placeholder: 'Paste a FEN or a PGN game here' });
+    box.append(h('h2', null, 'Import'), ta, h('div', { style: { height: '8px' } }), h('button', { class: 'btn primary block', onclick: () => {
+      const t = ta.value.trim(); if (!t) return;
+      try {
+        if (/^[rnbqkpRNBQKP1-8]+(\/[rnbqkpRNBQKP1-8]+){7}\s+[wb]/.test(t)) { const p = new E.Position(t); if (!p.kings || p.kings[0] < 0 || p.kings[1] < 0) throw new Error('Both kings are needed.'); ANA.startFen = p.fen(); ANA.moves = []; ANA.ply = 0; }
+        else { const r = parsePgn(t); ANA.startFen = r.fen; ANA.moves = r.moves; ANA.ply = r.moves.length; }
+        close(); render();
+      } catch (e) { toast(e.message || 'Could not read that.'); }
+    } }, 'Load'));
+  });
+}
+function renderEditor(main) {
+  const A = ANA; let pick = A.pick || 'wp';
+  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { A.editing = false; render(); } }, icon('back', 18), 'Cancel'), h('h2', { class: 'grow' }, 'Edit position')));
+  const board = Int8Array.from(A.edit);
+  const bv = new BoardView({ orient: A.orient || 'w' });
+  bv.el.addEventListener('pointerdown', e => {
+    const sq = bv.sqAt(e); if (sq < 0) return;
+    if (pick === 'x') board[sq] = 0;
+    else { const code = E.PIECE_CHARS.indexOf(pick[0] === 'w' ? pick[1].toUpperCase() : pick[1]); if (code === 6 || code === 14) for (let s = 0; s < 128; s++) if (board[s] === code) board[s] = 0; board[sq] = board[sq] === code ? 0 : code; }
+    A.edit = Array.from(board); bv.set({ board });
+  });
+  bv.set({ board });
+  const pal = h('div', { class: 'palette' });
+  const drawPal = () => { pal.innerHTML = ''; for (const c of ['w', 'b']) for (const t of 'kqrbnp') pal.append(h('button', { class: pick === c + t ? 'on' : '', style: { backgroundImage: `url(${PIECE_URL[c + t]})` }, onclick: () => { pick = A.pick = c + t; drawPal(); } })); pal.append(h('button', { class: 'erase' + (pick === 'x' ? ' on' : ''), onclick: () => { pick = A.pick = 'x'; drawPal(); } }, icon('trash', 20))); };
+  drawPal();
+  const turnSeg = h('div', { class: 'seg' });
+  const drawTurn = () => { turnSeg.innerHTML = ''; [['w', 'White to move'], ['b', 'Black to move']].forEach(([v, l]) => turnSeg.append(h('button', { class: A.editTurn === v ? 'on' : '', onclick: () => { A.editTurn = v; drawTurn(); } }, l))); };
+  drawTurn();
+  main.append(bv.el, pal, turnSeg, h('div', { class: 'row' },
+    h('button', { class: 'btn grow', onclick: () => { A.edit = Array.from(new E.Position().board); render(); } }, 'Start position'),
+    h('button', { class: 'btn grow', onclick: () => { A.edit = Array.from(new Int8Array(128)); render(); } }, 'Clear')),
+    h('button', { class: 'btn primary block', onclick: () => {
+      // build a FEN from the edited board and validate it
+      const p = new E.Position(); p.board.set(board);
+      let fen = p.fen().split(' '); fen[1] = A.editTurn; fen[2] = 'KQkq'; fen[3] = '-'; fen[4] = '0'; fen[5] = '1';
+      try {
+        const q = new E.Position(fen.join(' '));
+        if (q.kings[0] < 0 || q.kings[1] < 0) return toast('Each side needs exactly one king.');
+        for (let s = 0; s < 8; s++) if ((q.board[s] & 7) === 1 || (q.board[112 + s] & 7) === 1) return toast('Pawns cannot stand on the first or last rank.');
+        if (q.attacked(q.kings[q.turn ^ 1], q.turn)) return toast('The side not to move is in check. That position is impossible.');
+        A.startFen = q.fen(); A.moves = []; A.ply = 0; A.editing = false; render();
+      } catch (e) { toast('That position is not valid.'); }
+    } }, icon('check', 18), 'Analyze this position'));
 }
 
 ;

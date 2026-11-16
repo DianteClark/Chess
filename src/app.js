@@ -125,6 +125,7 @@ class BoardView {
     if (state.board) this.board = Int8Array.from(state.board);
     this.last = state.last || null; this.check = state.check ?? -1;
     this.stars = state.stars || null; this.marks = state.marks || {};
+    this.arrows = state.arrows || []; this.badge = state.badge || null;
     this.sel = -1; this.targets = [];
     this.draw(animate);
   }
@@ -159,6 +160,30 @@ class BoardView {
         requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.remove('noanim'); el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }));
       } else { el.style.left = x * 12.5 + '%'; el.style.top = y * 12.5 + '%'; }
       this.layer.append(el); this.pieceEls[s] = el;
+    }
+    // arrows (e.g. best move in Game Review) and a grade badge on a square
+    if (this.arrows && this.arrows.length) {
+      const NS = 'http://www.w3.org/2000/svg', svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('viewBox', '0 0 8 8'); svg.setAttribute('class', 'arrows');
+      for (const [a, b, col] of this.arrows) {
+        const [x1, y1] = this.pos(a), [x2, y2] = this.pos(b);
+        const ax = x1 + .5, ay = y1 + .5, bx = x2 + .5, by = y2 + .5, len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+        const ex = bx - ux * .32, ey = by - uy * .32;
+        const line = document.createElementNS(NS, 'line');
+        Object.entries({ x1: ax, y1: ay, x2: ex, y2: ey, stroke: col || '#7cc04a', 'stroke-width': .17, 'stroke-linecap': 'round', opacity: .85 }).forEach(([k, v]) => line.setAttribute(k, v));
+        const head = document.createElementNS(NS, 'polygon');
+        const px = -uy, py = ux;
+        head.setAttribute('points', `${bx - ux * .05},${by - uy * .05} ${ex + px * .25},${ey + py * .25} ${ex - px * .25},${ey - py * .25}`);
+        head.setAttribute('fill', col || '#7cc04a'); head.setAttribute('opacity', .85);
+        svg.append(line, head);
+      }
+      this.layer.append(svg);
+    }
+    if (this.badge && typeof CLASSES !== 'undefined' && CLASSES[this.badge.cls]) {
+      const [x, y] = this.pos(this.badge.sq);
+      const b = classBadge(this.badge.cls, 20); b.classList.add('sqbadge');
+      b.style.left = `calc(${(x + 1) * 12.5}% - 14px)`; b.style.top = `calc(${y * 12.5}% - 6px)`;
+      this.layer.append(b);
     }
   }
   select(sq, targets) { this.sel = sq; this.targets = targets; this.draw(); }
@@ -338,7 +363,7 @@ const PUZZLES = PUZZLE_DATA.map((p, i) => Object.assign({ id: 'p' + i }, p));
 // ======================= APP SHELL =======================
 let route = 'play';
 const appEl = () => $('#app');
-const ROUTES = { play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe };
+const ROUTES = { play: renderPlay, friend: renderFriend, puzzles: renderPuzzles, learn: renderLearn, me: renderMe, review: m => renderReview(m), analysis: m => renderAnalysis(m) };
 function go(r) { if (!ROUTES[r]) r = 'play'; route = r; try { if (location.hash !== '#' + r) history.replaceState(null, '', '#' + r); } catch (e) { } render(); window.scrollTo(0, 0); }
 let cleanups = [];
 function cleanup() { cleanups.forEach(f => { try { f(); } catch (e) { } }); cleanups = []; }
@@ -527,6 +552,7 @@ function renderPlay(main) {
   drawGrid();
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
+    h('div', { class: 'row' }, h('button', { class: 'mode-card slim', onclick: () => openAnalysis() }, icon('search', 22), h('b', null, 'Analysis board')), h('button', { class: 'mode-card slim', onclick: () => { route = 'learn'; lessonOpen = null; render(); } }, icon('learn', 22), h('b', null, 'Learn & courses'))),
     h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
@@ -564,6 +590,7 @@ function renderBotGame(main) {
       list.push({ ic: 'bulb', label: 'Hint', disabled: over || thinking || g.turn() !== cur.color, on: hint });
     }
     if (over) {
+      list.push({ ic: 'search', label: 'Review', on: () => openReview({ moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }) });
       list.push({ ic: 'repeat', label: 'Rematch', on: () => startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc) });
       list.push({ ic: 'plus', label: 'New', on: () => { profile.current = null; saveProfile(); render(); } });
     } else {
@@ -629,7 +656,7 @@ function renderBotGame(main) {
       if (nl.i !== oldLeague.i) promo = { up: nl.i > oldLeague.i, name: nl.name, piece: nl.piece };
       profile.rHist.push(L.r); if (profile.rHist.length > 200) profile.rHist.shift();
     }
-    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves() });
+    profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves(), moves: g.moves.slice(), tc: cur.tc });
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
@@ -646,9 +673,9 @@ function renderBotGame(main) {
       counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' ', icon('arrowRight', 16), ' ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
       counted && d === 0 && score === 1 ? h('p', { class: 'center small muted' }, 'This bot is far below your level, so wins no longer count. Try a stronger bot!') : null,
       promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
-      score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
+      score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap Review and the coach will show you the turning point.') : null,
       h('div', { class: 'row', style: { marginTop: '12px' } },
-        h('button', { class: 'btn grow', onclick: close }, 'Review'),
+        h('button', { class: 'btn grow', onclick: () => { close(); openReview({ moves: g.moves.slice(), color: cur.color, white: cur.color === 'w' ? (profile.name || 'You') : bot.name, black: cur.color === 'b' ? (profile.name || 'You') : bot.name }); } }, icon('search', 18), 'Review'),
         h('button', { class: 'btn primary grow', onclick: () => { close(); startBotGame(cur.bot, cur.color === 'w' ? 'b' : 'w', cur.rated, cur.tc); } }, 'Rematch'))));
   }
   buttons();
@@ -660,11 +687,13 @@ let friendView = 'menu';
 function renderFriend(main) {
   if (friendView === 'local') return renderLocalGame(main);
   if (friendView === 'online') return renderOnline(main);
+  if (friendView === 'world') return renderWorld(main);
   main.append(
     h('h2', null, 'Play with a friend'),
+    h('button', { class: 'card lesson hero', onclick: () => { friendView = 'world'; lobbyView = 'home'; render(); } }, h('div', { class: 'ic gold' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play the World'), h('div', { class: 'd' }, 'Quick match with players near your rating. Rated and checked by the server.')), h('span', { class: 'ck' }, icon('next', 20))),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic dark' }, icon('phone', 24)), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
-    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('globe', 24)), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
-    h('p', { class: 'small muted' }, `Online games count toward your Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
+    h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic dark' }, icon('link', 24)), h('div', null, h('div', { class: 't' }, 'Invite a Friend'), h('div', { class: 'd' }, 'Send a link. Your devices connect directly (peer-to-peer).')), h('span', { class: 'ck' }, icon('next', 20))),
+    h('p', { class: 'small muted' }, 'Play the World games count toward your Online rating, which is separate from your Bot League rating. Friend invites and Pass & Play are just for fun.'));
 }
 function newLocalGame() {
   const st = profile.localGame || {}; const sel = { tc: st.tc || '0+0' };
@@ -869,6 +898,7 @@ function renderOnline(main) {
 // Online (human) rating: Glicko-2, capped at ±50 per game while provisional, ±30 after.
 // Each game is rated once, and only if at least 4 moves were played.
 function rateOnline(st, opp, score) {
+  return null; // friend invite games are friendly; the Online rating comes from the lobby server
   if (!opp || st.moves.length < 4) return null;
   const key = [st.white.id, st.black.id, st.moves.join('')].join('|');
   profile.ratedKeys = profile.ratedKeys || [];
@@ -921,10 +951,10 @@ function renderOnlineGame(main) {
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
     const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = rateOnline(o.state, oppInfo, score);
-    if (rc) setTimeout(() => rewardEvent('onlineGame', { score, moves: o.state.moves.slice(), color: myColor }), 1800);
+    if (o.state.moves.length >= 4) setTimeout(() => rewardEvent('localGame', { moves: o.state.moves.slice(), reason: o.state.result.reason }), 1800);
     if (win) { beep('win'); scr.board.burst('trophy'); }
     setTimeout(() => modal((box, close) => box.append(badge(r.result === '1/2-1/2' ? 'half' : win ? 'trophy' : 'shield', r.result === '1/2-1/2' ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
-      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
+      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Friendly game: no rating change.'),
       h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
   }
   o.onState = (prevLen) => {
@@ -1209,12 +1239,12 @@ function renderMe(main) {
     bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached!'),
     sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w}W · ${l}L · ${d}D`)));
   main.append(h('div', { class: 'stats' },
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('globe', 15), ' Online rating'), h('div', { class: 'v' }, profile.server ? Math.round(profile.server.r) + (profile.server.provisional ? '?' : '') : '800?'), h('div', { class: 'l' }, profile.server && profile.server.games ? `${profile.server.games} lobby games` : 'Play the World to start')),
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, icon('puzzle', 15), ' Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best}`))));
   main.append(trophyCard());
   if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
-  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
+  if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', { class: g.moves ? 'tap' : '', onclick: () => g.moves && openReview({ moves: g.moves, color: g.color || null, white: g.color === 'b' ? g.opp : (profile.name || 'You'), black: g.color === 'b' ? (profile.name || 'You') : g.opp }) }, h('td', { class: 'res ' + (g.score === 1 ? 'w' : g.score === 0.5 ? 'd' : 'l') }, g.score === 1 ? 'Win' : g.score === 0.5 ? 'Draw' : 'Loss'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
   main.append(h('div', { class: 'card stack' },
     h('h3', null, 'How ratings work'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),
@@ -1222,7 +1252,7 @@ function renderMe(main) {
     h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for rated games in Play the World. The server checks every move and keeps the rating, so nobody can fake a result. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
