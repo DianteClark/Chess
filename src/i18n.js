@@ -24,7 +24,7 @@ function tr(s) {
   if (!core) return s;
   let t = I18N.dict[core];
   if (t == null) {
-    for (const p of I18N.patterns) { const m = core.match(p.re); if (m) { t = p.out.replace(/\{(\d)\}/g, (_, k) => m[+k + 1]); break; } }
+    for (const p of I18N.patterns) { const m = core.match(p.re); if (m) { t = p.out.replace(/\{(\d)\}/g, (_, k) => { const v = m[+k + 1]; const tv = I18N.dict[v.trim()]; return tv != null && !/\{\d\}/.test(v) ? tv : v; }); break; } }
   }
   return t == null ? s : lead + t + trail;
 }
@@ -32,7 +32,7 @@ function buildPatterns(dict) {
   const out = [];
   for (const k in dict) {
     if (!/\{\d\}/.test(k)) continue;
-    const order = []; const src = k.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\d)\\?\}/g, (_, d) => { order.push(+d); return '(.+?)'; });
+    const order = []; const src = k.replace(/[.*+?^$()|[\]\\]/g, '\\$&').replace(/\\?\{(\d)\\?\}/g, (_, d) => { order.push(+d); return '(.*?)'; });
     try {
       // capture group i holds placeholder order[i]; the translation may reorder placeholders
       const re = new RegExp('^' + src + '$');

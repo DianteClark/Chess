@@ -2,7 +2,7 @@
 // The page itself is fetched network-first (so updates arrive right away);
 // the engine files and icons are cache-first (they rarely change).
 const CACHE = 'knightclub-v12';
-const CORE = ['./', './index.html', './icon.svg', './icon-192.png', './icon-512.png', './manifest.webmanifest',
+const CORE = ['./', './index.html', './icon.svg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png', './manifest.webmanifest',
   './fonts/lilita-one-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-400-normal.woff2', './fonts/atkinson-hyperlegible-latin-700-normal.woff2',
   './vendor/stockfish/stockfish-19-lite-single.js', './vendor/stockfish/stockfish-19-lite-single.wasm'];
 self.addEventListener('install', e => {
