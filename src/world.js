@@ -91,7 +91,7 @@ class VariantBoard {
   }
   draw() {
     const st = this.state || { pieces: [] }; this.layer.innerHTML = '';
-    const cw = 100 / this.files, ch = 100 / this.ranks, size = this.inter ? .9 : .94;
+    const cw = 100 / this.files, ch = 100 / this.ranks, size = this.inter ? .96 : .94;
     const put = (sq, cls, inner) => { const p = this.pos(sq); if (!p) return null; const d = h('div', { class: cls, style: { left: (p[0] - cw * size / 2) + '%', top: (p[1] - ch * size / 2) + '%', width: cw * size + '%', height: ch * size + '%' } }); if (inner) d.innerHTML = inner; this.layer.append(d); return d; };
     for (const sq of st.last || []) if (sq) put(sq, 'vmark last');
     if (st.check) put(st.check, 'vmark check');
@@ -112,7 +112,7 @@ class VariantBoard {
     for (const side of ['w', 'b']) {
       const el = side === bottom ? this.pocketBot : this.pocketTop;
       const hand = pk[side] || {}; const keys = Object.keys(hand).filter(k => hand[k] > 0);
-      if (!keys.length) el.append(h('span', { class: 'muted small' }, tr('No captured pieces yet')));
+      if (!keys.length) el.append(h('span', { class: 'vpocket-empty' }, `${sideName(this.v, side)}: no pieces in hand`));
       for (const k of keys) {
         const on = this.sel && this.sel.drop === k && side === st.turn;
         const b = h('button', { class: 'vhand' + (on ? ' on' : ''), onclick: () => { if (!this.interactive || side !== st.turn) return; this.sel = on ? null : { drop: k }; this.draw(); } });
@@ -164,6 +164,8 @@ function vState(g, variant) {
   const meta = worldMeta(variant || g.variant);
   return { pieces: pcs, pockets: meta.pockets ? g.pockets() : null, last: last ? [last.from || null, last.to] : [], check, turn: g.turn() };
 }
+// end reasons: tr('checkmate') tr('stalemate') tr('resignation') tr('repetition') tr('move limit') tr('counting rule') tr('three checks') tr('game over')
+// side names, listed so the translation catalog picks them up: tr('Red') tr('Blue') tr('Black') tr('White') tr('Sente') tr('Gote')
 function sideName(variant, side) {
   return ({ xiangqi: { w: 'Red', b: 'Black' }, janggi: { w: 'Blue', b: 'Red' }, shogi: { w: 'Sente', b: 'Gote' } }[variant] || { w: 'White', b: 'Black' })[side];
 }
@@ -210,32 +212,35 @@ function renderWorldGamePage(main) {
   const id = worldView.g, m = worldMeta(id), wp = worldPrefs(), rec = wp.games[id] || {};
   const course = typeof WORLD_COURSES !== 'undefined' ? WORLD_COURSES[id] : null;
   main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { worldView = null; render(); } }, icon('back', 18), tr('World Games')), h('div', { class: 'grow' })));
-  main.append(h('div', { class: 'card paper whead' }, h('h2', null, tr(m.name)), m.english ? h('div', { class: 'muted' }, tr(m.english)) : null, m.blurb ? h('p', null, tr(m.blurb)) : null));
+  const strip = h('div', { class: 'wstrip' });
+  if (isChessBoardVariant(id)) ['wk', 'wq', 'wr', 'wb', 'wn', 'wp'].forEach(k => strip.append(h('img', { src: PIECE_URL[k], alt: '' })));
+  else Object.keys(WP_KIND[id] || {}).forEach((L, i) => { const t = h('span'); t.innerHTML = wpSvg(id, L, i % 2 ? 'b' : 'w', false, worldStyle()); strip.append(t); });
+  main.append(h('div', { class: 'card paper whead' }, strip, h('h2', null, tr(m.name)), m.english && m.english !== m.name ? h('div', { class: 'muted' }, tr(m.english)) : null, m.blurb ? h('p', null, tr(m.blurb)) : null));
   if (course) {
     const done = course.lessons.filter(l => wp.lessons[id + '/' + l.id]).length;
     const next = course.lessons.find(l => !wp.lessons[id + '/' + l.id]) || course.lessons[0];
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, tr('Learn to play')), h('div', { class: 'lessons' }, course.lessons.map(l => h('button', { class: 'lesson' + (l === next && done < course.lessons.length ? ' hero' : ''), onclick: () => { worldView = { g: id, lesson: l, step: 0 }; render(); window.scrollTo(0, 0); } },
-      h('div', { class: 'lesson-ic' }, icon('learn', 22)), h('div', { class: 'grow' }, h('div', { class: 't' }, tr(l.title)), h('div', { class: 'd' }, tr(l.desc || ''))), h('span', { class: 'ck' + (wp.lessons[id + '/' + l.id] ? ' done' : '') }, icon(wp.lessons[id + '/' + l.id] ? 'check' : 'next', 20)))))));
+    main.append(h('div', { class: 'lgroup' }, h('h3', null, tr('Learn to play')), h('div', { class: 'lessons' }, course.lessons.map((l, li) => h('button', { class: 'lesson' + (l === next && done < course.lessons.length ? ' hero' : ''), onclick: () => { worldView = { g: id, lesson: l, step: 0 }; render(); window.scrollTo(0, 0); } },
+      h('div', { class: 'lesson-ic wnum' }, String(li + 1)), h('div', { class: 'grow' }, h('div', { class: 't' }, tr(l.title)), h('div', { class: 'd' }, tr(l.desc || ''))), h('span', { class: 'ck' + (wp.lessons[id + '/' + l.id] ? ' done' : '') }, icon(wp.lessons[id + '/' + l.id] ? 'check' : 'next', 20)))))));
   }
   // play
   const sel = worldView.sel = worldView.sel || { lvl: Math.min(8, (rec.best || 0) + 1), color: 'w' };
-  const grid = h('div', { class: 'bots' });
-  const drawGrid = () => { grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (sel.lvl === i + 1 ? ' on' : ''), onclick: () => { sel.lvl = i + 1; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, tr('Level') + ' ' + (i + 1)), (rec.beat || {})[i + 1] ? h('div', { class: 'bl' }, icon('check', 14), ' ' + tr('Beaten')) : null))); };
-  drawGrid();
-  const colSeg = h('div', { class: 'seg' }); const dc = () => { colSeg.innerHTML = ''; [['w', tr(sideName(id, 'w')) + ' ' + tr('(moves first)')], ['b', tr(sideName(id, 'b'))]].forEach(([v, l]) => colSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; dc(); } }, l))); }; dc();
+  const grid = h('div', { class: 'bots scroller' });
+  const drawGrid = () => { grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (sel.lvl === i + 1 ? ' on' : ''), onclick: () => { sel.lvl = i + 1; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, `Level ${i + 1}`), (rec.beat || {})[i + 1] ? h('div', { class: 'bl' }, icon('check', 14), ' ' + tr('Beaten')) : null))); };
+  drawGrid(); setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollLeft = on.offsetLeft - 40; }, 0);
+  const colSeg = h('div', { class: 'seg' }); const dc = () => { colSeg.innerHTML = ''; [['w', `${sideName(id, 'w')} (moves first)`], ['b', sideName(id, 'b')]].forEach(([v, l]) => colSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; dc(); } }, l))); }; dc();
   main.append(h('div', { class: 'card' }, h('h3', null, tr('Play a bot')), grid, h('div', { class: 'lbl' }, tr('You play')), colSeg,
     h('div', { class: 'row', style: { marginTop: '10px' } },
-      h('button', { class: 'btn primary grow', onclick: () => startWorldGame(id, { bot: sel.lvl, color: sel.color }) }, icon('play', 18), tr('Play') + ' ' + BOTS[sel.lvl - 1].name),
+      h('button', { class: 'btn primary grow', onclick: () => startWorldGame(id, { bot: sel.lvl, color: sel.color }) }, icon('play', 18), `Play ${BOTS[sel.lvl - 1].name}`),
       h('button', { class: 'btn grow', onclick: () => startWorldGame(id, { local: true }) }, icon('friends', 18), tr('Pass & Play')))));
-  main.append(h('div', { class: 'card' }, h('h3', null, tr('Piece style')), styleToggle(() => render())));
-  if (!isChessBoardVariant(id)) main.append(pieceGuide(id));
+  if (!isChessBoardVariant(id)) { main.append(h('div', { class: 'card' }, h('h3', null, tr('Piece style')), styleToggle(() => render()))); main.append(pieceGuide(id)); }
 }
 function pieceGuide(id) {
   const map = WP_KIND[id] || {}; const rows = [];
   for (const L in map) {
     const t = h('span', { class: 'wtok' }); t.innerHTML = wpSvg(id, L, 'w', false, 'trad');
     const e = h('span', { class: 'wtok' }); e.innerHTML = wpSvg(id, L, 'w', false, 'eng');
-    rows.push(h('div', { class: 'wguide-row' }, t, e, h('b', null, tr(wpName(id, L, false)))));
+    const pt = (worldMeta(id).pieceTypes || {})[L];
+    rows.push(h('div', { class: 'wguide-row' }, t, e, h('div', null, h('b', null, tr(pt ? pt.name : wpName(id, L, false))), pt && pt.native && pt.native !== pt.name ? h('div', { class: 'muted small' }, pt.native) : null)));
     if (id === 'shogi' && !['K', 'G'].includes(L)) {
       const t2 = h('span', { class: 'wtok' }); t2.innerHTML = wpSvg(id, L, 'w', true, 'trad'); const e2 = h('span', { class: 'wtok' }); e2.innerHTML = wpSvg(id, L, 'w', true, 'eng');
       rows.push(h('div', { class: 'wguide-row sub' }, t2, e2, h('span', null, tr(wpName(id, L, true)))));
@@ -255,7 +260,7 @@ function renderWorldGame(main) {
   const vb = new VariantBoard(cur.v, { flipped, onMove: uci => userMove(uci) });
   const bot = cur.bot ? BOTS[cur.bot - 1] : null;
   const bar = (side) => h('div', { class: 'pbar' + (g.turn() === side && !cur.over ? ' on' : '') }, bot && side !== cur.color ? avatar(bot.avatar, 34) : avatar(side === cur.color || cur.local ? myAvatar() : 'friend', 34),
-    h('div', { class: 'grow' }, h('div', { class: 'pname' }, bot && side !== cur.color ? bot.name + ' (' + tr('Level') + ' ' + cur.bot + ')' : cur.local ? tr(sideName(cur.v, side)) : profile.name || tr('You')), h('div', { class: 'prating muted' }, cur.local ? tr('Pass & Play') : tr(sideName(cur.v, side)))));
+    h('div', { class: 'grow' }, h('div', { class: 'pname' }, bot && side !== cur.color ? `${bot.name} (Level ${cur.bot})` : cur.local ? tr(sideName(cur.v, side)) : profile.name || tr('You')), h('div', { class: 'prating muted' }, cur.local ? tr('Pass & Play') : tr(sideName(cur.v, side)))));
   const topSide = flipped ? 'w' : 'b';
   const topBar = h('div'), botBar = h('div');
   const msg = h('div', { class: 'taskmsg' });
@@ -272,7 +277,7 @@ function renderWorldGame(main) {
     const myTurn = !cur.over && (cur.local || g.turn() === cur.color) && !thinking;
     vb.interactive = myTurn; vb.set(vState(g, cur.v), myTurn ? g.legalMoves() : []);
     msg.className = 'taskmsg' + (cur.over ? ' good' : '');
-    msg.textContent = cur.over ? resultText(cur.over) : thinking ? tr('Thinking...') : g.inCheck() ? tr('Check!') + ' ' + tr(sideName(cur.v, g.turn())) + ' ' + tr('to move') : tr(sideName(cur.v, g.turn())) + ' ' + tr('to move');
+    msg.textContent = cur.over ? resultText(cur.over) : thinking ? 'Thinking...' : g.inCheck() ? `Check! ${sideName(cur.v, g.turn())} to move` : `${sideName(cur.v, g.turn())} to move`;
     movesEl.innerHTML = ''; cur.sans = cur.sans || [];
     cur.sans.forEach((s, i) => movesEl.append(h('span', { class: 'mv' }, (i % 2 === 0 ? (i / 2 + 1) + '. ' : '') + s)));
     ctrl.innerHTML = '';
@@ -288,7 +293,7 @@ function renderWorldGame(main) {
     }
   };
   const confirmResign = () => { try { return window.confirm(tr('Resign this game?')); } catch (e) { return true; } };
-  const resultText = o => { const who = o.result === '1/2-1/2' ? null : o.result === '1-0' ? 'w' : 'b'; const why = tr(({ checkmate: 'checkmate', stalemate: 'stalemate', resign: 'resignation', repetition: 'repetition', 'insufficient-material': 'not enough pieces to win', 'move-rule': 'move limit', 'counting-rule': 'counting rule', 'three-checks': 'three checks', 'king-of-the-hill': 'king reached the hill', 'king-exploded': 'king exploded', 'horde-destroyed': 'the horde is gone', 'no-pieces': 'no pieces left', 'variant-end': 'game over' }[o.reason]) || o.reason || ''); return who ? tr(sideName(cur.v, who)) + ' ' + tr('wins') + (why ? ' (' + why + ')' : '') : tr('Draw') + (why ? ' (' + why + ')' : ''); };
+  const resultText = o => { const who = o.result === '1/2-1/2' ? null : o.result === '1-0' ? 'w' : 'b'; const why = (({ checkmate: 'checkmate', stalemate: 'stalemate', resign: 'resignation', repetition: 'repetition', 'insufficient-material': 'not enough pieces to win', 'move-rule': 'move limit', 'counting-rule': 'counting rule', 'three-checks': 'three checks', 'king-of-the-hill': 'king reached the hill', 'king-exploded': 'king exploded', 'horde-destroyed': 'the horde is gone', 'no-pieces': 'no pieces left', 'variant-end': 'game over' }[o.reason]) || o.reason || ''); return who ? (why ? `${sideName(cur.v, who)} wins (${why})` : `${sideName(cur.v, who)} wins`) : (why ? `Draw (${why})` : 'Draw'); };
   const finish = st => { cur.over = { result: st.result, reason: st.reason }; onOver(); };
   const onOver = () => {
     const wp = worldPrefs(); const rec = wp.games[cur.v] = wp.games[cur.v] || { played: 0, wins: 0, beat: {} };
@@ -297,6 +302,8 @@ function renderWorldGame(main) {
     if (!cur.local && score === 1) { rec.wins++; rec.beat = rec.beat || {}; rec.beat[cur.bot] = 1; rec.best = Math.max(rec.best || 0, cur.bot); }
     saveProfile(); beep(score === 1 || cur.local ? 'win' : 'move'); if (score === 1 && !cur.local) { confetti(); haptic([10, 40, 10]); }
     setTimeout(() => rewardEvent('worldGame', { variant: cur.v, score: cur.local ? null : score, level: cur.bot, local: cur.local, moves: cur.moves.length }), 900);
+    const token = cur;
+    setTimeout(() => { if (worldCur !== token || !worldView || !worldView.play) return; showWorldResult(cur, score, resultText(cur.over), () => worldReview(g, cur)); }, 1300);
   };
   const userMove = uci => {
     const r = g.play(uci); if (!r) return;
@@ -409,9 +416,7 @@ function renderWorldLesson(main) {
     vb.drawExtra = () => {};
     const origDraw = vb.draw.bind(vb);
     vb.draw = () => { origDraw(); for (const sq of step.marks || []) { const p = vb.pos(sq); if (!p) continue; const cw = 100 / vb.files, ch = 100 / vb.ranks; vb.layer.prepend(h('div', { class: 'vmark lmark', style: { left: (p[0] - cw * .47) + '%', top: (p[1] - ch * .47) + '%', width: cw * .94 + '%', height: ch * .94 + '%' } })); }
-      if (step.arrows && step.arrows.length) { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('class', 'varrows');
-        for (const [a, b] of step.arrows) { const p = vb.pos(a), q = vb.pos(b); if (!p || !q) continue; const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', p[0]); ln.setAttribute('y1', p[1]); ln.setAttribute('x2', q[0]); ln.setAttribute('y2', q[1]); svg.append(ln); }
-        vb.layer.append(svg); } };
+      if (step.arrows && step.arrows.length) vb.layer.append(worldArrows(vb, step.arrows)); };
     vb.draw();
     main.append(vb.el);
     if (step.type !== 'text') msg.textContent = step.type === 'line' ? tr('Play the moves. The other side will answer.') : tr('Your move!');
@@ -430,4 +435,36 @@ function goalMet(step, g, uci) {
   else if (step.goal === 'drop') ok = uci.includes('@');
   else if (step.goal === 'promote') ok = /\+$|[a-z]\d+[a-z]\d+[a-zA-Z]$/.test(uci);
   g.undo(); void before; return ok;
+}
+
+// lesson arrows, drawn in board cells so the heads keep their shape on any board
+function worldArrows(vb, arrows) {
+  const NS = 'http://www.w3.org/2000/svg', F = vb.files, R = vb.ranks, svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${F} ${R}`); svg.setAttribute('class', 'varrows');
+  const cell = sq => { const p = vb.pos(sq); return p && [p[0] / 100 * F, p[1] / 100 * R]; };
+  for (const [a, b] of arrows) {
+    const p = cell(a), q = cell(b); if (!p || !q) continue;
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]); if (!len) continue;
+    const ux = (q[0] - p[0]) / len, uy = (q[1] - p[1]) / len, sx = p[0] + ux * .3, sy = p[1] + uy * .3, ex = q[0] - ux * .42, ey = q[1] - uy * .42;
+    const line = document.createElementNS(NS, 'line');
+    Object.entries({ x1: sx, y1: sy, x2: ex, y2: ey, stroke: '#3f9a4a', 'stroke-width': .18, 'stroke-linecap': 'round', opacity: .85 }).forEach(([k, v]) => line.setAttribute(k, v));
+    const head = document.createElementNS(NS, 'polygon'), px = -uy, py = ux, hx = q[0] - ux * .12, hy = q[1] - uy * .12;
+    head.setAttribute('points', [[hx, hy], [ex - ux * .05 + px * .28, ey - uy * .05 + py * .28], [ex - ux * .05 - px * .28, ey - uy * .05 - py * .28]].map(v => v.join(',')).join(' '));
+    head.setAttribute('fill', '#3f9a4a'); head.setAttribute('opacity', .85);
+    svg.append(line, head);
+  }
+  return svg;
+}
+
+// end-of-game card for World Games
+function showWorldResult(cur, score, detail, review) {
+  const bot = cur.bot ? BOTS[cur.bot - 1] : null, m = worldMeta(cur.v);
+  const title = cur.local ? detail : score === 1 ? 'You win!' : score === .5 ? 'A draw' : `${bot.name} wins`;
+  modal((box, close) => box.append(
+    h('div', { class: 'center' }, cur.local ? badge('trophy', 'gold') : score === 1 ? badge('trophy', 'gold') : avatar(score === .5 ? myAvatar() : bot.avatar, 72)),
+    h('h2', { class: 'center' }, title), h('p', { class: 'center muted' }, cur.local ? m.name : detail),
+    !cur.local && score === 1 && cur.bot < 8 ? h('p', { class: 'center small' }, `Next up: ${BOTS[cur.bot].name}, level ${cur.bot + 1}`) : null,
+    h('div', { class: 'row' },
+      cur.moves.length >= 4 ? h('button', { class: 'btn grow', onclick: () => { close(); review(); } }, icon('search', 16), 'Review') : null,
+      h('button', { class: 'btn primary grow', onclick: () => { close(); startWorldGame(cur.v, { bot: !cur.local && score === 1 && cur.bot < 8 ? cur.bot + 1 : cur.bot, color: cur.color, local: cur.local }); } }, icon('repeat', 16), !cur.local && score === 1 && cur.bot < 8 ? 'Next level' : 'Play again'))));
 }

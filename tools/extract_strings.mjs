@@ -13,16 +13,17 @@ const FILES = ['src/app.js', 'src/puzzles2.js', 'src/rewards.js', 'src/insights.
 // calls whose string arguments are never shown to people
 const SKIP_CALLS = new Set(['icon', 'iconSvgInline', 'querySelector', 'querySelectorAll', 'getElementById', 'addEventListener', 'removeEventListener', 'setAttribute', 'getAttribute',
   'beep', 'go', 'haptic', 'badge', 'avatar', 'pieceImg', 'classBadge', 'sqFromName', 'moveFromUci', 'moveFromSan', 'play', 'roomArt', 'stageBanner_key', 'matchMedia', 'getItem', 'setItem',
-  'removeItem', 'postMessage', 'emit', 'on', 'createElement', 'createElementNS', 'setProperty', 'toggle', 'add', 'remove', 'contains', 'startsWith', 'endsWith', 'includes', 'split', 'join',
+  'removeItem', 'postMessage', 'emit', 'on', 'createElement', 'createElementNS', 'setProperty', 'add', 'remove', 'contains', 'startsWith', 'endsWith', 'includes', 'split', 'join',
   'replace', 'indexOf', 'test', 'match', 'parseTc', 'tcKey', 'newClock', 'fetch', 'require', 'leagueIcon', 'rewardEvent', 'questEvent', 'inc', 'setOption', 'analyzePos', 'engineRequest', 'padStart', 'toFixed', 'Worker', 'Blob', 'RegExp', 'Error']);
 // object keys whose values are never shown
 const SKIP_KEYS = new Set(['class', 'style', 'id', 'type', 'href', 'src', 'data-r', 'data-i', 'role', 'alt_', 'fen', 'moves', 'goal', 'icon', 'piece', 'avatar', 'kind', 'cls', 'color', 'side', 'sym',
   'marks', 'stars', 'pieces', 'fixed', 'mode', 'id_', 'key', 'path', 'uci', 'best', 'line', 'cat', 'themes', 'variant', 'grid', 'tc', 'reason_', 'background', 'width', 'height', 'left', 'top',
   'maxlength', 'autocapitalize', 'autocomplete', 'rel', 'as', 'crossorigin', 'viewBox', 'fill', 'stroke', 'light', 'dark', 'w', 'b', 'req', 'ach', 'level', 'sound', 'board', 'ev', 'show', 'showMoves', 'arrows', 'ffish']);
 const looksLikeSan = s => /^([KQRBN]?[a-h]?[1-8]?x?[a-h][1-8](=[QRBN])?|O-O(-O)?)[+#]?[!?]*$/.test(s);
-const looksLikeCode = s => looksLikeSan(s) || /^[#.\[]|^[a-z0-9_-]+$|^[A-Z_0-9]+$|=>|[{};]|https?:|^data:|^M[\d.-]|\b(px|rgba?|var\()\b|^\s*$|^[\d\s.,:+\-/%]+$|^[a-h][1-8]/.test(s) || !/[A-Za-z]{2}/.test(s);
+const looksLikeCode = s => looksLikeSan(s) || /^-?[\d.]+(px|em|rem|%|deg|ms|s)\b/.test(s) || /^[#.\[]|^[a-z0-9_-]+$|^[A-Z_0-9]+$|=>|[{}]|;$|https?:|^data:|^M[\d.-]|\b(px|rgba?|var\()\b|^\s*$|^[\d\s.,:+\-/%]+$|^[a-h][1-8]/.test(s) || !/[A-Za-z]{2}/.test(s);
 const out = new Map();
-const add = (s, where) => { s = s.replace(/\s+/g, ' ').trim(); const bare = s.replace(/\{\d\}/g, ' ').trim(); if (s.length < 2 || !bare || looksLikeCode(bare) || /<(?!\/?(b|br|i|em)\b)[a-zA-Z\/]|class=/.test(s)) return; if (!out.has(s)) out.set(s, where); };
+const addForce = (s, where) => { s = s.replace(/\s+/g, ' ').trim(); if (s && !out.has(s)) out.set(s, where); };
+const add = (s, where) => { s = s.replace(/\s+/g, ' ').trim(); const bare = s.replace(/\{\d\}/g, ' ').trim(); if (s.length < 2 || !bare || (looksLikeCode(bare) && !(/\{\d\}/.test(s) && /^[a-z][a-z ]+$/.test(bare) && bare.length > 3)) || /<(?!\/?(b|br|i|em)\b)[a-zA-Z\/]|class=/.test(s)) return; if (!out.has(s)) out.set(s, where); };
 for (const f of FILES) {
   const fp = path.join(root, f); if (!fs.existsSync(fp)) continue;
   const src = fs.readFileSync(fp, 'utf8');
@@ -44,6 +45,8 @@ for (const f of FILES) {
     else { let s = ''; node.quasis.forEach((q, i) => { s += q.value.cooked; if (i < node.expressions.length) s += '{' + i + '}'; }); if (node.expressions.length > 4) return; add(s, f); }
   });
 }
+// strings named in comments as tr('...') (for words the parser skips, like object values under short keys)
+for (const f of FILES) { const fp = path.join(root, f); if (!fs.existsSync(fp)) continue; for (const m of fs.readFileSync(fp, 'utf8').matchAll(/tr\('([^']+)'\)/g)) addForce(m[1], f); }
 // puzzle names and tips from data
 for (const p of JSON.parse(fs.readFileSync(path.join(root, 'data/puzzles.json'), 'utf8'))) { if (p.name) add(p.name, 'data'); if (p.tip) add(p.tip, 'data'); }
 const strings = [...out.keys()].sort((a, b) => a.localeCompare(b));

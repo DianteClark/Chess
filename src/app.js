@@ -606,9 +606,9 @@ function renderPlay(main) {
   const stakes = h('div', { class: 'row stakes', style: { justifyContent: 'center', flexWrap: 'wrap', gap: '6px' } });
   const drawStakes = () => {
     const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
-    stakes.innerHTML = ''; if (playSel.rated) { stakes.append(h('span', { class: 'pill live' }, 'Win ' + f(eloDelta(L.r, br, 1, K))), h('span', { class: 'pill' }, 'Draw ' + f(eloDelta(L.r, br, .5, K))), h('span', { class: 'pill', style: { color: 'var(--bad)' } }, 'Loss ' + f(eloDelta(L.r, br, 0, K)))); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'pill' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); } else stakes.append(h('span', { class: 'pill' }, 'Casual: your rating stays the same'));
+    stakes.innerHTML = ''; if (playSel.rated) { stakes.append(h('span', { class: 'pill live' }, `Win ${f(eloDelta(L.r, br, 1, K))}`), h('span', { class: 'pill' }, `Draw ${f(eloDelta(L.r, br, .5, K))}`), h('span', { class: 'pill', style: { color: 'var(--bad)' } }, `Loss ${f(eloDelta(L.r, br, 0, K))}`)); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'pill' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); } else stakes.append(h('span', { class: 'pill' }, 'Casual: your rating stays the same'));
   };
-  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), 'Play ' + BOTS[playSel.bot].name); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
+  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), `Play ${BOTS[playSel.bot].name}`); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
   setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollTo({ left: on.offsetLeft - grid.clientWidth / 2 + on.clientWidth / 2, behavior: 'auto' }); }, 0);
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
@@ -1207,12 +1207,13 @@ function renderPuzzles(main) {
 let lessonOpen = null, lessonStep = 0;
 function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic dark' }, icon(l.icon, 24)); }
 function lessonKey(L) { return L.course ? `c:${L.course.id}/${L.id}` : L.id; }
+// course levels, listed for the translation catalog: tr('beginner') tr('intermediate') tr('advanced')
 let courseOpen = null;
 function courseIcon(c) { return ['pawn', 'king', 'rook', 'queen', 'knight', 'bishop'].includes(c.icon) ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + { pawn: 'p', king: 'k', rook: 'r', queen: 'q', knight: 'n', bishop: 'b' }[c.icon]]})` } }) : h('div', { class: 'ic dark' }, icon(c.icon || 'book', 24)); }
 function renderCourse(main) {
   const C = courseOpen, done = C.lessons.filter(l => profile.lessons[lessonKey(l)]).length;
   main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { courseOpen = null; render(); } }, icon('back', 18), 'Learn'), h('h2', { class: 'grow' }, C.title)));
-  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done, ${C.level}`)));
+  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done, ${tr(C.level)}`)));
   const list = h('div', { class: 'lessons' });
   C.lessons.forEach((l, k) => { l.course = C; list.append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, h('div', { class: 'ic dark' }, h('b', null, String(k + 1))), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc || '')), h('span', { class: 'ck' + (profile.lessons[lessonKey(l)] ? ' done' : '') }, icon(profile.lessons[lessonKey(l)] ? 'check' : 'next', 20)))); });
   main.append(list);
@@ -1224,7 +1225,7 @@ function renderLearn(main) {
   main.append(stageBanner('library', 'The Library', 'Lessons and courses for every level'));
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   if (typeof COURSES !== 'undefined' && COURSES.length) {
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
+    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${tr(c.level)}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
     main.append(h('h3', { class: 'sect', style: { marginTop: '6px' } }, 'Beginner course'));
   }
   let groupEl = null, lastGroup = null;
@@ -1271,11 +1272,13 @@ function renderLesson(main) {
   } }, lessonStep < steps.length - 1 ? 'Next' : 'Finish', icon(lessonStep < steps.length - 1 ? 'next' : 'check', 18));
   const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || 'Great job!'; beep('win'); };
 
-  if (step.type === 'text' && step.board) {
+  // explanation steps without their own picture reuse the lesson's last position
+  let textBoard = step.board; if (step.type === 'text' && !textBoard) for (let i = lessonStep - 1; i >= 0 && !textBoard; i--) textBoard = steps[i].board || steps[i].fen;
+  if (step.type === 'text' && textBoard) {
     const bv = new BoardView({ orient: step.orient || 'w' });
     const marks = {}; (step.marks || []).forEach(s => marks[sqFromName(s)] = 'mark');
-    const showTargets = step.showMoves ? lessonTargets(fenToBoard(step.board), sqFromName(step.showMoves)) : [];
-    bv.set({ board: fenToBoard(step.board), marks });
+    const showTargets = step.showMoves ? lessonTargets(fenToBoard(textBoard), sqFromName(step.showMoves)) : [];
+    bv.set({ board: fenToBoard(textBoard), marks, arrows: (step.arrows || []).map(([a, b]) => [sqFromName(a), sqFromName(b)]) });
     if (showTargets.length) { bv.targets = showTargets; bv.draw(); }
     main.append(bv.el);
   } else if (step.type === 'stars') {
@@ -1294,12 +1297,12 @@ function renderLesson(main) {
         bv.set({ board: b, stars, last: [from, to] }, dragged ? null : [from, to]);
         const left = stars.size + (step.captureAll ? enemiesLeft() : 0);
         if (!left) { bv.burst('star'); finishTask(movesUsed <= (step.par || 99) ? `Perfect! You did it in ${movesUsed} moves!` : `You did it in ${movesUsed} moves! Can you do it in ${step.par}?`); }
-        else msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} left` : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
+        else msg.textContent = [stars.size ? (stars.size > 1 ? `${stars.size} stars left` : `${stars.size} star left`) : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
       }
     });
     bv.set({ board: b, stars });
     main.append(bv.el);
-    msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
+    msg.textContent = [stars.size ? (stars.size > 1 ? `${stars.size} stars to collect` : `${stars.size} star to collect`) : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
     main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
   } else if (step.type === 'line') {
     let g = new Game(step.fen), k = 0;
@@ -1404,17 +1407,17 @@ function renderMe(main) {
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
     h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
-    h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
+    h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', { class: 'tbl-bot' }, avatar(bt.avatar, 24), h('span', null, bt.name)), h('td', null, bt.rating)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for rated games in Play the World. The server checks every move and keeps the rating, so nobody can fake a result. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
   const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   if (!standalone) main.append(h('div', { class: 'card row' }, h('div', { class: 'ic dark lesson-ic' }, icon('download', 22)), h('div', { class: 'grow' }, h('b', null, 'Install Knight Club'), h('div', { class: 'small muted' }, 'Add it to your home screen. It works offline too.')),
     h('button', { class: 'btn sm primary', onclick: async () => { if (typeof installPrompt !== 'undefined' && installPrompt) { installPrompt.prompt(); installPrompt = null; } else modal((box, close) => box.append(h('h2', null, 'Install the app'), h('p', null, h('b', null, 'iPhone / iPad: '), 'open this page in Safari, tap the Share button, then "Add to Home Screen".'), h('p', null, h('b', null, 'Android: '), 'open the browser menu and tap "Install app" or "Add to Home screen".'), h('p', { class: 'muted small' }, 'Once installed, puzzles, lessons and bot games work without internet.'), h('button', { class: 'btn primary block', onclick: close }, 'Got it'))); } }, 'Install')));
-  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Language'), h('div', { class: 'muted small' }, 'Menus, lessons and coach tips')), languagePicker()));
+  main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, icon('globe', 20), h('b', { class: 'grow' }, 'Language')), h('div', { class: 'muted small', style: { margin: '2px 0 8px' } }, 'Menus, lessons and coach tips'), languagePicker()));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
-  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), '. Free and open source (GPL-3.0), with Stockfish 19.'));
+  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), h('br'), 'Free and open source (GPL-3.0), with Stockfish 19 and Fairy-Stockfish.'));
 }
 
 // older saves had one Glicko "rating" for bots; move it onto the new ladder
@@ -1429,7 +1432,7 @@ function migrate(p) {
   return p;
 }
 
-const APP_VERSION = '11.0';
+const APP_VERSION = '11.1';
 function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
   const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);

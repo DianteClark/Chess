@@ -221,7 +221,7 @@ function flushRewards() {
     else if (r.kind === 'unlock') rewardToast(icon('sparkle', 18), `Unlocked: ${r.item.name}`, 'Try it in Me > Style', 'gold');
     else if (r.kind === 'avatar') rewardToast(avatar(r.item.id, 22), `New avatar: ${r.item.name}`, 'Pick it in Me > Style', 'gold');
     else if (r.kind === 'quest') rewardToast(icon('check', 18), 'Quest complete!', r.def.text, 'silver');
-    else if (r.kind === 'questsAll') { rewardToast(icon('trophy', 18), 'All quests done!', `Quest streak: ${r.streak} day${r.streak > 1 ? 's' : ''}`, 'gold'); confetti(); }
+    else if (r.kind === 'questsAll') { rewardToast(icon('trophy', 18), 'All quests done!', (r.streak > 1 ? `Quest streak: ${r.streak} days` : `Quest streak: ${r.streak} day`), 'gold'); confetti(); }
     setTimeout(showNext, 1500);
   };
   setTimeout(showNext, xp.length ? 900 : 0);

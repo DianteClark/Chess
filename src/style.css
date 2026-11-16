@@ -449,7 +449,7 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .wface svg,.wface img{width:100%;height:100%}
 .whead h2{color:var(--ink)} .whead p{margin:8px 0 0}
 .vboard-wrap{margin:10px auto;width:calc(100% - 12px);max-width:560px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.vframe{--vf:18px;position:relative;padding:var(--vf);margin:8px 0;border-radius:14px;
+.vframe{--vf:16px;position:relative;padding:var(--vf);margin:8px 0;border-radius:14px;
   background:var(--grain),linear-gradient(160deg,#8a5530,#5a3219 55%,#43240f);box-shadow:inset 0 0 0 2px rgba(255,220,160,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 10px 24px rgba(0,0,0,.4)}
 .vboard{position:relative;width:100%;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2px #2e1a0c}
 .vcoords{position:absolute;inset:0;pointer-events:none;font-size:11px;font-weight:700;color:rgba(255,226,170,.75)}
@@ -469,8 +469,8 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .vdot::after{content:'';width:30%;height:30%;border-radius:50%;background:rgba(30,60,30,.45)}
 .vdot.cap::after{width:88%;height:88%;background:none;box-shadow:inset 0 0 0 4px rgba(30,60,30,.5)}
 .varrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.varrows line{stroke:rgba(40,120,60,.75);stroke-width:1.6;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-width:7px}
-.vpocket{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:46px;padding:4px 6px;background:rgba(0,0,0,.18);border-radius:12px}
+.vpocket{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:50px;padding:3px 8px;background:rgba(0,0,0,.2);border-radius:12px;box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
+.vpocket-empty{font-size:13px;color:var(--muted);padding:0 4px}
 .vhand{position:relative;width:44px;height:44px;border-radius:10px}
 .vhand svg,.vhand img{width:100%;height:100%}
 .vhand.on{background:rgba(147,220,152,.4);box-shadow:0 0 0 2px var(--good)}
@@ -485,3 +485,9 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .taskmsg.bad{color:var(--bad)}
 html[dir=rtl] .wgame{text-align:right}
 html[dir=rtl] .vboard-wrap,html[dir=rtl] .board-wrap{direction:ltr}
+
+.wstrip{display:flex;gap:4px;margin:-2px 0 10px;flex-wrap:wrap}
+.wstrip>*{width:34px;height:34px;flex:none;display:block}
+.wstrip>span>svg{width:100%;height:100%;display:block}
+.lesson-ic.wnum{font-family:var(--display);font-size:20px;color:var(--brass-light)}
+.tbl-bot{display:flex;align-items:center;gap:8px}

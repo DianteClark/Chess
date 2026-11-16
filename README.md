@@ -72,6 +72,7 @@ node tools/test_variants.mjs      # World Games rules, perft and engine (needs n
 node tools/validate_worldcourses.mjs   # every World Games lesson, checked with ffish (npm i ffish --prefix /tmp/wc)
 NODE_PATH=... node tools/extract_strings.mjs   # rebuild the translation catalog (needs acorn)
 node tools/check_i18n.mjs        # translations: placeholders, tags, coverage
+python3 tools/qa/crawl_scenes.py [lang]   # every screen at iPhone size: overlaps, clipped text, raw values, untranslated text
 cd lobby && npm install && cd .. && node tools/lobby_test.mjs   # 71 end-to-end lobby tests
 ```
 

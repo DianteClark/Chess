@@ -47,19 +47,19 @@ const LESSONS = [
     { type: 'stars', text: 'Capture all the black pieces with your pawn!', pieces: { d2: 'P', c3: 'p', b4: 'n', c5: 'b' }, stars: [], captureAll: true, par: 3 },
   ] },
   { id: 'capture', group: 'Playing the Game', icon: 'target', title: 'Capturing', desc: 'Taking enemy pieces', steps: [
-    { type: 'text', text: 'You <b>capture</b> by moving onto a square with an enemy piece. The captured piece leaves the board. You can never capture your own pieces.' },
+    { board: '8/3n4/8/8/3R4/8/8/8', marks: ['d7'], arrows: [['d4', 'd7']], type: 'text', text: 'You <b>capture</b> by moving onto a square with an enemy piece. The captured piece leaves the board. You can never capture your own pieces.' },
     { type: 'stars', text: 'Use your queen to capture every black piece!', pieces: { d1: 'Q', d7: 'p', h3: 'n', a3: 'b' }, stars: [], captureAll: true, par: 3 },
     { type: 'stars', text: 'Now with a knight. Hop, hop, capture!', pieces: { b1: 'N', c3: 'p', e4: 'p', g5: 'r' }, stars: [], captureAll: true, par: 3 },
   ] },
   { id: 'values', group: 'Playing the Game', icon: 'gem', title: 'Piece Values', desc: 'Which pieces are worth more?', steps: [
-    { type: 'text', text: 'Pieces have points: <b>Pawn = 1</b>, <b>Knight = 3</b>, <b>Bishop = 3</b>, <b>Rook = 5</b>, <b>Queen = 9</b>. The king is <b>priceless</b>, because you can never trade him!' },
-    { type: 'text', text: 'Try not to give away a big piece for a small one. Trading your queen (9) for a knight (3) is a bad deal!' },
+    { board: '8/8/8/8/1PNBRQ2/8/8/8', type: 'text', text: 'Pieces have points: <b>Pawn = 1</b>, <b>Knight = 3</b>, <b>Bishop = 3</b>, <b>Rook = 5</b>, <b>Queen = 9</b>. The king is <b>priceless</b>, because you can never trade him!' },
+    { board: '8/8/8/4n3/3Q4/8/8/8', marks: ['e5'], arrows: [['d4', 'e5']], type: 'text', text: 'Try not to give away a big piece for a small one. Trading your queen (9) for a knight (3) is a bad deal!' },
     { type: 'goal', text: 'Your knight can capture two pieces. Pick the <b>most valuable</b> one!', fen: '4k3/8/3q1p2/8/4N3/8/8/4K3 w - - 0 1', goal: 'move', moves: ['e4d6'], success: 'Yes! The queen is worth 9 points!', fail: 'That piece is worth less. Look for the queen!' },
   ] },
   { id: 'check', group: 'Playing the Game', icon: 'alert', title: 'Check!', desc: 'Attacking the king', steps: [
     { type: 'text', text: 'When a piece attacks the enemy king, it is called <b>check</b>. The king must get out of check right away!', board: '4k3/8/8/8/8/8/8/R3K3', marks: ['e8'] },
     { type: 'goal', text: 'Put the black king in <b>check</b>!', fen: '4k3/8/8/8/8/8/8/R3K3 w - - 0 1', goal: 'check', success: 'Check! The king is under attack.' },
-    { type: 'text', text: 'There are <b>3 ways</b> to escape check:<br>1. <b>Move</b> the king to a safe square.<br>2. <b>Block</b> the attack with another piece.<br>3. <b>Capture</b> the attacking piece.' },
+    { board: '8/8/4r3/8/8/8/3N4/4K3', marks: ['e6'], arrows: [['e6', 'e1'], ['d2', 'e4']], type: 'text', text: 'There are <b>3 ways</b> to escape check:<br>1. <b>Move</b> the king to a safe square.<br>2. <b>Block</b> the attack with another piece.<br>3. <b>Capture</b> the attacking piece.' },
     { type: 'goal', text: 'Your king is in check from the black queen. <b>Capture it</b> with your king!', fen: '4k3/8/8/8/8/8/3q4/4K3 w - - 0 1', goal: 'move', moves: ['e1d2'], success: 'Captured! Your king is safe.', fail: 'Your king is safe, but you can do better. Capture the queen!' },
     { type: 'goal', text: 'The black rook gives check. <b>Block</b> it with your bishop!', fen: '4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1', goal: 'move', moves: ['d2e3'], success: 'Blocked! The bishop shields the king.', fail: 'That works too, but this time use the bishop to block!' },
   ] },
@@ -71,7 +71,7 @@ const LESSONS = [
   ] },
   { id: 'castling', group: 'Special Moves', icon: 'castle', title: 'Castling', desc: 'Tuck your king in safe', steps: [
     { type: 'text', text: '<b>Castling</b> is a special move that keeps your king safe. The king moves <b>two squares</b> toward a rook, and the rook <b>hops over</b> to the other side of the king.', board: '4k3/8/8/8/8/8/8/R3K2R', marks: ['e1', 'g1', 'f1', 'h1'] },
-    { type: 'text', text: 'You can castle only if: the king and that rook <b>have not moved</b> yet, nothing is <b>between</b> them, and the king is <b>not in check</b> and won\'t pass through check.' },
+    { board: 'r3k2r/8/8/8/8/8/8/R3K2R', marks: ['e1', 'h1', 'a1'], arrows: [['e1', 'g1']], type: 'text', text: 'You can castle only if: the king and that rook <b>have not moved</b> yet, nothing is <b>between</b> them, and the king is <b>not in check</b> and won\'t pass through check.' },
     { type: 'goal', text: 'Castle! Tap your king, then tap the square <b>two steps to the right</b>.', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 1', goal: 'castle', success: 'Castled! Your king is tucked away safely.', fail: 'Not quite. Tap the king, then the square two steps toward the rook.' },
   ] },
   { id: 'promotion', group: 'Special Moves', icon: 'arrowUp', title: 'Promotion', desc: 'A pawn becomes a queen', steps: [
@@ -80,19 +80,19 @@ const LESSONS = [
     { type: 'stars', text: 'Walk your pawn all the way up. It becomes a queen at the top! Then grab the last star.', pieces: { b2: 'P' }, stars: ['b4', 'b8', 'h2'], promote: true, par: 6 },
   ] },
   { id: 'enpassant', group: 'Special Moves', icon: 'ninja', title: 'En Passant', desc: 'The sneaky pawn capture', steps: [
-    { type: 'text', text: '<b>En passant</b> (say "on pah-SAHN") is a sneaky pawn rule. If an enemy pawn jumps <b>two squares</b> and lands right <b>next to</b> your pawn, you can capture it as if it had moved only one square.' },
+    { board: '8/8/8/3pP3/8/8/8/8', marks: ['d5'], arrows: [['e5', 'd6']], type: 'text', text: '<b>En passant</b> (say "on pah-SAHN") is a sneaky pawn rule. If an enemy pawn jumps <b>two squares</b> and lands right <b>next to</b> your pawn, you can capture it as if it had moved only one square.' },
     { type: 'text', text: 'You must do it <b>right away</b>, on your very next move, or the chance is gone!', board: '4k3/8/8/3pP3/8/8/8/4K3', marks: ['d5', 'd6'] },
     { type: 'goal', text: 'Black just moved a pawn two squares to d5. Capture it <b>en passant</b>! (Move your pawn to d6.)', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', goal: 'move', moves: ['e5d6'], success: 'Sneaky! The black pawn is gone.', fail: 'Try moving your e5 pawn diagonally to d6.' },
   ] },
   { id: 'draws', group: 'Winning & Drawing', icon: 'half', title: 'Stalemate & Draws', desc: 'When nobody wins', steps: [
     { type: 'text', text: '<b>Stalemate</b>: it is your turn, you are <b>not</b> in check, but you have <b>no legal moves</b>. That is a <b>draw</b> (a tie), even if you have fewer pieces!', board: '7k/5Q2/6K1/8/8/8/8/8', marks: ['h8'] },
-    { type: 'text', text: 'Other draws:<br>• Both players <b>agree</b> to a draw.<br>• The same position happens <b>3 times</b>.<br>• <b>Not enough pieces</b> to checkmate (like king vs king).<br>• <b>50 moves</b> by each player with no capture or pawn move.' },
+    { board: '8/8/8/3k4/8/8/3K4/8', type: 'text', text: 'Other draws:<br>• Both players <b>agree</b> to a draw.<br>• The same position happens <b>3 times</b>.<br>• <b>Not enough pieces</b> to checkmate (like king vs king).<br>• <b>50 moves</b> by each player with no capture or pawn move.' },
     { type: 'goal', text: 'Careful! Some queen moves cause stalemate. Find the <b>checkmate</b> instead.', fen: '7k/4Q3/6K1/8/8/8/8/8 w - - 0 1', goal: 'mate', success: 'Checkmate, not stalemate. Well done!' },
   ] },
   { id: 'tips', group: 'Winning & Drawing', icon: 'bulb', title: 'Winning Tips', desc: 'Play like a champion', steps: [
-    { type: 'text', text: '<b>Start strong:</b><br>1. Move a center pawn (e or d pawn).<br>2. Bring out your <b>knights and bishops</b>.<br>3. <b>Castle</b> early to keep your king safe.<br>4. Don\'t bring your queen out too early.' },
-    { type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>1. What is my opponent attacking?<br>2. Can I capture something for free?<br>3. Is my piece safe on its new square?' },
-    { type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick. Then try the <b>Puzzles</b> to get even better.' },
+    { board: 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R', arrows: [['e1', 'g1']], type: 'text', text: '<b>Start strong:</b><br>1. Move a center pawn (e or d pawn).<br>2. Bring out your <b>knights and bishops</b>.<br>3. <b>Castle</b> early to keep your king safe.<br>4. Don\'t bring your queen out too early.' },
+    { board: 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5Q2/PPPP1PPP/RNB1KBNR', marks: ['e4'], arrows: [['f6', 'e4']], type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>1. What is my opponent attacking?<br>2. Can I capture something for free?<br>3. Is my piece safe on its new square?' },
+    { board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick. Then try the <b>Puzzles</b> to get even better.' },
   ] },
 ];
 if (typeof module !== 'undefined') module.exports = LESSONS;

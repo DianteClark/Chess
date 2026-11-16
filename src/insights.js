@@ -15,7 +15,7 @@ function renderInsights(main) {
     const accs = revs.slice().reverse().map(r => r.acc || 0);
     const avg = accs.reduce((a, b) => a + b, 0) / accs.length;
     const last5 = accs.slice(-5), avg5 = last5.reduce((a, b) => a + b, 0) / last5.length;
-    main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, h('b', { class: 'grow' }, 'Accuracy'), h('span', { class: 'pill' }, `Average ${Math.round(avg)}%`), h('span', { class: 'pill ' + (avg5 >= avg ? 'live' : '') }, `Last 5: ${Math.round(avg5)}%`)), sparkline(accs, '#4fd18b', 'Review one more game to see your trend.'), h('div', { class: 'small muted' }, `From ${revs.length} reviewed game${revs.length > 1 ? 's' : ''}.`)));
+    main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, h('b', { class: 'grow' }, 'Accuracy'), h('span', { class: 'pill' }, `Average ${Math.round(avg)}%`), h('span', { class: 'pill ' + (avg5 >= avg ? 'live' : '') }, `Last 5: ${Math.round(avg5)}%`)), sparkline(accs, '#4fd18b', 'Review one more game to see your trend.'), h('div', { class: 'small muted' }, (revs.length > 1 ? `From ${revs.length} reviewed games.` : `From ${revs.length} reviewed game.`))));
     // phases
     const ph = { opening: [], middlegame: [], endgame: [] };
     revs.forEach(r => { for (const k in ph) if (r.phase && r.phase[k] != null) ph[k].push(r.phase[k]); });

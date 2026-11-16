@@ -28,6 +28,7 @@ function getLobby() {
 }
 let lobbyGameHook = null, lobbyCurrent = null;
 function lobbyName() { return (profile.name || '').replace(/[^A-Za-z0-9 _-]/g, '').slice(0, 20) || null; }
+// lobby states shown in the status pill: tr('connecting') tr('online') tr('offline')
 function renderWorld(main) {
   const lb = getLobby();
   if (lobbyView === 'game' && lb && lb.games[lobbyCurrent]) return renderLobbyGame(main, lb);

@@ -83,7 +83,7 @@ function renderDaily(main) {
   const banner = h('div', { class: 'banner' }, icon('calendar', 20), h('span', null, `${side} to move: `, h('b', null, goal)), h('span', { class: 'grow' }), h('span', { class: 'pill' }, `Streak ${d.streak}`));
   const msg = h('div', { class: 'taskmsg' });
   const pb = new PuzzleBoard(p, {
-    onSolved: clean => { beep('win'); pb.board.burst('star'); markDaily(clean); banner.className = 'banner good'; banner.innerHTML = ''; banner.append(icon('check', 20), h('span', null, h('b', null, 'Solved! '), `Daily streak: ${dailyState().streak} day${dailyState().streak === 1 ? '' : 's'}. Come back tomorrow for a new one.`)); msg.textContent = ''; },
+    onSolved: clean => { beep('win'); pb.board.burst('star'); markDaily(clean); banner.className = 'banner good'; banner.innerHTML = ''; banner.append(icon('check', 20), h('span', null, h('b', null, 'Solved! '), (dailyState().streak === 1 ? `Daily streak: ${dailyState().streak} day. Come back tomorrow for a new one.` : `Daily streak: ${dailyState().streak} days. Come back tomorrow for a new one.`))); msg.textContent = ''; },
     onWrong: () => { msg.className = 'taskmsg bad'; msg.textContent = 'Not that one. Try again!'; },
     onProgress: () => { msg.className = 'taskmsg good'; msg.textContent = 'Good move! Keep going…'; },
   });

@@ -100,7 +100,15 @@ function wpSvg(variant, letter, side, promoted, style, flippedView) {
     }
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50) translate(50 52) scale(${size}) translate(-50 -52)"><path d="M50 4l30 12 10 80H10l10-80z" fill="#9a6b33" transform="translate(0 2)"/><path d="M50 4l30 12 10 80H10l10-80z" fill="#f2d9a0" stroke="#8a5a28" stroke-width="2"/>${inner}</g></svg>`;
   }
-  // makruk, sittuyin, shatranj: round tokens; white side light, black side dark
+  // makruk, sittuyin, shatranj, traditional style: the carved Western-style pieces these games are
+  // usually played with today (Met and Ferz look like small queens, Khon and Alfil like bishops)
+  if (!eng && typeof PIECE_URL !== 'undefined') {
+    const chessLetter = { khun: 'k', met: 'q', ferz: 'q', khon: 'b', alfil: 'b', ma: 'n', rua: 'r', bia: 'p' }[base] || 'p';
+    const sc = { met: .8, ferz: .8 }[base] || 1;
+    const ring = promoted ? `<circle cx="50" cy="54" r="44" fill="none" stroke="#d9a63a" stroke-width="5" opacity=".9"/>` : '';
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${ring}<image href="${PIECE_URL[side + chessLetter]}" x="${50 - 50 * sc}" y="${100 - 100 * sc}" width="${100 * sc}" height="${100 * sc}"/></svg>`;
+  }
+  // English style: round tokens; white side light, black side dark
   const light = side === 'w', fill = light ? '#f7efdd' : '#2c2622', ink = light ? '#2c2622' : '#f7efdd';
   const ring = promoted ? `<circle cx="50" cy="50" r="40" fill="none" stroke="#d9a63a" stroke-width="4"/>` : '';
   const pic = WP_PIC[base] ? WP_PIC[base](ink) : '';

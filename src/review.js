@@ -111,7 +111,7 @@ function coachExplain(R, i) {
   else if (cls === 'best') lines.push(`${mv.san} is the best move here.${facts.fork ? ' It attacks two pieces at once, a fork!' : facts.check ? ' It also gives check, keeping the initiative.' : ''}`);
   else if (cls === 'excellent' || cls === 'good') lines.push(`${mv.san} is ${cls === 'excellent' ? 'an excellent' : 'a good'} move. ${bestSan && bestSan !== mv.san ? `The engine slightly preferred ${bestSan}.` : ''}`);
   if (['inaccuracy', 'mistake', 'blunder', 'miss'].includes(cls)) {
-    const art = cls === 'inaccuracy' ? 'an inaccuracy' : cls === 'miss' ? 'a missed chance' : 'a ' + cls;
+    const art = { inaccuracy: 'an inaccuracy', miss: 'a missed chance', mistake: 'a mistake', blunder: 'a blunder' }[cls] || cls;
     lines.push(`${mv.san} is ${art}.`);
     const after = R.uciMoves.slice(0, i + 1), mySide = side === 'w' ? 0 : 1;
     // 1. what does the move allow?
@@ -177,9 +177,9 @@ function coachSummary(R) {
   else if (acc >= 80) headline = 'Mostly strong play, but one big moment changed the game.';
   else if (acc >= 65) headline = 'A decent game. A few moments decided it, and they are easy to learn from.';
   else headline = 'A tough game, but every mistake here is a lesson you can use next time.';
-  if (hangs) tips.push(`You left a piece unprotected ${hangs} time${hangs > 1 ? 's' : ''}. Before each move, check that the piece you move is safe on its new square.`);
+  if (hangs) tips.push((hangs > 1 ? `You left a piece unprotected ${hangs} times. Before each move, check that the piece you move is safe on its new square.` : `You left a piece unprotected ${hangs} time. Before each move, check that the piece you move is safe on its new square.`));
   if (allowedMates) tips.push(`You allowed a checkmate. When your king is near open lines, look at every check your opponent could give.`);
-  if (missedWins) tips.push(`You missed ${missedWins} chance${missedWins > 1 ? 's' : ''} to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".`);
+  if (missedWins) tips.push((missedWins > 1 ? `You missed ${missedWins} chances to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".` : `You missed ${missedWins} chance to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".`));
   const phases = [['opening', opening], ['middlegame', middle], ['endgame', end]].filter(x => x[1] != null).sort((a, b) => a[1] - b[1]);
   if (phases.length > 1 && phases[0][1] < phases[phases.length - 1][1] - 10) tips.push(`Your weakest phase was the ${phases[0][0]} (${Math.round(phases[0][1])}% accuracy). ${phases[0][0] === 'opening' ? 'The Openings course in Learn can help.' : phases[0][0] === 'endgame' ? 'The Endgame course in Learn can help.' : 'Try Puzzle Rush to sharpen your tactics.'}`);
   if (!tips.length) tips.push('Keep playing like this, and try a stronger opponent!');
@@ -343,7 +343,7 @@ function renderReview(main) {
   const counts = h('table', { class: 'tbl ctbl' }, CLASS_ORDER.map(k => { const cw = R.moves.filter(m => m.side === 'w' && m.cls === k).length, cb = R.moves.filter(m => m.side === 'b' && m.cls === k).length; return h('tr', null, h('td', null, cw), h('td', null, classBadge(k), ' ', CLASSES[k].label), h('td', null, cb)); }));
   main.append(h('div', { class: 'card stack' },
     h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(52)), h('div', { class: 'txt' }, h('b', null, R.summary.headline), ' ', R.opening ? `Opening: ${R.opening}.` : '')),
-    h('div', { class: 'row', style: { justifyContent: 'space-around' } }, accBox('w', R.color === 'w' ? 'Your accuracy' : (R.src.white || 'White') + ' accuracy'), accBox('b', R.color === 'b' ? 'Your accuracy' : (R.src.black || 'Black') + ' accuracy')),
+    h('div', { class: 'row', style: { justifyContent: 'space-around' } }, accBox('w', R.color === 'w' ? 'Your accuracy' : `${R.src.white || 'White'} accuracy`), accBox('b', R.color === 'b' ? 'Your accuracy' : `${R.src.black || 'Black'} accuracy`)),
     counts));
   main.append(h('div', { class: 'card stack' }, h('b', null, "Coach's advice"), h('ul', { class: 'tips' }, R.summary.tips.map(t => h('li', null, t))),
     R.key.length ? h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '6px' } }, h('span', { class: 'small muted' }, 'Key moments:'), R.key.map(k => h('button', { class: 'btn sm', onclick: () => go2(k + 1) }, `${Math.floor(k / 2) + 1}${k % 2 ? '...' : '.'} ${R.moves[k].san}`))) : null));

@@ -1,5 +1,17 @@
 # Changelog
 
+## 11.1 — Polish pass
+
+- Fixed: Play the World opened World Games instead of the online lobby. The build now refuses two global names that clash.
+- Nothing hides under the dock any more: every screen leaves room for the Play medallion.
+- Every lesson step has a board: World Games explanations show the starting position, and the kids' lessons on capturing, piece values, check, castling, en passant, draws and tips got their own diagrams with arrows.
+- World Games boards sit in a wooden frame with the coordinates on the frame instead of on top of the pieces. Lesson arrows have proper heads.
+- Makruk, sittuyin and shatranj have a real traditional set (carved pieces) that is different from the English set.
+- World Games: end-of-game card with "Next level", numbered lessons, a row of the game's pieces on each game page, the bot picker scrolls sideways, piece guide uses each game's own piece names (janggi Guards, makruk Ruea).
+- The bot ratings table shows portraits instead of raw names.
+- Translations: 100% in all eight languages, including singular and plural forms, rating changes, coach explanations sentence by sentence, game results and course levels.
+- QA: tools/qa/crawl_scenes.py visits 231 screens at phone size (all 155 World Games lesson steps included) and flags overlaps, clipped text, raw values and untranslated text.
+
 ## 11.0 — World Games
 
 Knight Club becomes a home for chess and its cousins from around the world, in nine languages.

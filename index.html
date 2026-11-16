@@ -465,7 +465,7 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .wface svg,.wface img{width:100%;height:100%}
 .whead h2{color:var(--ink)} .whead p{margin:8px 0 0}
 .vboard-wrap{margin:10px auto;width:calc(100% - 12px);max-width:560px;user-select:none;-webkit-user-select:none;touch-action:manipulation}
-.vframe{--vf:18px;position:relative;padding:var(--vf);margin:8px 0;border-radius:14px;
+.vframe{--vf:16px;position:relative;padding:var(--vf);margin:8px 0;border-radius:14px;
   background:var(--grain),linear-gradient(160deg,#8a5530,#5a3219 55%,#43240f);box-shadow:inset 0 0 0 2px rgba(255,220,160,.25),inset 0 -3px 0 rgba(0,0,0,.25),0 10px 24px rgba(0,0,0,.4)}
 .vboard{position:relative;width:100%;border-radius:3px;overflow:hidden;box-shadow:0 0 0 2px #2e1a0c}
 .vcoords{position:absolute;inset:0;pointer-events:none;font-size:11px;font-weight:700;color:rgba(255,226,170,.75)}
@@ -485,8 +485,8 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .vdot::after{content:'';width:30%;height:30%;border-radius:50%;background:rgba(30,60,30,.45)}
 .vdot.cap::after{width:88%;height:88%;background:none;box-shadow:inset 0 0 0 4px rgba(30,60,30,.5)}
 .varrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.varrows line{stroke:rgba(40,120,60,.75);stroke-width:1.6;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-width:7px}
-.vpocket{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:46px;padding:4px 6px;background:rgba(0,0,0,.18);border-radius:12px}
+.vpocket{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:50px;padding:3px 8px;background:rgba(0,0,0,.2);border-radius:12px;box-shadow:inset 0 2px 4px rgba(0,0,0,.25)}
+.vpocket-empty{font-size:13px;color:var(--muted);padding:0 4px}
 .vhand{position:relative;width:44px;height:44px;border-radius:10px}
 .vhand svg,.vhand img{width:100%;height:100%}
 .vhand.on{background:rgba(147,220,152,.4);box-shadow:0 0 0 2px var(--good)}
@@ -501,6 +501,12 @@ details.card summary{cursor:pointer;list-style:none} details.card summary::-webk
 .taskmsg.bad{color:var(--bad)}
 html[dir=rtl] .wgame{text-align:right}
 html[dir=rtl] .vboard-wrap,html[dir=rtl] .board-wrap{direction:ltr}
+
+.wstrip{display:flex;gap:4px;margin:-2px 0 10px;flex-wrap:wrap}
+.wstrip>*{width:34px;height:34px;flex:none;display:block}
+.wstrip>span>svg{width:100%;height:100%;display:block}
+.lesson-ic.wnum{font-family:var(--display);font-size:20px;color:var(--brass-light)}
+.tbl-bot{display:flex;align-items:center;gap:8px}
 </style>
 </head>
 <body>
@@ -1416,19 +1422,19 @@ const LESSONS = [
     { type: 'stars', text: 'Capture all the black pieces with your pawn!', pieces: { d2: 'P', c3: 'p', b4: 'n', c5: 'b' }, stars: [], captureAll: true, par: 3 },
   ] },
   { id: 'capture', group: 'Playing the Game', icon: 'target', title: 'Capturing', desc: 'Taking enemy pieces', steps: [
-    { type: 'text', text: 'You <b>capture</b> by moving onto a square with an enemy piece. The captured piece leaves the board. You can never capture your own pieces.' },
+    { board: '8/3n4/8/8/3R4/8/8/8', marks: ['d7'], arrows: [['d4', 'd7']], type: 'text', text: 'You <b>capture</b> by moving onto a square with an enemy piece. The captured piece leaves the board. You can never capture your own pieces.' },
     { type: 'stars', text: 'Use your queen to capture every black piece!', pieces: { d1: 'Q', d7: 'p', h3: 'n', a3: 'b' }, stars: [], captureAll: true, par: 3 },
     { type: 'stars', text: 'Now with a knight. Hop, hop, capture!', pieces: { b1: 'N', c3: 'p', e4: 'p', g5: 'r' }, stars: [], captureAll: true, par: 3 },
   ] },
   { id: 'values', group: 'Playing the Game', icon: 'gem', title: 'Piece Values', desc: 'Which pieces are worth more?', steps: [
-    { type: 'text', text: 'Pieces have points: <b>Pawn = 1</b>, <b>Knight = 3</b>, <b>Bishop = 3</b>, <b>Rook = 5</b>, <b>Queen = 9</b>. The king is <b>priceless</b>, because you can never trade him!' },
-    { type: 'text', text: 'Try not to give away a big piece for a small one. Trading your queen (9) for a knight (3) is a bad deal!' },
+    { board: '8/8/8/8/1PNBRQ2/8/8/8', type: 'text', text: 'Pieces have points: <b>Pawn = 1</b>, <b>Knight = 3</b>, <b>Bishop = 3</b>, <b>Rook = 5</b>, <b>Queen = 9</b>. The king is <b>priceless</b>, because you can never trade him!' },
+    { board: '8/8/8/4n3/3Q4/8/8/8', marks: ['e5'], arrows: [['d4', 'e5']], type: 'text', text: 'Try not to give away a big piece for a small one. Trading your queen (9) for a knight (3) is a bad deal!' },
     { type: 'goal', text: 'Your knight can capture two pieces. Pick the <b>most valuable</b> one!', fen: '4k3/8/3q1p2/8/4N3/8/8/4K3 w - - 0 1', goal: 'move', moves: ['e4d6'], success: 'Yes! The queen is worth 9 points!', fail: 'That piece is worth less. Look for the queen!' },
   ] },
   { id: 'check', group: 'Playing the Game', icon: 'alert', title: 'Check!', desc: 'Attacking the king', steps: [
     { type: 'text', text: 'When a piece attacks the enemy king, it is called <b>check</b>. The king must get out of check right away!', board: '4k3/8/8/8/8/8/8/R3K3', marks: ['e8'] },
     { type: 'goal', text: 'Put the black king in <b>check</b>!', fen: '4k3/8/8/8/8/8/8/R3K3 w - - 0 1', goal: 'check', success: 'Check! The king is under attack.' },
-    { type: 'text', text: 'There are <b>3 ways</b> to escape check:<br>1. <b>Move</b> the king to a safe square.<br>2. <b>Block</b> the attack with another piece.<br>3. <b>Capture</b> the attacking piece.' },
+    { board: '8/8/4r3/8/8/8/3N4/4K3', marks: ['e6'], arrows: [['e6', 'e1'], ['d2', 'e4']], type: 'text', text: 'There are <b>3 ways</b> to escape check:<br>1. <b>Move</b> the king to a safe square.<br>2. <b>Block</b> the attack with another piece.<br>3. <b>Capture</b> the attacking piece.' },
     { type: 'goal', text: 'Your king is in check from the black queen. <b>Capture it</b> with your king!', fen: '4k3/8/8/8/8/8/3q4/4K3 w - - 0 1', goal: 'move', moves: ['e1d2'], success: 'Captured! Your king is safe.', fail: 'Your king is safe, but you can do better. Capture the queen!' },
     { type: 'goal', text: 'The black rook gives check. <b>Block</b> it with your bishop!', fen: '4r1k1/8/8/8/8/8/3B4/4K3 w - - 0 1', goal: 'move', moves: ['d2e3'], success: 'Blocked! The bishop shields the king.', fail: 'That works too, but this time use the bishop to block!' },
   ] },
@@ -1440,7 +1446,7 @@ const LESSONS = [
   ] },
   { id: 'castling', group: 'Special Moves', icon: 'castle', title: 'Castling', desc: 'Tuck your king in safe', steps: [
     { type: 'text', text: '<b>Castling</b> is a special move that keeps your king safe. The king moves <b>two squares</b> toward a rook, and the rook <b>hops over</b> to the other side of the king.', board: '4k3/8/8/8/8/8/8/R3K2R', marks: ['e1', 'g1', 'f1', 'h1'] },
-    { type: 'text', text: 'You can castle only if: the king and that rook <b>have not moved</b> yet, nothing is <b>between</b> them, and the king is <b>not in check</b> and won\'t pass through check.' },
+    { board: 'r3k2r/8/8/8/8/8/8/R3K2R', marks: ['e1', 'h1', 'a1'], arrows: [['e1', 'g1']], type: 'text', text: 'You can castle only if: the king and that rook <b>have not moved</b> yet, nothing is <b>between</b> them, and the king is <b>not in check</b> and won\'t pass through check.' },
     { type: 'goal', text: 'Castle! Tap your king, then tap the square <b>two steps to the right</b>.', fen: 'r3k2r/pppq1ppp/2npbn2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 1', goal: 'castle', success: 'Castled! Your king is tucked away safely.', fail: 'Not quite. Tap the king, then the square two steps toward the rook.' },
   ] },
   { id: 'promotion', group: 'Special Moves', icon: 'arrowUp', title: 'Promotion', desc: 'A pawn becomes a queen', steps: [
@@ -1449,19 +1455,19 @@ const LESSONS = [
     { type: 'stars', text: 'Walk your pawn all the way up. It becomes a queen at the top! Then grab the last star.', pieces: { b2: 'P' }, stars: ['b4', 'b8', 'h2'], promote: true, par: 6 },
   ] },
   { id: 'enpassant', group: 'Special Moves', icon: 'ninja', title: 'En Passant', desc: 'The sneaky pawn capture', steps: [
-    { type: 'text', text: '<b>En passant</b> (say "on pah-SAHN") is a sneaky pawn rule. If an enemy pawn jumps <b>two squares</b> and lands right <b>next to</b> your pawn, you can capture it as if it had moved only one square.' },
+    { board: '8/8/8/3pP3/8/8/8/8', marks: ['d5'], arrows: [['e5', 'd6']], type: 'text', text: '<b>En passant</b> (say "on pah-SAHN") is a sneaky pawn rule. If an enemy pawn jumps <b>two squares</b> and lands right <b>next to</b> your pawn, you can capture it as if it had moved only one square.' },
     { type: 'text', text: 'You must do it <b>right away</b>, on your very next move, or the chance is gone!', board: '4k3/8/8/3pP3/8/8/8/4K3', marks: ['d5', 'd6'] },
     { type: 'goal', text: 'Black just moved a pawn two squares to d5. Capture it <b>en passant</b>! (Move your pawn to d6.)', fen: '4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1', goal: 'move', moves: ['e5d6'], success: 'Sneaky! The black pawn is gone.', fail: 'Try moving your e5 pawn diagonally to d6.' },
   ] },
   { id: 'draws', group: 'Winning & Drawing', icon: 'half', title: 'Stalemate & Draws', desc: 'When nobody wins', steps: [
     { type: 'text', text: '<b>Stalemate</b>: it is your turn, you are <b>not</b> in check, but you have <b>no legal moves</b>. That is a <b>draw</b> (a tie), even if you have fewer pieces!', board: '7k/5Q2/6K1/8/8/8/8/8', marks: ['h8'] },
-    { type: 'text', text: 'Other draws:<br>• Both players <b>agree</b> to a draw.<br>• The same position happens <b>3 times</b>.<br>• <b>Not enough pieces</b> to checkmate (like king vs king).<br>• <b>50 moves</b> by each player with no capture or pawn move.' },
+    { board: '8/8/8/3k4/8/8/3K4/8', type: 'text', text: 'Other draws:<br>• Both players <b>agree</b> to a draw.<br>• The same position happens <b>3 times</b>.<br>• <b>Not enough pieces</b> to checkmate (like king vs king).<br>• <b>50 moves</b> by each player with no capture or pawn move.' },
     { type: 'goal', text: 'Careful! Some queen moves cause stalemate. Find the <b>checkmate</b> instead.', fen: '7k/4Q3/6K1/8/8/8/8/8 w - - 0 1', goal: 'mate', success: 'Checkmate, not stalemate. Well done!' },
   ] },
   { id: 'tips', group: 'Winning & Drawing', icon: 'bulb', title: 'Winning Tips', desc: 'Play like a champion', steps: [
-    { type: 'text', text: '<b>Start strong:</b><br>1. Move a center pawn (e or d pawn).<br>2. Bring out your <b>knights and bishops</b>.<br>3. <b>Castle</b> early to keep your king safe.<br>4. Don\'t bring your queen out too early.' },
-    { type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>1. What is my opponent attacking?<br>2. Can I capture something for free?<br>3. Is my piece safe on its new square?' },
-    { type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick. Then try the <b>Puzzles</b> to get even better.' },
+    { board: 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R', arrows: [['e1', 'g1']], type: 'text', text: '<b>Start strong:</b><br>1. Move a center pawn (e or d pawn).<br>2. Bring out your <b>knights and bishops</b>.<br>3. <b>Castle</b> early to keep your king safe.<br>4. Don\'t bring your queen out too early.' },
+    { board: 'rnbqkb1r/pppp1ppp/5n2/4p3/4P3/5Q2/PPPP1PPP/RNB1KBNR', marks: ['e4'], arrows: [['f6', 'e4']], type: 'text', text: 'Before <b>every</b> move, ask yourself:<br>1. What is my opponent attacking?<br>2. Can I capture something for free?<br>3. Is my piece safe on its new square?' },
+    { board: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR', type: 'text', text: 'You are ready! Go to the <b>Play</b> tab and challenge <b>Pip</b> the chick. Then try the <b>Puzzles</b> to get even better.' },
   ] },
 ];
 
@@ -1653,10 +1659,32 @@ function tr(s) {
   const lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim().replace(/\s+/g, ' ');
   if (!core) return s;
   let t = I18N.dict[core];
+  if (t == null) t = trSentences(core);
   if (t == null) {
-    for (const p of I18N.patterns) { const m = core.match(p.re); if (m) { t = p.out.replace(/\{(\d)\}/g, (_, k) => { const v = m[+k + 1]; const tv = I18N.dict[v.trim()]; return tv != null && !/\{\d\}/.test(v) ? tv : v; }); break; } }
+    for (const p of I18N.patterns) { const m = core.match(p.re); if (m) { t = p.out.replace(/\{(\d)\}/g, (_, k) => { const v = m[+k + 1]; if (!v || /\{\d\}/.test(v)) return v; if ((tr.depth || 0) > 2) return I18N.dict[v.trim()] != null ? I18N.dict[v.trim()] : v; tr.depth = (tr.depth || 0) + 1; try { return tr(v); } finally { tr.depth--; } }); break; } }
   }
+  if (t == null) t = trSplit(core);
   return t == null ? s : lead + t + trail;
+}
+// coach explanations are built from several sentences: translate them one by one
+function trSentences(core) {
+  const parts = core.split(/(?<=[.!?])\s+(?=[A-Z0-9"])/); if (parts.length < 2 || (tr.depth || 0) > 2) return null;
+  tr.depth = (tr.depth || 0) + 1;
+  try { let changed = false; const out = parts.map(p => { const t = tr(p); if (t !== p) changed = true; return t; }); return changed ? out.join(' ') : null; } finally { tr.depth--; }
+}
+// "Win +21", "Play Milo", "Theme: Fork": a known phrase followed by a number, a name or another known word
+function trSplit(core) {
+  for (let i = core.lastIndexOf(' '); i > 0; i = core.lastIndexOf(' ', i - 1)) {
+    const head = core.slice(0, i).trim(), tail = core.slice(i + 1).trim();
+    let th = I18N.dict[head], colon = '';
+    if (th == null && head.endsWith(':') && I18N.dict[head.slice(0, -1)] != null) { th = I18N.dict[head.slice(0, -1)]; colon = ':'; }
+    if (th == null) continue;
+    const tt = I18N.dict[tail];
+    if (tt != null) return th + colon + ' ' + tt;
+    if (!/\b[a-z]{3,}\b/.test(tail)) return th + colon + ' ' + tail;
+    return null;
+  }
+  return null;
 }
 function buildPatterns(dict) {
   const out = [];
@@ -2563,9 +2591,9 @@ function renderPlay(main) {
   const stakes = h('div', { class: 'row stakes', style: { justifyContent: 'center', flexWrap: 'wrap', gap: '6px' } });
   const drawStakes = () => {
     const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
-    stakes.innerHTML = ''; if (playSel.rated) { stakes.append(h('span', { class: 'pill live' }, 'Win ' + f(eloDelta(L.r, br, 1, K))), h('span', { class: 'pill' }, 'Draw ' + f(eloDelta(L.r, br, .5, K))), h('span', { class: 'pill', style: { color: 'var(--bad)' } }, 'Loss ' + f(eloDelta(L.r, br, 0, K)))); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'pill' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); } else stakes.append(h('span', { class: 'pill' }, 'Casual: your rating stays the same'));
+    stakes.innerHTML = ''; if (playSel.rated) { stakes.append(h('span', { class: 'pill live' }, `Win ${f(eloDelta(L.r, br, 1, K))}`), h('span', { class: 'pill' }, `Draw ${f(eloDelta(L.r, br, .5, K))}`), h('span', { class: 'pill', style: { color: 'var(--bad)' } }, `Loss ${f(eloDelta(L.r, br, 0, K))}`)); if (L.games < PLACEMENT_GAMES) stakes.append(h('span', { class: 'pill' }, `Placement ${L.games + 1} of ${PLACEMENT_GAMES}`)); } else stakes.append(h('span', { class: 'pill' }, 'Casual: your rating stays the same'));
   };
-  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), 'Play ' + BOTS[playSel.bot].name); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
+  const drawGrid = () => { playBtn.innerHTML = ''; playBtn.append(icon('play', 18), `Play ${BOTS[playSel.bot].name}`); drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, icon('star', 14), ' ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
   setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollTo({ left: on.offsetLeft - grid.clientWidth / 2 + on.clientWidth / 2, behavior: 'auto' }); }, 0);
   const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
@@ -3164,12 +3192,13 @@ function renderPuzzles(main) {
 let lessonOpen = null, lessonStep = 0;
 function lessonIcon(l) { return l.piece ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + l.piece]})` } }) : h('div', { class: 'ic dark' }, icon(l.icon, 24)); }
 function lessonKey(L) { return L.course ? `c:${L.course.id}/${L.id}` : L.id; }
+// course levels, listed for the translation catalog: tr('beginner') tr('intermediate') tr('advanced')
 let courseOpen = null;
 function courseIcon(c) { return ['pawn', 'king', 'rook', 'queen', 'knight', 'bishop'].includes(c.icon) ? h('div', { class: 'ic', style: { backgroundImage: `url(${PIECE_URL['w' + { pawn: 'p', king: 'k', rook: 'r', queen: 'q', knight: 'n', bishop: 'b' }[c.icon]]})` } }) : h('div', { class: 'ic dark' }, icon(c.icon || 'book', 24)); }
 function renderCourse(main) {
   const C = courseOpen, done = C.lessons.filter(l => profile.lessons[lessonKey(l)]).length;
   main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { courseOpen = null; render(); } }, icon('back', 18), 'Learn'), h('h2', { class: 'grow' }, C.title)));
-  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done, ${C.level}`)));
+  main.append(h('div', { class: 'card stack' }, h('div', { class: 'muted' }, C.desc), h('div', { class: 'xpbar' }, h('div', { style: { width: Math.round(done / C.lessons.length * 100) + '%' } })), h('div', { class: 'small muted' }, `${done} of ${C.lessons.length} lessons done, ${tr(C.level)}`)));
   const list = h('div', { class: 'lessons' });
   C.lessons.forEach((l, k) => { l.course = C; list.append(h('button', { class: 'lesson', onclick: () => { lessonOpen = l; lessonStep = 0; render(); window.scrollTo(0, 0); } }, h('div', { class: 'ic dark' }, h('b', null, String(k + 1))), h('div', null, h('div', { class: 't' }, l.title), h('div', { class: 'd' }, l.desc || '')), h('span', { class: 'ck' + (profile.lessons[lessonKey(l)] ? ' done' : '') }, icon(profile.lessons[lessonKey(l)] ? 'check' : 'next', 20)))); });
   main.append(list);
@@ -3181,7 +3210,7 @@ function renderLearn(main) {
   main.append(stageBanner('library', 'The Library', 'Lessons and courses for every level'));
   main.append(h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(56)), h('div', { class: 'txt' }, done === 0 ? "Hoo-hoo! I'm Professor Hoot. Let's learn chess together, one step at a time! Start at the top." : done === LESSONS.length ? 'You finished every lesson! You are ready to play. Try the Puzzles too!' : `Great work! You've finished ${done} of ${LESSONS.length} lessons. Keep going!`)));
   if (typeof COURSES !== 'undefined' && COURSES.length) {
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${c.level}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
+    main.append(h('div', { class: 'lgroup' }, h('h3', null, 'Courses'), h('div', { class: 'lessons' }, COURSES.map(c => { const d = c.lessons.filter(l => profile.lessons[`c:${c.id}/${l.id}`]).length; return h('button', { class: 'lesson', onclick: () => { courseOpen = c; render(); window.scrollTo(0, 0); } }, courseIcon(c), h('div', { class: 'grow' }, h('div', { class: 't' }, c.title), h('div', { class: 'd' }, `${c.lessons.length} lessons, ${tr(c.level)}`), h('div', { class: 'qbar' }, h('div', { style: { width: Math.round(d / c.lessons.length * 100) + '%' } }))), h('span', { class: 'ck' + (d === c.lessons.length ? ' done' : '') }, icon(d === c.lessons.length ? 'check' : 'next', 20))); }))));
     main.append(h('h3', { class: 'sect', style: { marginTop: '6px' } }, 'Beginner course'));
   }
   let groupEl = null, lastGroup = null;
@@ -3228,11 +3257,13 @@ function renderLesson(main) {
   } }, lessonStep < steps.length - 1 ? 'Next' : 'Finish', icon(lessonStep < steps.length - 1 ? 'next' : 'check', 18));
   const finishTask = (text) => { complete = true; nextBtn.disabled = false; msg.className = 'taskmsg good'; msg.textContent = text || 'Great job!'; beep('win'); };
 
-  if (step.type === 'text' && step.board) {
+  // explanation steps without their own picture reuse the lesson's last position
+  let textBoard = step.board; if (step.type === 'text' && !textBoard) for (let i = lessonStep - 1; i >= 0 && !textBoard; i--) textBoard = steps[i].board || steps[i].fen;
+  if (step.type === 'text' && textBoard) {
     const bv = new BoardView({ orient: step.orient || 'w' });
     const marks = {}; (step.marks || []).forEach(s => marks[sqFromName(s)] = 'mark');
-    const showTargets = step.showMoves ? lessonTargets(fenToBoard(step.board), sqFromName(step.showMoves)) : [];
-    bv.set({ board: fenToBoard(step.board), marks });
+    const showTargets = step.showMoves ? lessonTargets(fenToBoard(textBoard), sqFromName(step.showMoves)) : [];
+    bv.set({ board: fenToBoard(textBoard), marks, arrows: (step.arrows || []).map(([a, b]) => [sqFromName(a), sqFromName(b)]) });
     if (showTargets.length) { bv.targets = showTargets; bv.draw(); }
     main.append(bv.el);
   } else if (step.type === 'stars') {
@@ -3251,12 +3282,12 @@ function renderLesson(main) {
         bv.set({ board: b, stars, last: [from, to] }, dragged ? null : [from, to]);
         const left = stars.size + (step.captureAll ? enemiesLeft() : 0);
         if (!left) { bv.burst('star'); finishTask(movesUsed <= (step.par || 99) ? `Perfect! You did it in ${movesUsed} moves!` : `You did it in ${movesUsed} moves! Can you do it in ${step.par}?`); }
-        else msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} left` : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
+        else msg.textContent = [stars.size ? (stars.size > 1 ? `${stars.size} stars left` : `${stars.size} star left`) : '', step.captureAll && enemiesLeft() ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
       }
     });
     bv.set({ board: b, stars });
     main.append(bv.el);
-    msg.textContent = [stars.size ? `${stars.size} star${stars.size > 1 ? 's' : ''} to collect` : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
+    msg.textContent = [stars.size ? (stars.size > 1 ? `${stars.size} stars to collect` : `${stars.size} star to collect`) : '', step.captureAll ? `${enemiesLeft()} to capture` : ''].filter(Boolean).join(', ');
     main.append(h('button', { class: 'btn sm ghost', onclick: () => render() }, icon('undo', 16), 'Restart'));
   } else if (step.type === 'line') {
     let g = new Game(step.fen), k = 0;
@@ -3361,17 +3392,17 @@ function renderMe(main) {
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
     h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
-    h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
+    h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', { class: 'tbl-bot' }, avatar(bt.avatar, 24), h('span', null, bt.name)), h('td', null, bt.rating)))),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Online rating: '), 'for rated games in Play the World. The server checks every move and keeps the rating, so nobody can fake a result. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
     h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
   const standalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
   if (!standalone) main.append(h('div', { class: 'card row' }, h('div', { class: 'ic dark lesson-ic' }, icon('download', 22)), h('div', { class: 'grow' }, h('b', null, 'Install Knight Club'), h('div', { class: 'small muted' }, 'Add it to your home screen. It works offline too.')),
     h('button', { class: 'btn sm primary', onclick: async () => { if (typeof installPrompt !== 'undefined' && installPrompt) { installPrompt.prompt(); installPrompt = null; } else modal((box, close) => box.append(h('h2', null, 'Install the app'), h('p', null, h('b', null, 'iPhone / iPad: '), 'open this page in Safari, tap the Share button, then "Add to Home Screen".'), h('p', null, h('b', null, 'Android: '), 'open the browser menu and tap "Install app" or "Add to Home screen".'), h('p', { class: 'muted small' }, 'Once installed, puzzles, lessons and bot games work without internet.'), h('button', { class: 'btn primary block', onclick: close }, 'Got it'))); } }, 'Install')));
-  main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Language'), h('div', { class: 'muted small' }, 'Menus, lessons and coach tips')), languagePicker()));
+  main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, icon('globe', 20), h('b', { class: 'grow' }, 'Language')), h('div', { class: 'muted small', style: { margin: '2px 0 8px' } }, 'Menus, lessons and coach tips'), languagePicker()));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, icon(soundOn ? 'soundOn' : 'soundOff', 18), soundOn ? 'On' : 'Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, 'Your progress is saved in this browser on this device.'));
-  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), '. Free and open source (GPL-3.0), with Stockfish 19.'));
+  main.append(h('p', { class: 'small muted center' }, h('a', { href: '#', onclick: e => { e.preventDefault(); whatsNew(true); } }, `Knight Club ${APP_VERSION}`), h('br'), 'Free and open source (GPL-3.0), with Stockfish 19 and Fairy-Stockfish.'));
 }
 
 // older saves had one Glicko "rating" for bots; move it onto the new ladder
@@ -3386,7 +3417,7 @@ function migrate(p) {
   return p;
 }
 
-const APP_VERSION = '11.0';
+const APP_VERSION = '11.1';
 function whatsNew(force, freshAtBoot) {
   if (!force && profile.seenVersion === APP_VERSION) return;
   const firstEver = freshAtBoot != null ? freshAtBoot : (!profile.seenVersion && !profile.games.length && !Object.keys(profile.lessons).length);
@@ -3508,7 +3539,7 @@ function renderDaily(main) {
   const banner = h('div', { class: 'banner' }, icon('calendar', 20), h('span', null, `${side} to move: `, h('b', null, goal)), h('span', { class: 'grow' }), h('span', { class: 'pill' }, `Streak ${d.streak}`));
   const msg = h('div', { class: 'taskmsg' });
   const pb = new PuzzleBoard(p, {
-    onSolved: clean => { beep('win'); pb.board.burst('star'); markDaily(clean); banner.className = 'banner good'; banner.innerHTML = ''; banner.append(icon('check', 20), h('span', null, h('b', null, 'Solved! '), `Daily streak: ${dailyState().streak} day${dailyState().streak === 1 ? '' : 's'}. Come back tomorrow for a new one.`)); msg.textContent = ''; },
+    onSolved: clean => { beep('win'); pb.board.burst('star'); markDaily(clean); banner.className = 'banner good'; banner.innerHTML = ''; banner.append(icon('check', 20), h('span', null, h('b', null, 'Solved! '), (dailyState().streak === 1 ? `Daily streak: ${dailyState().streak} day. Come back tomorrow for a new one.` : `Daily streak: ${dailyState().streak} days. Come back tomorrow for a new one.`))); msg.textContent = ''; },
     onWrong: () => { msg.className = 'taskmsg bad'; msg.textContent = 'Not that one. Try again!'; },
     onProgress: () => { msg.className = 'taskmsg good'; msg.textContent = 'Good move! Keep going…'; },
   });
@@ -3797,7 +3828,7 @@ function flushRewards() {
     else if (r.kind === 'unlock') rewardToast(icon('sparkle', 18), `Unlocked: ${r.item.name}`, 'Try it in Me > Style', 'gold');
     else if (r.kind === 'avatar') rewardToast(avatar(r.item.id, 22), `New avatar: ${r.item.name}`, 'Pick it in Me > Style', 'gold');
     else if (r.kind === 'quest') rewardToast(icon('check', 18), 'Quest complete!', r.def.text, 'silver');
-    else if (r.kind === 'questsAll') { rewardToast(icon('trophy', 18), 'All quests done!', `Quest streak: ${r.streak} day${r.streak > 1 ? 's' : ''}`, 'gold'); confetti(); }
+    else if (r.kind === 'questsAll') { rewardToast(icon('trophy', 18), 'All quests done!', (r.streak > 1 ? `Quest streak: ${r.streak} days` : `Quest streak: ${r.streak} day`), 'gold'); confetti(); }
     setTimeout(showNext, 1500);
   };
   setTimeout(showNext, xp.length ? 900 : 0);
@@ -3983,7 +4014,7 @@ function renderInsights(main) {
     const accs = revs.slice().reverse().map(r => r.acc || 0);
     const avg = accs.reduce((a, b) => a + b, 0) / accs.length;
     const last5 = accs.slice(-5), avg5 = last5.reduce((a, b) => a + b, 0) / last5.length;
-    main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, h('b', { class: 'grow' }, 'Accuracy'), h('span', { class: 'pill' }, `Average ${Math.round(avg)}%`), h('span', { class: 'pill ' + (avg5 >= avg ? 'live' : '') }, `Last 5: ${Math.round(avg5)}%`)), sparkline(accs, '#4fd18b', 'Review one more game to see your trend.'), h('div', { class: 'small muted' }, `From ${revs.length} reviewed game${revs.length > 1 ? 's' : ''}.`)));
+    main.append(h('div', { class: 'card' }, h('div', { class: 'row' }, h('b', { class: 'grow' }, 'Accuracy'), h('span', { class: 'pill' }, `Average ${Math.round(avg)}%`), h('span', { class: 'pill ' + (avg5 >= avg ? 'live' : '') }, `Last 5: ${Math.round(avg5)}%`)), sparkline(accs, '#4fd18b', 'Review one more game to see your trend.'), h('div', { class: 'small muted' }, (revs.length > 1 ? `From ${revs.length} reviewed games.` : `From ${revs.length} reviewed game.`))));
     // phases
     const ph = { opening: [], middlegame: [], endgame: [] };
     revs.forEach(r => { for (const k in ph) if (r.phase && r.phase[k] != null) ph[k].push(r.phase[k]); });
@@ -4251,6 +4282,7 @@ function getLobby() {
 }
 let lobbyGameHook = null, lobbyCurrent = null;
 function lobbyName() { return (profile.name || '').replace(/[^A-Za-z0-9 _-]/g, '').slice(0, 20) || null; }
+// lobby states shown in the status pill: tr('connecting') tr('online') tr('offline')
 function renderWorld(main) {
   const lb = getLobby();
   if (lobbyView === 'game' && lb && lb.games[lobbyCurrent]) return renderLobbyGame(main, lb);
@@ -4687,7 +4719,7 @@ function coachExplain(R, i) {
   else if (cls === 'best') lines.push(`${mv.san} is the best move here.${facts.fork ? ' It attacks two pieces at once, a fork!' : facts.check ? ' It also gives check, keeping the initiative.' : ''}`);
   else if (cls === 'excellent' || cls === 'good') lines.push(`${mv.san} is ${cls === 'excellent' ? 'an excellent' : 'a good'} move. ${bestSan && bestSan !== mv.san ? `The engine slightly preferred ${bestSan}.` : ''}`);
   if (['inaccuracy', 'mistake', 'blunder', 'miss'].includes(cls)) {
-    const art = cls === 'inaccuracy' ? 'an inaccuracy' : cls === 'miss' ? 'a missed chance' : 'a ' + cls;
+    const art = { inaccuracy: 'an inaccuracy', miss: 'a missed chance', mistake: 'a mistake', blunder: 'a blunder' }[cls] || cls;
     lines.push(`${mv.san} is ${art}.`);
     const after = R.uciMoves.slice(0, i + 1), mySide = side === 'w' ? 0 : 1;
     // 1. what does the move allow?
@@ -4753,9 +4785,9 @@ function coachSummary(R) {
   else if (acc >= 80) headline = 'Mostly strong play, but one big moment changed the game.';
   else if (acc >= 65) headline = 'A decent game. A few moments decided it, and they are easy to learn from.';
   else headline = 'A tough game, but every mistake here is a lesson you can use next time.';
-  if (hangs) tips.push(`You left a piece unprotected ${hangs} time${hangs > 1 ? 's' : ''}. Before each move, check that the piece you move is safe on its new square.`);
+  if (hangs) tips.push((hangs > 1 ? `You left a piece unprotected ${hangs} times. Before each move, check that the piece you move is safe on its new square.` : `You left a piece unprotected ${hangs} time. Before each move, check that the piece you move is safe on its new square.`));
   if (allowedMates) tips.push(`You allowed a checkmate. When your king is near open lines, look at every check your opponent could give.`);
-  if (missedWins) tips.push(`You missed ${missedWins} chance${missedWins > 1 ? 's' : ''} to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".`);
+  if (missedWins) tips.push((missedWins > 1 ? `You missed ${missedWins} chances to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".` : `You missed ${missedWins} chance to win material. Each turn, scan for captures, checks and threats: "checks, captures, attacks".`));
   const phases = [['opening', opening], ['middlegame', middle], ['endgame', end]].filter(x => x[1] != null).sort((a, b) => a[1] - b[1]);
   if (phases.length > 1 && phases[0][1] < phases[phases.length - 1][1] - 10) tips.push(`Your weakest phase was the ${phases[0][0]} (${Math.round(phases[0][1])}% accuracy). ${phases[0][0] === 'opening' ? 'The Openings course in Learn can help.' : phases[0][0] === 'endgame' ? 'The Endgame course in Learn can help.' : 'Try Puzzle Rush to sharpen your tactics.'}`);
   if (!tips.length) tips.push('Keep playing like this, and try a stronger opponent!');
@@ -4919,7 +4951,7 @@ function renderReview(main) {
   const counts = h('table', { class: 'tbl ctbl' }, CLASS_ORDER.map(k => { const cw = R.moves.filter(m => m.side === 'w' && m.cls === k).length, cb = R.moves.filter(m => m.side === 'b' && m.cls === k).length; return h('tr', null, h('td', null, cw), h('td', null, classBadge(k), ' ', CLASSES[k].label), h('td', null, cb)); }));
   main.append(h('div', { class: 'card stack' },
     h('div', { class: 'bubble' }, h('div', { class: 'who' }, hoot(52)), h('div', { class: 'txt' }, h('b', null, R.summary.headline), ' ', R.opening ? `Opening: ${R.opening}.` : '')),
-    h('div', { class: 'row', style: { justifyContent: 'space-around' } }, accBox('w', R.color === 'w' ? 'Your accuracy' : (R.src.white || 'White') + ' accuracy'), accBox('b', R.color === 'b' ? 'Your accuracy' : (R.src.black || 'Black') + ' accuracy')),
+    h('div', { class: 'row', style: { justifyContent: 'space-around' } }, accBox('w', R.color === 'w' ? 'Your accuracy' : `${R.src.white || 'White'} accuracy`), accBox('b', R.color === 'b' ? 'Your accuracy' : `${R.src.black || 'Black'} accuracy`)),
     counts));
   main.append(h('div', { class: 'card stack' }, h('b', null, "Coach's advice"), h('ul', { class: 'tips' }, R.summary.tips.map(t => h('li', null, t))),
     R.key.length ? h('div', { class: 'row', style: { flexWrap: 'wrap', gap: '6px' } }, h('span', { class: 'small muted' }, 'Key moments:'), R.key.map(k => h('button', { class: 'btn sm', onclick: () => go2(k + 1) }, `${Math.floor(k / 2) + 1}${k % 2 ? '...' : '.'} ${R.moves[k].san}`))) : null));
@@ -5269,7 +5301,15 @@ function wpSvg(variant, letter, side, promoted, style, flippedView) {
     }
     return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><g transform="rotate(${rot} 50 50) translate(50 52) scale(${size}) translate(-50 -52)"><path d="M50 4l30 12 10 80H10l10-80z" fill="#9a6b33" transform="translate(0 2)"/><path d="M50 4l30 12 10 80H10l10-80z" fill="#f2d9a0" stroke="#8a5a28" stroke-width="2"/>${inner}</g></svg>`;
   }
-  // makruk, sittuyin, shatranj: round tokens; white side light, black side dark
+  // makruk, sittuyin, shatranj, traditional style: the carved Western-style pieces these games are
+  // usually played with today (Met and Ferz look like small queens, Khon and Alfil like bishops)
+  if (!eng && typeof PIECE_URL !== 'undefined') {
+    const chessLetter = { khun: 'k', met: 'q', ferz: 'q', khon: 'b', alfil: 'b', ma: 'n', rua: 'r', bia: 'p' }[base] || 'p';
+    const sc = { met: .8, ferz: .8 }[base] || 1;
+    const ring = promoted ? `<circle cx="50" cy="54" r="44" fill="none" stroke="#d9a63a" stroke-width="5" opacity=".9"/>` : '';
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${ring}<image href="${PIECE_URL[side + chessLetter]}" x="${50 - 50 * sc}" y="${100 - 100 * sc}" width="${100 * sc}" height="${100 * sc}"/></svg>`;
+  }
+  // English style: round tokens; white side light, black side dark
   const light = side === 'w', fill = light ? '#f7efdd' : '#2c2622', ink = light ? '#2c2622' : '#f7efdd';
   const ring = promoted ? `<circle cx="50" cy="50" r="40" fill="none" stroke="#d9a63a" stroke-width="4"/>` : '';
   const pic = WP_PIC[base] ? WP_PIC[base](ink) : '';
@@ -6266,7 +6306,7 @@ class VariantBoard {
   }
   draw() {
     const st = this.state || { pieces: [] }; this.layer.innerHTML = '';
-    const cw = 100 / this.files, ch = 100 / this.ranks, size = this.inter ? .9 : .94;
+    const cw = 100 / this.files, ch = 100 / this.ranks, size = this.inter ? .96 : .94;
     const put = (sq, cls, inner) => { const p = this.pos(sq); if (!p) return null; const d = h('div', { class: cls, style: { left: (p[0] - cw * size / 2) + '%', top: (p[1] - ch * size / 2) + '%', width: cw * size + '%', height: ch * size + '%' } }); if (inner) d.innerHTML = inner; this.layer.append(d); return d; };
     for (const sq of st.last || []) if (sq) put(sq, 'vmark last');
     if (st.check) put(st.check, 'vmark check');
@@ -6287,7 +6327,7 @@ class VariantBoard {
     for (const side of ['w', 'b']) {
       const el = side === bottom ? this.pocketBot : this.pocketTop;
       const hand = pk[side] || {}; const keys = Object.keys(hand).filter(k => hand[k] > 0);
-      if (!keys.length) el.append(h('span', { class: 'muted small' }, tr('No captured pieces yet')));
+      if (!keys.length) el.append(h('span', { class: 'vpocket-empty' }, `${sideName(this.v, side)}: no pieces in hand`));
       for (const k of keys) {
         const on = this.sel && this.sel.drop === k && side === st.turn;
         const b = h('button', { class: 'vhand' + (on ? ' on' : ''), onclick: () => { if (!this.interactive || side !== st.turn) return; this.sel = on ? null : { drop: k }; this.draw(); } });
@@ -6339,6 +6379,8 @@ function vState(g, variant) {
   const meta = worldMeta(variant || g.variant);
   return { pieces: pcs, pockets: meta.pockets ? g.pockets() : null, last: last ? [last.from || null, last.to] : [], check, turn: g.turn() };
 }
+// end reasons: tr('checkmate') tr('stalemate') tr('resignation') tr('repetition') tr('move limit') tr('counting rule') tr('three checks') tr('game over')
+// side names, listed so the translation catalog picks them up: tr('Red') tr('Blue') tr('Black') tr('White') tr('Sente') tr('Gote')
 function sideName(variant, side) {
   return ({ xiangqi: { w: 'Red', b: 'Black' }, janggi: { w: 'Blue', b: 'Red' }, shogi: { w: 'Sente', b: 'Gote' } }[variant] || { w: 'White', b: 'Black' })[side];
 }
@@ -6385,32 +6427,35 @@ function renderWorldGamePage(main) {
   const id = worldView.g, m = worldMeta(id), wp = worldPrefs(), rec = wp.games[id] || {};
   const course = typeof WORLD_COURSES !== 'undefined' ? WORLD_COURSES[id] : null;
   main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { worldView = null; render(); } }, icon('back', 18), tr('World Games')), h('div', { class: 'grow' })));
-  main.append(h('div', { class: 'card paper whead' }, h('h2', null, tr(m.name)), m.english ? h('div', { class: 'muted' }, tr(m.english)) : null, m.blurb ? h('p', null, tr(m.blurb)) : null));
+  const strip = h('div', { class: 'wstrip' });
+  if (isChessBoardVariant(id)) ['wk', 'wq', 'wr', 'wb', 'wn', 'wp'].forEach(k => strip.append(h('img', { src: PIECE_URL[k], alt: '' })));
+  else Object.keys(WP_KIND[id] || {}).forEach((L, i) => { const t = h('span'); t.innerHTML = wpSvg(id, L, i % 2 ? 'b' : 'w', false, worldStyle()); strip.append(t); });
+  main.append(h('div', { class: 'card paper whead' }, strip, h('h2', null, tr(m.name)), m.english && m.english !== m.name ? h('div', { class: 'muted' }, tr(m.english)) : null, m.blurb ? h('p', null, tr(m.blurb)) : null));
   if (course) {
     const done = course.lessons.filter(l => wp.lessons[id + '/' + l.id]).length;
     const next = course.lessons.find(l => !wp.lessons[id + '/' + l.id]) || course.lessons[0];
-    main.append(h('div', { class: 'lgroup' }, h('h3', null, tr('Learn to play')), h('div', { class: 'lessons' }, course.lessons.map(l => h('button', { class: 'lesson' + (l === next && done < course.lessons.length ? ' hero' : ''), onclick: () => { worldView = { g: id, lesson: l, step: 0 }; render(); window.scrollTo(0, 0); } },
-      h('div', { class: 'lesson-ic' }, icon('learn', 22)), h('div', { class: 'grow' }, h('div', { class: 't' }, tr(l.title)), h('div', { class: 'd' }, tr(l.desc || ''))), h('span', { class: 'ck' + (wp.lessons[id + '/' + l.id] ? ' done' : '') }, icon(wp.lessons[id + '/' + l.id] ? 'check' : 'next', 20)))))));
+    main.append(h('div', { class: 'lgroup' }, h('h3', null, tr('Learn to play')), h('div', { class: 'lessons' }, course.lessons.map((l, li) => h('button', { class: 'lesson' + (l === next && done < course.lessons.length ? ' hero' : ''), onclick: () => { worldView = { g: id, lesson: l, step: 0 }; render(); window.scrollTo(0, 0); } },
+      h('div', { class: 'lesson-ic wnum' }, String(li + 1)), h('div', { class: 'grow' }, h('div', { class: 't' }, tr(l.title)), h('div', { class: 'd' }, tr(l.desc || ''))), h('span', { class: 'ck' + (wp.lessons[id + '/' + l.id] ? ' done' : '') }, icon(wp.lessons[id + '/' + l.id] ? 'check' : 'next', 20)))))));
   }
   // play
   const sel = worldView.sel = worldView.sel || { lvl: Math.min(8, (rec.best || 0) + 1), color: 'w' };
-  const grid = h('div', { class: 'bots' });
-  const drawGrid = () => { grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (sel.lvl === i + 1 ? ' on' : ''), onclick: () => { sel.lvl = i + 1; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, tr('Level') + ' ' + (i + 1)), (rec.beat || {})[i + 1] ? h('div', { class: 'bl' }, icon('check', 14), ' ' + tr('Beaten')) : null))); };
-  drawGrid();
-  const colSeg = h('div', { class: 'seg' }); const dc = () => { colSeg.innerHTML = ''; [['w', tr(sideName(id, 'w')) + ' ' + tr('(moves first)')], ['b', tr(sideName(id, 'b'))]].forEach(([v, l]) => colSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; dc(); } }, l))); }; dc();
+  const grid = h('div', { class: 'bots scroller' });
+  const drawGrid = () => { grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (sel.lvl === i + 1 ? ' on' : ''), onclick: () => { sel.lvl = i + 1; drawGrid(); } }, h('div', { class: 'av' }, avatar(b.avatar, 46)), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, `Level ${i + 1}`), (rec.beat || {})[i + 1] ? h('div', { class: 'bl' }, icon('check', 14), ' ' + tr('Beaten')) : null))); };
+  drawGrid(); setTimeout(() => { const on = grid.querySelector('.bot.on'); if (on) grid.scrollLeft = on.offsetLeft - 40; }, 0);
+  const colSeg = h('div', { class: 'seg' }); const dc = () => { colSeg.innerHTML = ''; [['w', `${sideName(id, 'w')} (moves first)`], ['b', sideName(id, 'b')]].forEach(([v, l]) => colSeg.append(h('button', { class: sel.color === v ? 'on' : '', onclick: () => { sel.color = v; dc(); } }, l))); }; dc();
   main.append(h('div', { class: 'card' }, h('h3', null, tr('Play a bot')), grid, h('div', { class: 'lbl' }, tr('You play')), colSeg,
     h('div', { class: 'row', style: { marginTop: '10px' } },
-      h('button', { class: 'btn primary grow', onclick: () => startWorldGame(id, { bot: sel.lvl, color: sel.color }) }, icon('play', 18), tr('Play') + ' ' + BOTS[sel.lvl - 1].name),
+      h('button', { class: 'btn primary grow', onclick: () => startWorldGame(id, { bot: sel.lvl, color: sel.color }) }, icon('play', 18), `Play ${BOTS[sel.lvl - 1].name}`),
       h('button', { class: 'btn grow', onclick: () => startWorldGame(id, { local: true }) }, icon('friends', 18), tr('Pass & Play')))));
-  main.append(h('div', { class: 'card' }, h('h3', null, tr('Piece style')), styleToggle(() => render())));
-  if (!isChessBoardVariant(id)) main.append(pieceGuide(id));
+  if (!isChessBoardVariant(id)) { main.append(h('div', { class: 'card' }, h('h3', null, tr('Piece style')), styleToggle(() => render()))); main.append(pieceGuide(id)); }
 }
 function pieceGuide(id) {
   const map = WP_KIND[id] || {}; const rows = [];
   for (const L in map) {
     const t = h('span', { class: 'wtok' }); t.innerHTML = wpSvg(id, L, 'w', false, 'trad');
     const e = h('span', { class: 'wtok' }); e.innerHTML = wpSvg(id, L, 'w', false, 'eng');
-    rows.push(h('div', { class: 'wguide-row' }, t, e, h('b', null, tr(wpName(id, L, false)))));
+    const pt = (worldMeta(id).pieceTypes || {})[L];
+    rows.push(h('div', { class: 'wguide-row' }, t, e, h('div', null, h('b', null, tr(pt ? pt.name : wpName(id, L, false))), pt && pt.native && pt.native !== pt.name ? h('div', { class: 'muted small' }, pt.native) : null)));
     if (id === 'shogi' && !['K', 'G'].includes(L)) {
       const t2 = h('span', { class: 'wtok' }); t2.innerHTML = wpSvg(id, L, 'w', true, 'trad'); const e2 = h('span', { class: 'wtok' }); e2.innerHTML = wpSvg(id, L, 'w', true, 'eng');
       rows.push(h('div', { class: 'wguide-row sub' }, t2, e2, h('span', null, tr(wpName(id, L, true)))));
@@ -6430,7 +6475,7 @@ function renderWorldGame(main) {
   const vb = new VariantBoard(cur.v, { flipped, onMove: uci => userMove(uci) });
   const bot = cur.bot ? BOTS[cur.bot - 1] : null;
   const bar = (side) => h('div', { class: 'pbar' + (g.turn() === side && !cur.over ? ' on' : '') }, bot && side !== cur.color ? avatar(bot.avatar, 34) : avatar(side === cur.color || cur.local ? myAvatar() : 'friend', 34),
-    h('div', { class: 'grow' }, h('div', { class: 'pname' }, bot && side !== cur.color ? bot.name + ' (' + tr('Level') + ' ' + cur.bot + ')' : cur.local ? tr(sideName(cur.v, side)) : profile.name || tr('You')), h('div', { class: 'prating muted' }, cur.local ? tr('Pass & Play') : tr(sideName(cur.v, side)))));
+    h('div', { class: 'grow' }, h('div', { class: 'pname' }, bot && side !== cur.color ? `${bot.name} (Level ${cur.bot})` : cur.local ? tr(sideName(cur.v, side)) : profile.name || tr('You')), h('div', { class: 'prating muted' }, cur.local ? tr('Pass & Play') : tr(sideName(cur.v, side)))));
   const topSide = flipped ? 'w' : 'b';
   const topBar = h('div'), botBar = h('div');
   const msg = h('div', { class: 'taskmsg' });
@@ -6447,7 +6492,7 @@ function renderWorldGame(main) {
     const myTurn = !cur.over && (cur.local || g.turn() === cur.color) && !thinking;
     vb.interactive = myTurn; vb.set(vState(g, cur.v), myTurn ? g.legalMoves() : []);
     msg.className = 'taskmsg' + (cur.over ? ' good' : '');
-    msg.textContent = cur.over ? resultText(cur.over) : thinking ? tr('Thinking...') : g.inCheck() ? tr('Check!') + ' ' + tr(sideName(cur.v, g.turn())) + ' ' + tr('to move') : tr(sideName(cur.v, g.turn())) + ' ' + tr('to move');
+    msg.textContent = cur.over ? resultText(cur.over) : thinking ? 'Thinking...' : g.inCheck() ? `Check! ${sideName(cur.v, g.turn())} to move` : `${sideName(cur.v, g.turn())} to move`;
     movesEl.innerHTML = ''; cur.sans = cur.sans || [];
     cur.sans.forEach((s, i) => movesEl.append(h('span', { class: 'mv' }, (i % 2 === 0 ? (i / 2 + 1) + '. ' : '') + s)));
     ctrl.innerHTML = '';
@@ -6463,7 +6508,7 @@ function renderWorldGame(main) {
     }
   };
   const confirmResign = () => { try { return window.confirm(tr('Resign this game?')); } catch (e) { return true; } };
-  const resultText = o => { const who = o.result === '1/2-1/2' ? null : o.result === '1-0' ? 'w' : 'b'; const why = tr(({ checkmate: 'checkmate', stalemate: 'stalemate', resign: 'resignation', repetition: 'repetition', 'insufficient-material': 'not enough pieces to win', 'move-rule': 'move limit', 'counting-rule': 'counting rule', 'three-checks': 'three checks', 'king-of-the-hill': 'king reached the hill', 'king-exploded': 'king exploded', 'horde-destroyed': 'the horde is gone', 'no-pieces': 'no pieces left', 'variant-end': 'game over' }[o.reason]) || o.reason || ''); return who ? tr(sideName(cur.v, who)) + ' ' + tr('wins') + (why ? ' (' + why + ')' : '') : tr('Draw') + (why ? ' (' + why + ')' : ''); };
+  const resultText = o => { const who = o.result === '1/2-1/2' ? null : o.result === '1-0' ? 'w' : 'b'; const why = (({ checkmate: 'checkmate', stalemate: 'stalemate', resign: 'resignation', repetition: 'repetition', 'insufficient-material': 'not enough pieces to win', 'move-rule': 'move limit', 'counting-rule': 'counting rule', 'three-checks': 'three checks', 'king-of-the-hill': 'king reached the hill', 'king-exploded': 'king exploded', 'horde-destroyed': 'the horde is gone', 'no-pieces': 'no pieces left', 'variant-end': 'game over' }[o.reason]) || o.reason || ''); return who ? (why ? `${sideName(cur.v, who)} wins (${why})` : `${sideName(cur.v, who)} wins`) : (why ? `Draw (${why})` : 'Draw'); };
   const finish = st => { cur.over = { result: st.result, reason: st.reason }; onOver(); };
   const onOver = () => {
     const wp = worldPrefs(); const rec = wp.games[cur.v] = wp.games[cur.v] || { played: 0, wins: 0, beat: {} };
@@ -6472,6 +6517,8 @@ function renderWorldGame(main) {
     if (!cur.local && score === 1) { rec.wins++; rec.beat = rec.beat || {}; rec.beat[cur.bot] = 1; rec.best = Math.max(rec.best || 0, cur.bot); }
     saveProfile(); beep(score === 1 || cur.local ? 'win' : 'move'); if (score === 1 && !cur.local) { confetti(); haptic([10, 40, 10]); }
     setTimeout(() => rewardEvent('worldGame', { variant: cur.v, score: cur.local ? null : score, level: cur.bot, local: cur.local, moves: cur.moves.length }), 900);
+    const token = cur;
+    setTimeout(() => { if (worldCur !== token || !worldView || !worldView.play) return; showWorldResult(cur, score, resultText(cur.over), () => worldReview(g, cur)); }, 1300);
   };
   const userMove = uci => {
     const r = g.play(uci); if (!r) return;
@@ -6584,9 +6631,7 @@ function renderWorldLesson(main) {
     vb.drawExtra = () => {};
     const origDraw = vb.draw.bind(vb);
     vb.draw = () => { origDraw(); for (const sq of step.marks || []) { const p = vb.pos(sq); if (!p) continue; const cw = 100 / vb.files, ch = 100 / vb.ranks; vb.layer.prepend(h('div', { class: 'vmark lmark', style: { left: (p[0] - cw * .47) + '%', top: (p[1] - ch * .47) + '%', width: cw * .94 + '%', height: ch * .94 + '%' } })); }
-      if (step.arrows && step.arrows.length) { const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('viewBox', '0 0 100 100'); svg.setAttribute('preserveAspectRatio', 'none'); svg.setAttribute('class', 'varrows');
-        for (const [a, b] of step.arrows) { const p = vb.pos(a), q = vb.pos(b); if (!p || !q) continue; const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line'); ln.setAttribute('x1', p[0]); ln.setAttribute('y1', p[1]); ln.setAttribute('x2', q[0]); ln.setAttribute('y2', q[1]); svg.append(ln); }
-        vb.layer.append(svg); } };
+      if (step.arrows && step.arrows.length) vb.layer.append(worldArrows(vb, step.arrows)); };
     vb.draw();
     main.append(vb.el);
     if (step.type !== 'text') msg.textContent = step.type === 'line' ? tr('Play the moves. The other side will answer.') : tr('Your move!');
@@ -6605,6 +6650,38 @@ function goalMet(step, g, uci) {
   else if (step.goal === 'drop') ok = uci.includes('@');
   else if (step.goal === 'promote') ok = /\+$|[a-z]\d+[a-z]\d+[a-zA-Z]$/.test(uci);
   g.undo(); void before; return ok;
+}
+
+// lesson arrows, drawn in board cells so the heads keep their shape on any board
+function worldArrows(vb, arrows) {
+  const NS = 'http://www.w3.org/2000/svg', F = vb.files, R = vb.ranks, svg = document.createElementNS(NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${F} ${R}`); svg.setAttribute('class', 'varrows');
+  const cell = sq => { const p = vb.pos(sq); return p && [p[0] / 100 * F, p[1] / 100 * R]; };
+  for (const [a, b] of arrows) {
+    const p = cell(a), q = cell(b); if (!p || !q) continue;
+    const len = Math.hypot(q[0] - p[0], q[1] - p[1]); if (!len) continue;
+    const ux = (q[0] - p[0]) / len, uy = (q[1] - p[1]) / len, sx = p[0] + ux * .3, sy = p[1] + uy * .3, ex = q[0] - ux * .42, ey = q[1] - uy * .42;
+    const line = document.createElementNS(NS, 'line');
+    Object.entries({ x1: sx, y1: sy, x2: ex, y2: ey, stroke: '#3f9a4a', 'stroke-width': .18, 'stroke-linecap': 'round', opacity: .85 }).forEach(([k, v]) => line.setAttribute(k, v));
+    const head = document.createElementNS(NS, 'polygon'), px = -uy, py = ux, hx = q[0] - ux * .12, hy = q[1] - uy * .12;
+    head.setAttribute('points', [[hx, hy], [ex - ux * .05 + px * .28, ey - uy * .05 + py * .28], [ex - ux * .05 - px * .28, ey - uy * .05 - py * .28]].map(v => v.join(',')).join(' '));
+    head.setAttribute('fill', '#3f9a4a'); head.setAttribute('opacity', .85);
+    svg.append(line, head);
+  }
+  return svg;
+}
+
+// end-of-game card for World Games
+function showWorldResult(cur, score, detail, review) {
+  const bot = cur.bot ? BOTS[cur.bot - 1] : null, m = worldMeta(cur.v);
+  const title = cur.local ? detail : score === 1 ? 'You win!' : score === .5 ? 'A draw' : `${bot.name} wins`;
+  modal((box, close) => box.append(
+    h('div', { class: 'center' }, cur.local ? badge('trophy', 'gold') : score === 1 ? badge('trophy', 'gold') : avatar(score === .5 ? myAvatar() : bot.avatar, 72)),
+    h('h2', { class: 'center' }, title), h('p', { class: 'center muted' }, cur.local ? m.name : detail),
+    !cur.local && score === 1 && cur.bot < 8 ? h('p', { class: 'center small' }, `Next up: ${BOTS[cur.bot].name}, level ${cur.bot + 1}`) : null,
+    h('div', { class: 'row' },
+      cur.moves.length >= 4 ? h('button', { class: 'btn grow', onclick: () => { close(); review(); } }, icon('search', 16), 'Review') : null,
+      h('button', { class: 'btn primary grow', onclick: () => { close(); startWorldGame(cur.v, { bot: !cur.local && score === 1 && cur.bot < 8 ? cur.bot + 1 : cur.bot, color: cur.color, local: cur.local }); } }, icon('repeat', 16), !cur.local && score === 1 && cur.bot < 8 ? 'Next level' : 'Play again'))));
 }
 
 ;
