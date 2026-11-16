@@ -115,6 +115,7 @@ const ACH_PROG = {
   rush10: (s, p) => [Math.max(0, ...Object.values(p.rushBest || {})), 10], rush20: (s, p) => [Math.max(0, ...Object.values(p.rushBest || {})), 20], rush30: (s, p) => [Math.max(0, ...Object.values(p.rushBest || {})), 30],
   daily3: (s, p) => [(p.daily || {}).best || 0, 3], daily7: (s, p) => [(p.daily || {}).best || 0, 7], daily30: (s, p) => [(p.daily || {}).best || 0, 30],
   review10: s => [s.reviews || 0, 10], level5: (s, p) => [levelInfo(p.xp || 0).lvl, 5], level10: (s, p) => [levelInfo(p.xp || 0).lvl, 10], level20: (s, p) => [levelInfo(p.xp || 0).lvl, 20],
+  login7: (s, p) => [(p.login || {}).best || 0, 7], login30: (s, p) => [(p.login || {}).best || 0, 30],
   world3: s => [Object.keys(s.worldPlayed || {}).length, 3], world6: s => [Object.keys(s.worldPlayed || {}).length, 6],
 };
 function achProgress(a) {
@@ -563,6 +564,6 @@ function presentResults(o) {
   for (const a of R.achs) items.push({ label: a.name, sub: `${TIER_NAME[a.tier]} trophy: ${a.desc}`, art: badge(a.icon, ['', 'bronze', 'silver', 'gold'][a.tier] === 'bronze' ? 'red' : ['', 'bronze', 'silver', 'gold'][a.tier] === 'silver' ? 'blue' : 'gold') });
   const after = fn => () => { if (items.length && typeof chestReveal === 'function') { const list = items.splice(0); chestReveal({ title: list.length > 1 ? 'Rewards!' : 'Reward!', items: list, onDone: () => { if (R.quests.length) { rewardQueue.push(...R.quests); R.quests = []; } fn && fn(); } }); } else { if (R.quests.length) { rewardQueue.push(...R.quests); R.quests = []; } fn && fn(); } };
   if (typeof resultsScreen !== 'function') { modal((box, close) => box.append(h('h2', { class: 'center' }, o.title), h('p', { class: 'center muted' }, o.subtitle || ''), R.xpGain ? h('p', { class: 'center' }, `+${R.xpGain} XP`) : null, h('div', { class: 'row' }, (o.buttons || []).map(b => h('button', { class: 'btn grow' + (b.primary ? ' primary' : ''), onclick: () => { close(); after(b.on)(); } }, b.label))))); return; }
-  return resultsScreen({ mood: o.mood || 'happy', title: o.title, subtitle: o.subtitle, stats: o.stats || [], stars: o.stars, xp: { from: R.xpFrom, to: R.xpTo, levelInfo },
+  return resultsScreen({ mood: o.mood || 'happy', title: o.title, subtitle: o.subtitle, stats: o.stats || [], stars: o.stars, xp: R.xpGain > 0 ? { from: R.xpFrom, to: R.xpTo, levelInfo } : null,
     buttons: (o.buttons || []).map(b => ({ label: b.label, primary: b.primary, on: after(b.on) })) });
 }

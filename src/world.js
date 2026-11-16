@@ -312,7 +312,7 @@ function renderWorldGame(main) {
     const score = cur.over.result === '1/2-1/2' ? .5 : (cur.over.result === '1-0') === (cur.color === 'w') ? 1 : 0;
     if (!cur.local && score === 1) { rec.wins++; rec.beat = rec.beat || {}; rec.beat[cur.bot] = 1; rec.best = Math.max(rec.best || 0, cur.bot); }
     saveProfile(); beep(score === 1 || cur.local ? 'win' : 'move'); if (score === 1 && !cur.local) { confetti(); haptic([10, 40, 10]); }
-    setTimeout(() => rewardEvent('worldGame', { variant: cur.v, score: cur.local ? null : score, level: cur.bot, local: cur.local, moves: cur.moves.length }), 900);
+    rewardEvent('worldGame', { variant: cur.v, score: cur.local ? null : score, level: cur.bot, local: cur.local, moves: cur.moves.length });
     const token = cur;
     setTimeout(() => { if (worldCur !== token || !worldView || !worldView.play) return; showWorldResult(cur, score, resultText(cur.over), () => worldReview(g, cur)); }, 1300);
   };
@@ -477,13 +477,8 @@ function worldArrows(vb, arrows) {
 
 // end-of-game card for World Games
 function showWorldResult(cur, score, detail, review) {
-  const bot = cur.bot ? BOTS[cur.bot - 1] : null, m = worldMeta(cur.v);
-  const title = cur.local ? detail : score === 1 ? 'You win!' : score === .5 ? 'A draw' : `${bot.name} wins`;
-  modal((box, close) => box.append(
-    h('div', { class: 'center' }, cur.local ? badge('trophy', 'gold') : score === 1 ? badge('trophy', 'gold') : avatar(score === .5 ? myAvatar() : bot.avatar, 72)),
-    h('h2', { class: 'center' }, title), h('p', { class: 'center muted' }, cur.local ? m.name : detail),
-    !cur.local && score === 1 && cur.bot < 8 ? h('p', { class: 'center small' }, `Next up: ${BOTS[cur.bot].name}, level ${cur.bot + 1}`) : null,
-    h('div', { class: 'row' },
-      cur.moves.length >= 4 ? h('button', { class: 'btn grow', onclick: () => { close(); review(); } }, icon('search', 16), 'Review') : null,
-      h('button', { class: 'btn primary grow', onclick: () => { close(); startWorldGame(cur.v, { bot: !cur.local && score === 1 && cur.bot < 8 ? cur.bot + 1 : cur.bot, color: cur.color, local: cur.local }); } }, icon('repeat', 16), !cur.local && score === 1 && cur.bot < 8 ? 'Next level' : 'Play again'))));
+  const bot = cur.bot ? BOTS[cur.bot - 1] : null, m = worldMeta(cur.v), nextLvl = !cur.local && score === 1 && cur.bot < 8;
+  presentResults({ mood: cur.local ? 'cheer' : score === 1 ? 'cheer' : score === .5 ? 'happy' : 'sad', title: cur.local ? detail : score === 1 ? 'You win!' : score === .5 ? 'A draw' : `${bot.name} wins`,
+    subtitle: cur.local ? tr(m.name) : (nextLvl ? `${detail}. Next up: ${BOTS[cur.bot].name}, level ${cur.bot + 1}` : detail), stats: [{ label: 'Moves', value: Math.ceil(cur.moves.length / 2) }],
+    buttons: [cur.moves.length >= 4 ? { label: 'Review', on: review } : null, { label: nextLvl ? 'Next level' : 'Play again', primary: true, on: () => startWorldGame(cur.v, { bot: nextLvl ? cur.bot + 1 : cur.bot, color: cur.color, local: cur.local }) }].filter(Boolean) });
 }

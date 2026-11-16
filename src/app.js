@@ -851,9 +851,12 @@ function renderLocalGame(main) {
     },
   });
   function showLocalEnd(s) {
-      setTimeout(() => { rewardEvent('localGame', { moves: (st.startFen && st.startFen !== START_FEN) ? null : g.moves.slice(), reason: s.reason }); if (st.startFen && st.startFen !== START_FEN) rewardEvent('game960'); }, 1500);
-      beep('win'); setTimeout(() => modal((box, close) => box.append(badge(s.result === '1/2-1/2' ? 'half' : 'trophy', s.result === '1/2-1/2' ? 'blue' : 'gold'), h('h2', { class: 'center' }, s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!'), h('p', { class: 'center muted' }, 'by ' + s.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400); 
+    rewardEvent('localGame', { moves: (st.startFen && st.startFen !== START_FEN) ? null : g.moves.slice(), reason: s.reason }); if (st.startFen && st.startFen !== START_FEN) rewardEvent('game960');
+    beep('win'); scr.board.burst('trophy');
+    setTimeout(() => presentResults({ mood: 'cheer', title: s.result === '1-0' ? 'White wins!' : s.result === '0-1' ? 'Black wins!' : 'Draw!', subtitle: `by ${s.reason}`, stats: [{ label: 'Moves', value: Math.ceil(g.moves.length / 2) }],
+      buttons: [{ label: 'Review', on: () => openReview({ startFen: st.startFen || START_FEN, moves: g.moves.slice(), white: 'White', black: 'Black' }) }, { label: 'New game', primary: true, on: () => newLocalGame() }] }), 700);
   }
+
   function buttons() {
     scr.setButtons([
       { ic: 'flip', label: 'Flip', on: () => scr.flip() },
@@ -871,6 +874,7 @@ function renderLocalGame(main) {
 const myId = (() => { try { let v = sessionStorage.getItem('kc-id'); if (!v) { v = Math.random().toString(36).slice(2, 10); sessionStorage.setItem('kc-id', v); } return v; } catch (e) { return Math.random().toString(36).slice(2, 10); } })();
 const ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
 let online = null; // {role, pc, dc, phase, code, state, ...}
+let onlineTab = 'host';
 const b64u = bytes => { let s = ''; bytes.forEach(b => s += String.fromCharCode(b)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
 const unb64u = str => { str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '='; const bin = atob(str); return Uint8Array.from(bin, c => c.charCodeAt(0)); };
 async function packCode(obj) {
@@ -984,23 +988,25 @@ async function guestJoin(inviteCode) {
 let pendingJoin = null;
 function renderOnline(main) {
   if (online && online.state && (online.phase === 'live' || online.phase === 'lost')) return renderOnlineGame(main);
-  main.append(h('div', { class: 'row' }, h('button', { class: 'btn sm', onclick: () => { leaveOnline(); friendView = 'menu'; render(); } }, icon('back', 18), 'Back'), h('h2', null, 'Play Online')));
+  main.append(h('div', { class: 'course-head' }, h('button', { class: 'icon-btn', 'aria-label': 'Back', onclick: () => { leaveOnline(); friendView = 'menu'; navDir = 'back'; render(); } }, icon('back', 20)), h('div', { class: 'grow' }, h('h2', null, 'Invite a Friend'), h('small', null, 'Two phones, one game, no account needed'))));
   if (!window.RTCPeerConnection) { main.append(h('div', { class: 'card' }, 'This browser does not support peer-to-peer connections. Try Chrome, Safari or Firefox.')); return; }
   const card = h('div', { class: 'card stack' }); main.append(card);
   const ph = online && online.phase;
   if (!online) {
     let color = 'r';
     const seg = h('div', { class: 'seg' });
-    const drawSeg = () => { seg.innerHTML = ''; [['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; drawSeg(); } }, l))); };
+    const drawSeg = () => { seg.innerHTML = ''; [['w', [pieceImg('wk'), ' White']], ['r', [icon('dice', 16), ' Random']], ['b', [pieceImg('bk'), ' Black']]].forEach(([v, l]) => seg.append(h('button', { class: color === v ? 'on' : '', onclick: () => { color = v; beep('toggle'); drawSeg(); } }, l))); };
     drawSeg();
     const inp = h('textarea', { class: 'input', rows: 3, placeholder: 'Paste the invite link or code here' });
-    if (pendingJoin) { inp.value = pendingJoin; }
+    if (pendingJoin) { inp.value = pendingJoin; onlineTab = 'join'; }
     const tcSel = { tc: '0+0' };
-    card.append(h('h3', null, '1. Host a game'), h('div', { class: 'small muted' }, 'You play as:'), seg, h('div', { class: 'small muted' }, 'Time control:'), tcPicker(tcSel),
-      h('button', { class: 'btn primary block', onclick: () => hostCreate(color, tcSel.tc) }, icon('sparkle', 18), 'Create invite'));
-    main.append(h('div', { class: 'card stack' }, h('h3', null, '2. Or join a friend'), inp,
-      h('button', { class: 'btn block', onclick: () => { const v = inp.value.trim(); if (!v) return toast('Paste the invite first'); pendingJoin = null; guestJoin(v); } }, 'Join game')),
-      h('p', { class: 'small muted' }, 'How it works: the host sends an invite link. The friend opens it and sends back a reply code. Once the host pastes that code in, the two devices connect directly, with no server in between.'));
+    const tabs = h('div', { class: 'seg' }); [['host', [icon('sparkle', 16), ' Host a game']], ['join', [icon('link', 16), ' Join a friend']]].forEach(([v, l]) => tabs.append(h('button', { class: onlineTab === v ? 'on' : '', onclick: () => { onlineTab = v; beep('toggle'); render(); } }, l)));
+    card.remove(); main.append(tabs);
+    const steps = h('div', { class: 'p2p-steps' }, [['1', 'Host makes an invite link'], ['2', 'Friend opens it and sends a reply code'], ['3', 'Host pastes the reply: play!']].map(([n, t]) => h('div', { class: 'p2p-step' }, h('b', null, n), h('span', null, t))));
+    if (onlineTab === 'host') main.append(h('div', { class: 'card setup2' }, h('div', { class: 'srow' }, h('span', { class: 'lbl' }, 'Play as'), seg), h('div', { class: 'srow col' }, h('span', { class: 'lbl' }, 'Clock'), tcPicker(tcSel)),
+      h('button', { class: 'play-big', onclick: () => { beep('confirm'); hostCreate(color, tcSel.tc); } }, icon('sparkle', 20), h('span', null, 'Create invite'))), steps);
+    else main.append(h('div', { class: 'card stack' }, h('b', null, 'Paste the invite from your friend'), inp,
+      h('button', { class: 'play-big', onclick: () => { const v = inp.value.trim(); if (!v) return toast('Paste the invite first'); pendingJoin = null; beep('confirm'); guestJoin(v); } }, icon('link', 20), h('span', null, 'Join game'))), steps);
     return;
   }
   if (ph === 'making' || ph === 'connecting') { card.append(h('div', { class: 'center' }, icon('hourglass', 18), ' ', ph === 'making' ? 'Preparing connection…' : 'Connecting to your friend…')); }
@@ -1080,11 +1086,11 @@ function renderOnlineGame(main) {
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
     const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
     const rc = rateOnline(o.state, oppInfo, score);
-    if (o.state.moves.length >= 4) setTimeout(() => rewardEvent('localGame', { moves: o.state.moves.slice(), reason: o.state.result.reason }), 1800);
-    if (win) { beep('win'); scr.board.burst('trophy'); }
-    setTimeout(() => modal((box, close) => box.append(badge(r.result === '1/2-1/2' ? 'half' : win ? 'trophy' : 'shield', r.result === '1/2-1/2' ? 'blue' : win ? 'gold' : 'red'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
-      rc ? h('p', { class: 'center' }, icon('globe', 16), ' Online rating ', h('b', null, rc.before), ' ', icon('arrowRight', 16), ' ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Friendly game: no rating change.'),
-      h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
+    if (o.state.moves.length >= 4) rewardEvent('localGame', { moves: o.state.moves.slice(), reason: o.state.result.reason });
+    if (win) { beep('win'); scr.board.burst('trophy'); } else beep(score === .5 ? 'draw' : 'lose');
+    void rc;
+    setTimeout(() => presentResults({ mood: win ? 'cheer' : score === .5 ? 'happy' : 'sad', title: r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!', subtitle: `by ${r.reason}. Friendly game: no rating change.`,
+      buttons: [{ label: 'Review', on: () => openReview({ moves: o.state.moves.slice(), color: myColor, white: o.state.white.name, black: o.state.black.name }) }, { label: 'OK', primary: true, on: () => { } }] }), 600);
   }
   o.onState = (prevLen) => {
     if (prevLen === -2) { render(); return; } // seats changed

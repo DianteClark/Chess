@@ -155,3 +155,6 @@
 .wt-makruk{background:linear-gradient(170deg,#6a3a7a,#41204e)}
 .wt-sittuyin{background:linear-gradient(170deg,#2f6b55,#1a4537)}
 .wt-shatranj{background:linear-gradient(170deg,#7a6a2a,#4e4216)}
+.p2p-steps{display:flex;flex-direction:column;gap:6px;padding:4px 4px}
+.p2p-step{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}
+.p2p-step b{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.25);color:var(--brass-light);font-family:var(--display);font-weight:400;flex:none}
