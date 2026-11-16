@@ -1320,18 +1320,37 @@ function glicko2(pl, games) {
   const muNew = mu + phiNew * phiNew * dSum;
   return { r: Math.max(100, Math.round((muNew * S + 1500) * 10) / 10), rd: Math.max(45, Math.min(350, phiNew * S)), vol: sig2 };
 }
+// ---- Bot League ladder: Elo with small K so no game moves you more than 40 (placement) / 20 points ----
+const LEAGUES = [[0, 'Pawn League', 'p'], [600, 'Knight League', 'n'], [900, 'Bishop League', 'b'], [1200, 'Rook League', 'r'], [1500, 'Queen League', 'q'], [1800, 'King League', 'k']];
+const PLACEMENT_GAMES = 10;
+function leagueOf(r) {
+  let i = 0; LEAGUES.forEach((L, j) => { if (r >= L[0]) i = j; });
+  const L = LEAGUES[i], next = LEAGUES[i + 1];
+  return { i, name: L[1], piece: L[2], min: L[0], next: next ? next[0] : null, nextName: next ? next[1] : null, pct: next ? Math.max(0, Math.min(1, (r - L[0]) / (next[0] - L[0]))) : 1 };
+}
+const ladderK = lad => lad.games < PLACEMENT_GAMES ? 40 : 20;
+function eloDelta(r, opp, score, K) { const e = 1 / (1 + Math.pow(10, (opp - r) / 400)); return Math.round(K * (score - e)); }
+const leagueIcon = (r, size = 18) => h('img', { src: PIECE_URL['w' + leagueOf(r).piece], style: { width: size + 'px', height: size + 'px', verticalAlign: '-3px' } });
+// Glicko-2 with a hard cap on how far one result can move you
+function cappedGlicko(cur, opp, score, capProv, capEst) {
+  const nr = glicko2(cur, [{ r: opp.r, rd: opp.rd, s: score }]);
+  const cap = cur.rd > 110 ? capProv : capEst;
+  nr.r = Math.max(cur.r - cap, Math.min(cur.r + cap, nr.r));
+  nr.games = (cur.games || 0) + 1;
+  return nr;
+}
 const BANDS = [[0, 'Beginner', '🌱'], [600, 'Novice', '🐣'], [1000, 'Intermediate', '🦊'], [1400, 'Club player', '🦉'], [1800, 'Expert', '🧙'], [2200, 'Master level', '👑']];
 const band = r => { let b = BANDS[0]; for (const x of BANDS) if (r >= x[0]) b = x; return b; };
 const fmtR = rt => Math.round(rt.r) + (rt.rd > 110 ? '?' : '');
 
 // ======================= PROFILE STORAGE =======================
-const DEFAULT_PROFILE = () => ({ name: '', rating: { r: 800, rd: 350, vol: 0.06 }, puzzle: { r: 800, rd: 350, vol: 0.06 }, games: [], rHist: [800], pHist: [800], tried: {}, lessons: {}, current: null, sound: true, streak: 0, best: 0, updated: 0 });
+const DEFAULT_PROFILE = () => ({ name: '', v: 2, ladder: { r: 800, games: 0, peak: 800 }, human: { r: 800, rd: 250, vol: 0.06, games: 0 }, puzzle: { r: 800, rd: 200, vol: 0.06, games: 0 }, games: [], rHist: [800], hHist: [800], pHist: [800], rated: {}, tried: {}, lessons: {}, current: null, sound: true, streak: 0, best: 0, updated: 0 });
 let profile = DEFAULT_PROFILE();
 function loadLocal() { try { const s = localStorage.getItem('kc-profile'); if (s) return JSON.parse(s); } catch (e) { } return null; }
 function saveProfile() { profile.updated = Date.now(); try { localStorage.setItem('kc-profile', JSON.stringify(profile)); } catch (e) { } refreshChip(); }
 function refreshChip() {
   const c = document.getElementById('rchip'); if (!c) return;
-  c.innerHTML = ''; c.append(band(profile.rating.r)[2] + ' ' + fmtR(profile.rating), h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)));
+  c.innerHTML = ''; c.append(leagueIcon(profile.ladder.r), ' ' + profile.ladder.r, h('small', null, ' · 🧩 ' + fmtR(profile.puzzle)));
 }
 
 // ======================= DATA =======================
@@ -1453,21 +1472,26 @@ function playSound(res) { if (!res) return; beep(res.check ? 'check' : res.cap ?
 let playSel = { bot: 0, color: 'w', rated: true };
 function renderPlay(main) {
   if (profile.current && profile.current.mode === 'bot') return renderBotGame(main);
-  const r = profile.rating;
+  const r = { r: profile.ladder.r };
   // suggest the bot closest to the player's rating
   if (playSel.bot === null || playSel.auto !== true) { let best = 0; BOTS.forEach((b, i) => { if (Math.abs(b.rating - r.r) < Math.abs(BOTS[best].rating - r.r)) best = i; }); playSel.bot = best; playSel.auto = true; }
   const grid = h('div', { class: 'bots' });
   const playBtn = h('button', { class: 'btn primary block', onclick: () => startBotGame() });
-  const drawGrid = () => { playBtn.textContent = '▶  Play ' + BOTS[playSel.bot].name; grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, b.avatar), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, '★ ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
+  const stakes = h('div', { class: 'small muted center' });
+  const drawStakes = () => {
+    const L = profile.ladder, K = ladderK(L), br = BOTS[playSel.bot].rating, f = d => (d >= 0 ? '+' : '') + d;
+    stakes.textContent = playSel.rated ? `Win ${f(eloDelta(L.r, br, 1, K))} · Draw ${f(eloDelta(L.r, br, .5, K))} · Loss ${f(eloDelta(L.r, br, 0, K))}` + (L.games < PLACEMENT_GAMES ? `  (placement game ${L.games + 1}/${PLACEMENT_GAMES})` : '') : 'Casual: your rating will not change';
+  };
+  const drawGrid = () => { playBtn.textContent = '▶  Play ' + BOTS[playSel.bot].name; drawStakes(); grid.innerHTML = ''; BOTS.forEach((b, i) => grid.append(h('button', { class: 'bot' + (playSel.bot === i ? ' on' : ''), onclick: () => { playSel.bot = i; drawGrid(); } }, h('div', { class: 'av' }, b.avatar), h('div', { class: 'nm' }, b.name), h('div', { class: 'rt' }, '★ ' + b.rating), h('div', { class: 'bl' }, b.blurb)))); };
   drawGrid();
-  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); } }, l))); }; d(); return el; };
+  const seg = (opts, key) => { const el = h('div', { class: 'seg' }); const d = () => { el.innerHTML = ''; opts.forEach(([v, l]) => el.append(h('button', { class: playSel[key] === v ? 'on' : '', onclick: () => { playSel[key] = v; d(); drawStakes(); } }, l))); }; d(); return el; };
   main.append(
-    h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, `Your rating: ${fmtR(r)} (${band(r.r)[1]}). The highlighted bot is your best match.`)),
+    h('div', null, h('h2', null, 'Choose your opponent'), h('p', { class: 'muted small', style: { margin: '4px 0 0' } }, leagueIcon(r.r, 16), ` ${leagueOf(r.r).name} · ${r.r}. The highlighted bot is your best match.`)),
     grid,
     h('div', { class: 'card stack' },
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'PLAY AS'), seg([['w', '♔ White'], ['r', '🎲 Random'], ['b', '♚ Black']], 'color')),
       h('div', null, h('div', { class: 'small muted', style: { marginBottom: '6px', fontWeight: 800 } }, 'MODE'), seg([[true, '🏆 Rated'], [false, '🧸 Casual (undo + hints)']], 'rated')),
-      playBtn));
+      playBtn, stakes));
 }
 function startBotGame(botIdx = playSel.bot, color = playSel.color, rated = playSel.rated) {
   const c = color === 'r' ? (rand() < .5 ? 'w' : 'b') : color;
@@ -1479,7 +1503,7 @@ function renderBotGame(main) {
   const g = new Game(START_FEN, cur.moves);
   let thinking = false, alive = true;
   cleanups.push(() => { alive = false; });
-  const you = { name: profile.name || 'You', rating: fmtR(profile.rating), avatar: '🙂' };
+  const you = { name: profile.name || 'You', rating: profile.ladder.r, avatar: '🙂' };
   const them = { name: bot.name, rating: bot.rating, avatar: bot.avatar };
   const scr = gameScreen(main, {
     game: g, orient: cur.color, players: cur.color === 'w' ? { w: you, b: them } : { w: them, b: you },
@@ -1544,26 +1568,33 @@ function renderBotGame(main) {
     cur.result = { result, reason };
     const youWhite = cur.color === 'w';
     const score = result === '1/2-1/2' ? 0.5 : ((result === '1-0') === youWhite ? 1 : 0);
-    let before = profile.rating.r, after = before, counted = false;
+    const L = profile.ladder;
+    let before = L.r, after = before, counted = false, promo = null;
     if (cur.rated && g.moves.length >= 2) {
-      const nr = glicko2(profile.rating, [{ r: bot.rating, rd: 60, s: score }]);
-      profile.rating = nr; after = nr.r; counted = true;
-      profile.rHist.push(Math.round(nr.r)); if (profile.rHist.length > 200) profile.rHist.shift();
+      const oldLeague = leagueOf(L.r);
+      const d = eloDelta(L.r, bot.rating, score, ladderK(L));
+      L.r = Math.max(100, L.r + d); L.games++; L.peak = Math.max(L.peak || 0, L.r);
+      after = L.r; counted = true;
+      const nl = leagueOf(L.r);
+      if (nl.i !== oldLeague.i) promo = { up: nl.i > oldLeague.i, name: nl.name, piece: nl.piece };
+      profile.rHist.push(L.r); if (profile.rHist.length > 200) profile.rHist.shift();
     }
     profile.games.unshift({ t: Date.now(), opp: bot.name, oppR: bot.rating, color: cur.color, score, reason, rated: counted, before: Math.round(before), after: Math.round(after), pgn: g.pgnMoves() });
     profile.games = profile.games.slice(0, 50);
     saveProfile();
     buttons(); scr.refresh();
     if (score === 1) { beep('win'); scr.board.burst('🏆'); }
-    setTimeout(() => showResult(score, reason, counted, before, after), score === 1 ? 600 : 250);
+    setTimeout(() => showResult(score, reason, counted, before, after, promo), score === 1 ? 600 : 250);
   }
-  function showResult(score, reason, counted, before, after) {
+  function showResult(score, reason, counted, before, after, promo) {
     const d = Math.round(after) - Math.round(before);
     modal((box, close) => box.append(
       h('div', { class: 'big-emoji' }, score === 1 ? '🏆' : score === 0.5 ? '🤝' : '💪'),
       h('h2', { class: 'center' }, score === 1 ? 'You win!' : score === 0.5 ? 'Draw!' : bot.name + ' wins'),
       h('p', { class: 'center muted' }, 'by ' + reason),
-      counted ? h('p', { class: 'center' }, 'Rating ', h('b', null, Math.round(before)), ' → ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
+      counted ? h('p', { class: 'center' }, leagueIcon(after), ' ', h('b', null, Math.round(before)), ' → ', h('b', null, Math.round(after)), ' ', h('span', { class: 'delta ' + (d >= 0 ? 'up' : 'down') }, (d >= 0 ? '+' : '') + d)) : h('p', { class: 'center muted small' }, cur.rated ? 'Too short to be rated.' : 'Casual game: rating unchanged.'),
+      counted && d === 0 && score === 1 ? h('p', { class: 'center small muted' }, 'This bot is far below your level, so wins no longer count. Try a stronger bot!') : null,
+      promo ? h('div', { class: 'banner ' + (promo.up ? 'good' : 'bad'), style: { justifyContent: 'center' } }, h('img', { src: PIECE_URL['w' + promo.piece], style: { width: '28px' } }), promo.up ? `Promoted to the ${promo.name}!` : `Moved down to the ${promo.name}. You'll climb back!`) : null,
       score === 0 ? h('p', { class: 'center small muted' }, 'Tip: tap the moves above to replay the game and spot the turning point.') : null,
       h('div', { class: 'row', style: { marginTop: '12px' } },
         h('button', { class: 'btn grow', onclick: close }, 'Review'),
@@ -1582,7 +1613,7 @@ function renderFriend(main) {
     h('h2', null, 'Play with a friend'),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'local'; render(); } }, h('div', { class: 'ic' }, '📱'), h('div', null, h('div', { class: 't' }, 'Pass & Play'), h('div', { class: 'd' }, 'Two players, one device. Take turns!')), h('span', { class: 'ck' }, '›')),
     h('button', { class: 'card lesson', onclick: () => { friendView = 'online'; render(); } }, h('div', { class: 'ic' }, '🌐'), h('div', null, h('div', { class: 't' }, 'Play Online'), h('div', { class: 'd' }, 'Each player on their own device, with a game code.')), h('span', { class: 'ck' }, '›')),
-    h('p', { class: 'small muted' }, 'Friend games are unrated, so you can play just for fun.'));
+    h('p', { class: 'small muted' }, `Online games count toward your 🌐 Online rating (${fmtR(profile.human)}), which is separate from your Bot League rating. Pass & Play is just for fun.`));
 }
 function renderLocalGame(main) {
   const st = profile.localGame || (profile.localGame = { moves: [], autoFlip: true });
@@ -1648,14 +1679,14 @@ function wireChannel(dc) {
   dc.onopen = () => {
     online.phase = 'live'; online.connected = true;
     if (online.role === 'host') {
-      const me = { id: myId, name: profile.name || 'Host' };
+      const me = { id: myId, name: profile.name || 'Host', r: Math.round(profile.human.r), rd: Math.round(profile.human.rd) };
       if (!online.state) {
         const hostWhite = online.wantColor === 'w' ? true : online.wantColor === 'b' ? false : rand() < .5;
         const gu = { id: online.guestId || 'guest', name: online.guestName || 'Friend' };
         online.state = { v: 1, white: hostWhite ? me : gu, black: hostWhite ? gu : me, moves: [], result: null, drawOffer: null, rematch: null };
       }
       sendState();
-    } else sendRaw({ t: 'hi', id: myId, name: profile.name || 'Friend' });
+    } else sendRaw({ t: 'hi', id: myId, name: profile.name || 'Friend', r: Math.round(profile.human.r), rd: Math.round(profile.human.rd) });
     clearInterval(online.timer);
     online.timer = setInterval(sendState, 5000);
     if (route === 'friend') render();
@@ -1670,7 +1701,7 @@ function onPeerMessage(d) {
   if (d.t === 'hi' && online.role === 'host') {
     // guest introduces itself: fix up its id/name in the seat it was given
     const st = online.state;
-    for (const k of ['white', 'black']) if (st[k] && st[k].id !== myId) { st[k] = { id: d.id, name: d.name || 'Friend' }; }
+    for (const k of ['white', 'black']) if (st[k] && st[k].id !== myId) { st[k] = { id: d.id, name: d.name || 'Friend', r: d.r, rd: d.rd }; }
     st.v++; sendState(); if (online.onState) online.onState(-2); return;
   }
   if (d.t !== 'state' || typeof d.v !== 'number' || !Array.isArray(d.moves)) return;
@@ -1768,6 +1799,24 @@ function renderOnline(main) {
       h('button', { class: 'btn primary block', onclick: () => { leaveOnline(); render(); } }, 'Start over'));
   }
 }
+// Online (human) rating: Glicko-2, capped at ±50 per game while provisional, ±30 after.
+// Each game is rated once, and only if at least 4 moves were played.
+function rateOnline(st, opp, score) {
+  if (!opp || st.moves.length < 4) return null;
+  const key = [st.white.id, st.black.id, st.moves.join('')].join('|');
+  profile.ratedKeys = profile.ratedKeys || [];
+  if (profile.ratedKeys.includes(key)) return null;
+  profile.ratedKeys.push(key); if (profile.ratedKeys.length > 100) profile.ratedKeys.shift();
+  const clamp = (v, a, b, d) => (typeof v === 'number' && isFinite(v)) ? Math.max(a, Math.min(b, v)) : d; // opponent data is untrusted
+  const before = Math.round(profile.human.r);
+  profile.human = cappedGlicko(profile.human, { r: clamp(opp.r, 100, 3000, 800), rd: clamp(opp.rd, 50, 350, 250) }, score, 50, 30);
+  const after = Math.round(profile.human.r);
+  profile.hHist.push(after); if (profile.hHist.length > 200) profile.hHist.shift();
+  profile.games.unshift({ t: Date.now(), opp: (opp.name || 'Friend') + ' 🌐', score, reason: st.result.reason, rated: true, before, after, online: true });
+  profile.games = profile.games.slice(0, 50);
+  saveProfile();
+  return { before, after };
+}
 async function shareOrCopy(text, title) {
   if (navigator.share) { try { await navigator.share({ title, text: title + ' ' + text }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
   copyText(text);
@@ -1782,7 +1831,7 @@ function renderOnlineGame(main) {
   setLive();
   main.append(h('div', { class: 'row' }, live, h('span', { class: 'grow' })));
   const scr = gameScreen(main, {
-    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: '🧑' }, mine = { name: 'You', avatar: '🙂' }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
+    game: g, orient: myColor || 'w', players: (() => { const opp = { name: (oppInfo && oppInfo.name) || 'Friend', avatar: '🧑', rating: oppInfo && oppInfo.r ? Math.round(oppInfo.r) : null }, mine = { name: 'You', avatar: '🙂', rating: fmtR(profile.human) }; return myColor === 'b' ? { w: opp, b: mine } : { w: mine, b: opp }; })(),
     canMove: turn => o.connected && !o.state.result && turn === myColor,
     onUserMove: (uci, dragged) => {
       const res = g.play(uci); if (!res) return; playSound(res);
@@ -1796,8 +1845,12 @@ function renderOnlineGame(main) {
   function checkOver() {
     const r = o.state.result; if (!r || shownOver) return; shownOver = true;
     const win = (r.result === '1-0' && myColor === 'w') || (r.result === '0-1' && myColor === 'b');
+    const score = r.result === '1/2-1/2' ? .5 : win ? 1 : 0;
+    const rc = rateOnline(o.state, oppInfo, score);
     if (win) { beep('win'); scr.board.burst('🏆'); }
-    setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, r.result === '1/2-1/2' ? '🤝' : win ? '🏆' : '💪'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason), h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
+    setTimeout(() => modal((box, close) => box.append(h('div', { class: 'big-emoji' }, r.result === '1/2-1/2' ? '🤝' : win ? '🏆' : '💪'), h('h2', { class: 'center' }, r.result === '1/2-1/2' ? 'Draw!' : win ? 'You win!' : 'Your friend wins!'), h('p', { class: 'center muted' }, 'by ' + r.reason),
+      rc ? h('p', { class: 'center' }, '🌐 Online rating ', h('b', null, rc.before), ' → ', h('b', null, rc.after), ' ', h('span', { class: 'delta ' + (rc.after >= rc.before ? 'up' : 'down') }, (rc.after >= rc.before ? '+' : '') + (rc.after - rc.before))) : h('p', { class: 'center small muted' }, 'Too short to be rated.'),
+      h('button', { class: 'btn primary block', onclick: close }, 'OK'))), 400);
   }
   o.onState = (prevLen) => {
     if (prevLen === -2) { render(); return; } // seats changed
@@ -1877,7 +1930,7 @@ function renderPuzzles(main) {
     if (!ps.rated) return null;
     ps.rated = false;
     const before = profile.puzzle.r;
-    profile.puzzle = glicko2(profile.puzzle, [{ r: p.rating, rd: 80, s: success ? 1 : 0 }]);
+    profile.puzzle = cappedGlicko(profile.puzzle, { r: p.rating, rd: 80 }, success ? 1 : 0, 30, 15);
     profile.pHist.push(Math.round(profile.puzzle.r)); if (profile.pHist.length > 300) profile.pHist.shift();
     profile.tried[p.id] = success ? 1 : 2;
     profile.streak = success ? profile.streak + 1 : 0; profile.best = Math.max(profile.best, profile.streak);
@@ -2056,32 +2109,55 @@ function sparkline(arr, color) {
   return el;
 }
 function renderMe(main) {
-  const r = profile.rating, pr = profile.puzzle, b = band(r.r);
+  const L = profile.ladder, lg = leagueOf(L.r), hu = profile.human, pr = profile.puzzle;
   const nameInp = h('input', { class: 'input', placeholder: 'Your name', value: profile.name, maxlength: 20, onchange: e => { profile.name = e.target.value.trim(); saveProfile(); } });
-  const w = profile.games.filter(g => g.score === 1).length, l = profile.games.filter(g => g.score === 0).length, d = profile.games.filter(g => g.score === 0.5).length;
+  const botGames = profile.games.filter(g => !g.online);
+  const w = botGames.filter(g => g.score === 1).length, l = botGames.filter(g => g.score === 0).length, d = botGames.filter(g => g.score === 0.5).length;
   main.append(h('div', { class: 'card stack' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, 'YOUR NAME'), nameInp));
+  // Bot League card with progress to the next league
+  const bar = h('div', { style: { height: '10px', borderRadius: '6px', background: 'var(--bg2)', overflow: 'hidden', margin: '8px 0 4px' } }, h('div', { style: { height: '100%', width: Math.round(lg.pct * 100) + '%', background: 'linear-gradient(90deg,#ffc56b,#ff9f43)' } }));
+  main.append(h('div', { class: 'card' },
+    h('div', { class: 'row' }, h('img', { src: PIECE_URL['w' + lg.piece], style: { width: '52px', height: '52px', background: 'var(--light)', borderRadius: '14px', padding: '4px' } }),
+      h('div', { class: 'grow' }, h('div', { class: 'small muted', style: { fontWeight: 800 } }, '♞ BOT LEAGUE'), h('div', { style: { fontSize: '22px', fontWeight: 900 } }, lg.name), h('div', { class: 'small muted' }, L.games < PLACEMENT_GAMES ? `Placement: ${L.games}/${PLACEMENT_GAMES} games` : `${L.games} rated games · peak ${L.peak}`)),
+      h('div', { style: { fontSize: '30px', fontWeight: 900 } }, L.r)),
+    bar, h('div', { class: 'small muted' }, lg.next ? `${lg.next - L.r} points to the ${lg.nextName}` : 'Top league reached! 👑'),
+    sparkline(profile.rHist, '#ffb547'), h('div', { class: 'small muted', style: { textAlign: 'right' } }, `${w}W · ${l}L · ${d}D`)));
   main.append(h('div', { class: 'stats' },
-    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '♞ Game rating'), h('div', { class: 'v' }, fmtR(r)), h('div', { class: 'l' }, b[2] + ' ' + b[1] + (r.rd > 110 ? ' · provisional' : ` · ±${Math.round(r.rd * 2)}`))),
+    h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🌐 Online rating'), h('div', { class: 'v' }, fmtR(hu)), h('div', { class: 'l' }, (hu.games || 0) ? `${hu.games} games` + (hu.rd > 110 ? ' · provisional' : '') : 'Play online to start')),
     h('div', { class: 'card stat' }, h('div', { class: 'l' }, '🧩 Puzzle rating'), h('div', { class: 'v' }, fmtR(pr)), h('div', { class: 'l' }, `Best streak ${profile.best} 🔥`))));
-  main.append(h('div', { class: 'card' }, h('div', { class: 'row small' }, h('b', { class: 'grow' }, 'Game rating history'), h('span', { class: 'muted' }, `${w}W · ${l}L · ${d}D`)), sparkline(profile.rHist, '#ffb547')));
+  if ((hu.games || 0) > 0) main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Online rating history')), sparkline(profile.hHist, '#4fd18b')));
   main.append(h('div', { class: 'card' }, h('div', { class: 'small' }, h('b', null, 'Puzzle rating history')), sparkline(profile.pHist, '#6fb3ff')));
   if (profile.games.length) main.append(h('div', { class: 'card' }, h('b', null, 'Recent games'), h('table', { class: 'tbl' }, profile.games.slice(0, 8).map(g => h('tr', null, h('td', null, g.score === 1 ? '🏆' : g.score === 0.5 ? '🤝' : '❌'), h('td', null, 'vs ' + g.opp, h('div', { class: 'small muted' }, g.reason)), h('td', null, g.rated ? (g.after - g.before >= 0 ? '+' : '') + (g.after - g.before) : 'casual'))))));
-  // rating scale explanation
   main.append(h('div', { class: 'card stack' },
     h('h3', null, 'How ratings work'),
-    h('p', { class: 'small muted', style: { margin: 0 } }, `Your rating uses Glicko-2, a system many chess sites use. You start at 800 with a "?" mark while it's provisional. Each rated game moves your rating based on who you played: beating a stronger bot gains more points than beating a weaker one. Your rating becomes steady after about 10–15 games.`),
-    h('p', { class: 'small muted', style: { margin: 0 } }, `The bot ratings were measured, not guessed: the bots played ${CALIB.games} games against each other, and their ratings were fitted from the results. Pip is pinned at ${BOTS[0].rating} as the starting point. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, 'You have three separate ratings. '), 'Bots, people and puzzles are different skills, so each one is tracked on its own.'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '♞ Bot League: '), `climb from the Pawn League to the King League by beating bots. It uses the Elo system with strict limits: one game moves you at most ${40} points during your first ${PLACEMENT_GAMES} placement games, then at most 20. Beating a bot far below your level earns almost nothing, so climbing takes real wins against strong bots.`),
+    h('table', { class: 'tbl' }, LEAGUES.map((x, i) => h('tr', null, h('td', null, h('img', { src: PIECE_URL['w' + x[2]], style: { width: '18px', verticalAlign: '-3px' } }), ' ' + x[1]), h('td', null, i < LEAGUES.length - 1 ? `${x[0]}–${LEAGUES[i + 1][0] - 1}` : `${x[0]}+`)))),
+    h('p', { class: 'small muted', style: { margin: 0 } }, `The bots' ratings were measured, not guessed: they played ${CALIB.games} games against each other, and their ratings were fitted from the results. These numbers compare fairly inside Knight Club, but they're estimates, not official FIDE or chess.com ratings.`),
     h('table', { class: 'tbl' }, BOTS.map(bt => h('tr', null, h('td', null, bt.avatar + ' ' + bt.name), h('td', null, bt.rating)))),
-    h('table', { class: 'tbl' }, BANDS.map((x, i) => h('tr', null, h('td', null, x[2] + ' ' + x[1]), h('td', null, i < BANDS.length - 1 ? `${x[0]}–${BANDS[i + 1][0] - 1}` : `${x[0]}+`)))),
-    h('p', { class: 'small muted', style: { margin: 0 } }, `Puzzle ratings use the same Glicko-2 system. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are. Your puzzle rating only changes on your first try at each puzzle.`)));
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '🌐 Online rating: '), 'for games against real people. It uses Glicko-2, a system many chess sites use, and moves at most 50 points per game while it is provisional ("?"), then at most 30. Games shorter than 4 moves are not rated.'),
+    h('p', { class: 'small muted', style: { margin: 0 } }, h('b', null, '🧩 Puzzle rating: '), "also Glicko-2, moving at most 30 points per puzzle while provisional, then 15. Only your first try at each puzzle counts. Each puzzle's difficulty is estimated from how long the engine has to search to find the answer and how many tempting wrong moves there are.")));
   main.append(h('div', { class: 'card row' }, h('div', { class: 'grow' }, h('b', null, 'Sound effects')), h('button', { class: 'btn sm', onclick: () => { soundOn = !soundOn; profile.sound = soundOn; saveProfile(); render(); } }, soundOn ? '🔊 On' : '🔇 Off')));
   main.append(h('button', { class: 'btn ghost block small', onclick: () => confirmBox('Reset everything?', 'This erases your ratings, games, puzzles and lessons.', 'Reset', () => { profile = DEFAULT_PROFILE(); saveProfile(); render(); }) }, 'Reset progress'));
   main.append(h('p', { class: 'small muted center' }, '💾 Your progress is saved in this browser on this device.'));
 }
 
+// older saves had one Glicko "rating" for bots; move it onto the new ladder
+function migrate(p) {
+  if (!p.v || p.v < 2) {
+    if (p.rating) p.ladder = { r: Math.max(100, Math.min(3000, Math.round(p.rating.r))), games: p.games.filter(g => g.rated).length, peak: Math.round(p.rating.r) };
+    delete p.rating;
+    p.puzzle.rd = Math.min(p.puzzle.rd, 200); p.puzzle.games = p.puzzle.games || 0;
+    p.v = 2;
+  }
+  p.human = p.human || { r: 800, rd: 250, vol: 0.06, games: 0 }; p.hHist = p.hHist || [800]; p.rated = p.rated || {};
+  return p;
+}
+
 // ======================= BOOT =======================
 function boot() {
-  const saved = loadLocal(); if (saved) profile = Object.assign(DEFAULT_PROFILE(), saved);
+  const saved = loadLocal();
+  if (saved) { const wasOld = !saved.v; profile = Object.assign(DEFAULT_PROFILE(), saved); if (wasOld) profile.v = 1; profile = migrate(profile); }
   soundOn = profile.sound !== false;
   buildTabs();
   const hr = (location.hash || '').slice(1); if (ROUTES[hr]) route = hr;
