@@ -45,6 +45,16 @@ data/                   calibration results, puzzle set
 tools/                  build, tests and data generators (Node.js, no npm packages)
 ```
 
+## License
+
+Knight Club is free software under the **GNU General Public License v3.0** (see `LICENSE`).
+You may use, copy, change and share it, as long as you keep it open under the same license.
+
+## Online lobby (Cloudflare)
+
+`lobby/` holds a tiny Cloudflare Worker that Cloudflare deploys automatically from this repo.
+Right now it only answers a health check. In Phase 3 it will list open games and set up connections, while the games themselves stay peer-to-peer.
+
 ## Developing
 
 ```bash

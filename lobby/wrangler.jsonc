@@ -1,0 +1,7 @@
+{
+  // Knight Club lobby server (Cloudflare Workers, free plan).
+  // Deployed automatically by Cloudflare Workers Builds from the /lobby folder of this repo.
+  "name": "knightclub-lobby",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01"
+}
